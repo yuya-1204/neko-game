@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>ネコと ピアノの れんしゅう</title>
-<!-- v1.0 -->
+<!-- v1.1 -->
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{min-height:100%}
@@ -42,7 +42,7 @@ header h1{font-size:15px;color:#fff;text-shadow:0 1px 2px #0004;flex:1;white-spa
   background:#fffdf5;border:3px solid #d8d0f0;border-radius:14px;overflow-x:auto;overflow-y:hidden;
   margin-bottom:8px;box-shadow:inset 0 2px 6px #00000010;-webkit-overflow-scrolling:touch;
 }
-#scoreWrap svg{display:block;height:150px}
+#scoreWrap svg{display:block;height:178px}
 #controls{display:flex;justify-content:center;gap:8px;margin-bottom:8px;flex-wrap:wrap}
 .ctlbtn{
   border:none;border-radius:14px;font-weight:800;font-family:inherit;font-size:14px;
@@ -129,7 +129,7 @@ header h1{font-size:15px;color:#fff;text-shadow:0 1px 2px #0004;flex:1;white-spa
 <div class="overlay" id="selectOverlay">
   <div id="selectCard">
     <h2>🎵 どの きょくを ひく？</h2>
-    <p class="sub">むかしから みんなに うたわれてきた きょく（ちょさくけんが きれた きょく）だけを あつめました。<br>じぶんの ペースで ゆっくり ひいて だいじょうぶ！</p>
+    <p class="sub">メロディは ちょさくけんの きれた きょくだけ。かしは このゲームだけの <b>ネコの かえうた（オリジナル）</b>です（「ちょうちょう」は めいじじだいの かし）。<br>じぶんの ペースで ゆっくり ひいて だいじょうぶ！</p>
     <div id="songList"></div>
   </div>
 </div>
@@ -207,59 +207,68 @@ function fanfare(){[523,659,784,1047,1319].forEach((f,i)=>{
   g.gain.exponentialRampToValueAtTime(0.0001,t+0.4);
   o.connect(g);g.connect(AC.destination);o.start(t);o.stop(t+0.5);
 });}
-/* ---------- きょく（ちょさくけんフリーの でんしょうきょく・こてん） ---------- */
+/* ---------- きょく（メロディは ちょさくけんフリー。かしは オリジナルの ネコかえうた。ちょうちょうのみ めいじじだいの かし） ---------- */
 const SONGS=[
- {name:'かえるのうた',info:'ドイツみんよう',bpm:100,notes:[
+ {name:'かえるのうた（ネコバージョン）',info:'ドイツみんよう',bpm:100,notes:[
   ['C4',1],['D4',1],['E4',1],['F4',1],['E4',1],['D4',1],['C4',2],
   ['E4',1],['F4',1],['G4',1],['A4',1],['G4',1],['F4',1],['E4',2],
   ['C4',1],['C4',1],['C4',1],['C4',1],
   ['C4',.5],['C4',.5],['D4',.5],['D4',.5],['E4',.5],['E4',.5],['F4',.5],['F4',.5],
-  ['E4',1],['D4',1],['C4',2]]},
- {name:'きらきらぼし',info:'フランスみんよう',bpm:100,notes:[
+  ['E4',1],['D4',1],['C4',2]],
+  lyr:['ね','こ','の','う','た','が','ー','き','こ','え','て','く','る','よ','ニャー','ニャー','ニャー','ニャー','ニャ','ニャ','ニャ','ニャ','ニャ','ニャ','ニャ','ニャ','ニャー','ニャー','ニャー']},
+ {name:'きらきらぼし（ネコバージョン）',info:'フランスみんよう',bpm:100,notes:[
   ['C4',1],['C4',1],['G4',1],['G4',1],['A4',1],['A4',1],['G4',2],
   ['F4',1],['F4',1],['E4',1],['E4',1],['D4',1],['D4',1],['C4',2],
   ['G4',1],['G4',1],['F4',1],['F4',1],['E4',1],['E4',1],['D4',2],
   ['G4',1],['G4',1],['F4',1],['F4',1],['E4',1],['E4',1],['D4',2],
   ['C4',1],['C4',1],['G4',1],['G4',1],['A4',1],['A4',1],['G4',2],
-  ['F4',1],['F4',1],['E4',1],['E4',1],['D4',1],['D4',1],['C4',2]]},
- {name:'ちょうちょう',info:'ドイツみんよう',bpm:100,notes:[
+  ['F4',1],['F4',1],['E4',1],['E4',1],['D4',1],['D4',1],['C4',2]],
+  lyr:['き','ら','き','ら','お','め','め','よ','ぞ','ら','の','ね','こ','よ','お','ほ','し','を','か','ぞ','え','ね','む','り','に','つ','く','よ','き','ら','き','ら','お','め','め','よ','ぞ','ら','の','ね','こ','よ']},
+ {name:'ちょうちょう',info:'ドイツみんよう・めいじのかし',bpm:100,notes:[
   ['G4',1],['E4',1],['E4',2],['F4',1],['D4',1],['D4',2],
   ['C4',1],['D4',1],['E4',1],['F4',1],['G4',1],['G4',1],['G4',2],
   ['G4',1],['E4',1],['E4',2],['F4',1],['D4',1],['D4',2],
-  ['C4',1],['D4',1],['E4',1],['F4',1],['E4',1],['D4',1],['C4',2]]},
- {name:'メリーさんの ひつじ',info:'アメリカみんよう',bpm:100,notes:[
+  ['C4',1],['D4',1],['E4',1],['F4',1],['E4',1],['D4',1],['C4',2]],
+  lyr:['ちょう','ちょ','う','ちょう','ちょ','う','な','の','は','に','と','ま','れ','ちょう','ちょ','う','ちょう','ちょ','う','さ','く','ら','に','と','ま','れ']},
+ {name:'メリーさんの ひつじ（ネコバージョン）',info:'アメリカみんよう',bpm:100,notes:[
   ['E4',1],['D4',1],['C4',1],['D4',1],['E4',1],['E4',1],['E4',2],
   ['D4',1],['D4',1],['D4',2],['E4',1],['G4',1],['G4',2],
   ['E4',1],['D4',1],['C4',1],['D4',1],['E4',1],['E4',1],['E4',1],['E4',1],
-  ['D4',1],['D4',1],['E4',1],['D4',1],['C4',4]]},
- {name:'ゆかいな まきば',info:'アメリカみんよう',bpm:104,notes:[
+  ['D4',1],['D4',1],['E4',1],['D4',1],['C4',4]],
+  lyr:['ね','こ','さん','の','しっ','ぽ','は','ふ','わ','ふ','わ','だ','よ','ね','こ','さん','の','しっ','ぽ','ふ','り','か','わ','い','い','な']},
+ {name:'ゆかいな まきば（ネコバージョン）',info:'アメリカみんよう',bpm:104,notes:[
   ['C4',1],['C4',1],['C4',1],['G4',1],['A4',1],['A4',1],['G4',2],
   ['E4',1],['E4',1],['D4',1],['D4',1],['C4',2],['G4',2],
   ['C4',1],['C4',1],['C4',1],['G4',1],['A4',1],['A4',1],['G4',2],
-  ['E4',1],['E4',1],['D4',1],['D4',1],['C4',4]]},
- {name:'グーチョキパーで なにつくろう',info:'フランスみんよう',bpm:104,notes:[
+  ['E4',1],['E4',1],['D4',1],['D4',1],['C4',4]],
+  lyr:['ね','こ','さん','の','ま','き','ば','ニャー','ニャー','ニャー','ニャー','オー','それ','ね','こ','さん','の','ま','き','ば','ニャー','ニャー','ニャー','ニャー','オー']},
+ {name:'グーチョキパー（ネコバージョン）',info:'フランスみんよう',bpm:104,notes:[
   ['G4',1],['A4',1],['B4',1],['G4',1],['G4',1],['A4',1],['B4',1],['G4',1],
   ['B4',1],['C5',1],['D5',2],['B4',1],['C5',1],['D5',2],
   ['D5',.5],['E5',.5],['D5',.5],['C5',.5],['B4',1],['G4',1],
   ['D5',.5],['E5',.5],['D5',.5],['C5',.5],['B4',1],['G4',1],
-  ['G4',1],['D4',1],['G4',2],['G4',1],['D4',1],['G4',2]]},
- {name:'ロンドンばし',info:'イギリスみんよう',bpm:104,notes:[
+  ['G4',1],['D4',1],['G4',2],['G4',1],['D4',1],['G4',2]],
+  lyr:['ニャー','ニャー','ニャー','で','ニャー','ニャー','ニャー','で','なに','つく','ろう','なに','つく','ろう','み','ぎ','て','が','パー','で','ひ','だり','て','が','グー','で','ねこ','の','かお','ねこ','の','かお']},
+ {name:'ロンドンばし（ネコバージョン）',info:'イギリスみんよう',bpm:104,notes:[
   ['G4',1.5],['A4',.5],['G4',1],['F4',1],['E4',1],['F4',1],['G4',2],
   ['D4',1],['E4',1],['F4',2],['E4',1],['F4',1],['G4',2],
   ['G4',1.5],['A4',.5],['G4',1],['F4',1],['E4',1],['F4',1],['G4',2],
-  ['D4',2],['G4',2],['E4',1],['C4',2]]},
- {name:'よろこびの うた',info:'ベートーベン',bpm:100,notes:[
+  ['D4',2],['G4',2],['E4',1],['C4',2]],
+  lyr:['ね','この','は','し','ゆ','れ','る','ゆ','れ','る','ゆ','れ','る','ね','この','は','し','ゆ','れ','る','さあ','わた','りま','しょ']},
+ {name:'よろこびの うた（ネコバージョン）',info:'ベートーベン',bpm:100,notes:[
   ['E4',1],['E4',1],['F4',1],['G4',1],['G4',1],['F4',1],['E4',1],['D4',1],
   ['C4',1],['C4',1],['D4',1],['E4',1],['E4',1.5],['D4',.5],['D4',2],
   ['E4',1],['E4',1],['F4',1],['G4',1],['G4',1],['F4',1],['E4',1],['D4',1],
-  ['C4',1],['C4',1],['D4',1],['E4',1],['D4',1.5],['C4',.5],['C4',2]]},
- {name:'せいじゃの こうしん',info:'アメリカみんよう',bpm:110,notes:[
+  ['C4',1],['C4',1],['D4',1],['E4',1],['D4',1.5],['C4',.5],['C4',2]],
+  lyr:['み','ん','な','で','う','た','お','う','よ','ろ','こ','び','の','う','た','ね','こ','も','いっ','しょ','に','う','た','う','た','う','よ','ニャー','ニャー','ニャー']},
+ {name:'せいじゃの こうしん（ネコバージョン）',info:'アメリカみんよう',bpm:110,notes:[
   ['C4',1],['E4',1],['F4',1],['G4',3],
   ['C4',1],['E4',1],['F4',1],['G4',3],
   ['C4',1],['E4',1],['F4',1],['G4',1],['E4',1],['C4',1],['E4',1],['D4',3],
   ['E4',1],['E4',1],['D4',1],['C4',2],['C4',1],['E4',1],['G4',1],['G4',2],['F4',2],
-  ['F4',1],['E4',1],['F4',1],['G4',1],['E4',1],['C4',1],['D4',1],['C4',3]]},
- {name:'ジングルベル',info:'ピアポント（1857ねん）',bpm:112,notes:[
+  ['F4',1],['E4',1],['F4',1],['G4',1],['E4',1],['C4',1],['D4',1],['C4',3]],
+  lyr:['ね','こ','さん','がー','ある','い','て','くー','ね','こ','さん','が','ある','い','て','くー','みん','な','いっ','しょ','に','こう','しん','する','よ','ね','こ','さん','が','ある','い','て','く']},
+ {name:'ジングルベル（ネコバージョン）',info:'ピアポント（1857ねん）',bpm:112,notes:[
   ['E4',1],['E4',1],['E4',2],['E4',1],['E4',1],['E4',2],
   ['E4',1],['G4',1],['C4',1],['D4',1],['E4',4],
   ['F4',1],['F4',1],['F4',1],['F4',1],['F4',1],['E4',1],['E4',1],['E4',1],
@@ -267,7 +276,8 @@ const SONGS=[
   ['E4',1],['E4',1],['E4',2],['E4',1],['E4',1],['E4',2],
   ['E4',1],['G4',1],['C4',1],['D4',1],['E4',4],
   ['F4',1],['F4',1],['F4',1],['F4',1],['F4',1],['E4',1],['E4',1],['E4',1],
-  ['G4',1],['G4',1],['F4',1],['D4',1],['C4',4]]},
+  ['G4',1],['G4',1],['F4',1],['D4',1],['C4',4]],
+  lyr:['ニャン','ニャン','ニャン','ニャン','ニャン','ニャン','す','ず','が','なる','よ','ゆ','き','の','み','ち','を','そ','り','で','は','し','る','よー','ホー','ニャン','ニャン','ニャン','ニャン','ニャン','ニャン','す','ず','が','なる','よ','み','ん','な','で','う','た','お','う','す','ず','の','う','た']},
 ];
 /* ---------- けんばん ---------- */
 const WHITES=['C4','D4','E4','F4','G4','A4','B4','C5','D5','E5'];
@@ -303,18 +313,28 @@ function flashKey(n,ms){
 }
 /* ---------- がくふ ---------- */
 const PITCHES=['C4','D4','E4','F4','G4','A4','B4','C5','D5','E5'];
-const NX=38;
+const NX=38,SVH=178;
 function buildScore(){
-  const notes=SONGS[cur].notes;
+  const song=SONGS[cur];
+  const notes=song.notes;
   let x=30;
   const pos=[];
   notes.forEach(nt=>{pos.push(x);x+=nt[1]*NX;});
   const W=x+30;
-  let s=`<svg id="scoreSvg" viewBox="0 0 ${W} 150" width="${W}" xmlns="http://www.w3.org/2000/svg">`;
+  let s=`<svg id="scoreSvg" viewBox="0 0 ${W} ${SVH}" width="${W}" xmlns="http://www.w3.org/2000/svg">`;
   for(let i=0;i<5;i++){
     const y=26+i*13;
     s+=`<line x1="14" y1="${y}" x2="${W-14}" y2="${y}" stroke="#c8c0e0" stroke-width="1.5"/>`;
   }
+  // かし（したの だん、こみあうときは ジグザグ）
+  let lastX=-100,lastRow=1;
+  const lyrRows=[];
+  notes.forEach((nt,i)=>{
+    let row=0;
+    if(pos[i]-lastX<30&&lastRow===0)row=1;
+    lyrRows.push(row);
+    lastX=pos[i];lastRow=row;
+  });
   notes.forEach((nt,i)=>{
     const pi=PITCHES.indexOf(nt[0]);
     const y=96-pi*7.8;
@@ -324,6 +344,8 @@ function buildScore(){
     s+=`<ellipse cx="0" cy="0" rx="9" ry="7" fill="${long?'#fffdf5':'#5a4ab0'}" stroke="#5a4ab0" stroke-width="2.5" class="head"/>`;
     s+=`<text x="0" y="34" font-size="14" font-weight="bold" text-anchor="middle" fill="#8a7ab5" class="lbl">${DOREMI[nt[0][0]]}</text>`;
     s+=`</g>`;
+    const ly=150+lyrRows[i]*15;
+    s+=`<text id="lyr${i}" x="${pos[i]}" y="${ly}" font-size="12" font-weight="bold" text-anchor="middle" fill="#c07a9a">${song.lyr[i]}</text>`;
   });
   s+=`</svg>`;
   $('scoreWrap').innerHTML=s;
@@ -334,6 +356,7 @@ function setNoteState(i,state){
   const g=document.getElementById('note'+i);
   if(!g)return;
   const head=g.querySelector('.head'),lbl=g.querySelector('.lbl'),stem=g.querySelector('.stem');
+  const lyr=document.getElementById('lyr'+i);
   const nt=SONGS[cur].notes[i];
   const long=nt[1]>=2;
   const base=g.getAttribute('transform').replace(/ scale.*/,'');
@@ -342,23 +365,26 @@ function setNoteState(i,state){
     stem.setAttribute('stroke','#e0447a');
     lbl.setAttribute('fill','#e0447a');lbl.setAttribute('font-size','17');
     g.setAttribute('transform',base+' scale(1.25)');
+    if(lyr){lyr.setAttribute('fill','#e0447a');lyr.setAttribute('font-size','15');}
   }else if(state==='done'){
     head.setAttribute('fill',long?'#e8f2e0':'#9ec89a');head.setAttribute('stroke','#9ec89a');
     stem.setAttribute('stroke','#9ec89a');
     lbl.setAttribute('fill','#a8c8a0');lbl.setAttribute('font-size','14');
     g.setAttribute('transform',base);
+    if(lyr){lyr.setAttribute('fill','#a8c8a0');lyr.setAttribute('font-size','12');}
   }else{
     head.setAttribute('fill',long?'#fffdf5':'#5a4ab0');head.setAttribute('stroke','#5a4ab0');
     stem.setAttribute('stroke','#5a4ab0');
     lbl.setAttribute('fill','#8a7ab5');lbl.setAttribute('font-size','14');
     g.setAttribute('transform',base);
+    if(lyr){lyr.setAttribute('fill','#c07a9a');lyr.setAttribute('font-size','12');}
   }
 }
-function scrollToNote(i){
+function scrollToNote(i,instant){
   const wrap=$('scoreWrap');
   if(i>=notePos.length)return;
-  const target=notePos[i]-wrap.clientWidth/3;
-  wrap.scrollTo({left:Math.max(0,target),behavior:'smooth'});
+  const target=Math.max(0,notePos[i]-wrap.clientWidth/3);
+  wrap.scrollTo({left:target,behavior:instant?'auto':'smooth'});
 }
 /* ---------- れんしゅう ---------- */
 const CHEERS=['いいちょうし！','じょうずだね！','その ちょうし！','うまい うまい！','あと すこし！','がんばれ〜！'];
@@ -366,7 +392,7 @@ function setCat(happy,msg){
   $('catBox').innerHTML=`<svg viewBox="0 0 80 80">${catFace(40,46,26,'#f5a04a',{happy})}</svg>`;
   if(msg)$('bubble').textContent=msg;
 }
-function updateTarget(){
+function updateTarget(instant){
   document.querySelectorAll('.wkey.target').forEach(k=>k.classList.remove('target'));
   const notes=SONGS[cur].notes;
   $('prog').textContent='♪ '+idx+'/'+notes.length;
@@ -375,7 +401,7 @@ function updateTarget(){
     const k=keyEl(n);
     if(k)k.classList.add('target');
     setNoteState(idx,'current');
-    scrollToNote(idx);
+    scrollToNote(idx,instant);
   }
 }
 function pressKey(n){
@@ -416,7 +442,9 @@ function startDemo(){
   $('btnDemo').style.display='none';
   $('btnStop').style.display='inline-block';
   setCat(true,'おてほんだよ。よく みててね🎵');
-  resetPlay(false);
+  idx=0;
+  SONGS[cur].notes.forEach((_,i)=>setNoteState(i,'todo'));
+  $('scoreWrap').scrollTo({left:0,behavior:'auto'});
   const notes=SONGS[cur].notes;
   const beat=60/SONGS[cur].bpm;
   let t=600;
@@ -433,11 +461,20 @@ function startDemo(){
     },t));
     t+=nt[1]*beat*1000;
   });
+  // おわり: 1びょうごに がくふを さいしょへ もどす
   demoTimers.push(setTimeout(()=>{
     setNoteState(notes.length-1,'done');
-    stopDemo();
-    setCat(true,'こんどは きみの ばん！');
+    demoOn=false;
+    $('btnDemo').style.display='inline-block';
+    $('btnStop').style.display='none';
+    setCat(true,'こんどは きみの ばん！ ゆっくりで いいよ');
   },t+300));
+  demoTimers.push(setTimeout(()=>{
+    resetPlay(false,true);
+  },t+1000));
+  demoTimers.push(setTimeout(()=>{
+    $('scoreWrap').scrollTo({left:0,behavior:'auto'});
+  },t+1600));
 }
 function stopDemo(){
   demoTimers.forEach(clearTimeout);
@@ -446,15 +483,16 @@ function stopDemo(){
     demoOn=false;
     $('btnDemo').style.display='inline-block';
     $('btnStop').style.display='none';
-    resetPlay(true);
+    resetPlay(true,true);
   }
 }
-function resetPlay(msg){
+function resetPlay(msg,instant){
   idx=0;
   const notes=SONGS[cur].notes;
   notes.forEach((_,i)=>setNoteState(i,'todo'));
-  $('scoreWrap').scrollTo({left:0});
-  updateTarget();
+  $('scoreWrap').scrollTo({left:0,behavior:'auto'});
+  updateTarget(instant);
+  setTimeout(()=>{$('scoreWrap').scrollTo({left:0,behavior:'auto'});},400);
   if(msg)setCat(false,'ピンクの けんばんを おしてね！');
 }
 /* ---------- きょくえらび ---------- */
@@ -463,7 +501,7 @@ function startSong(i){
   cur=i;
   $('songName').textContent=(i+1)+'. '+SONGS[i].name+'（'+SONGS[i].info+'）';
   notePos=buildScore();
-  resetPlay(true);
+  resetPlay(true,true);
   $('selectOverlay').classList.remove('show');
   $('winOverlay').classList.remove('show');
   window.scrollTo(0,0);
@@ -505,7 +543,7 @@ function confettiBurst(){
 }
 $('btnDemo').addEventListener('click',startDemo);
 $('btnStop').addEventListener('click',stopDemo);
-$('btnRestart').addEventListener('click',()=>{stopDemo();resetPlay(true);});
+$('btnRestart').addEventListener('click',()=>{stopDemo();resetPlay(true,true);});
 $('btnSelect').addEventListener('click',()=>{stopDemo();buildSongs();$('selectOverlay').classList.add('show');});
 $('selectOverlay').addEventListener('click',ev=>{if(ev.target===$('selectOverlay'))$('selectOverlay').classList.remove('show');});
 $('btnNext').addEventListener('click',()=>startSong(Math.min(cur+1,SONGS.length-1)));

@@ -77,6 +77,16 @@ const HIRAGANA_ROWS = [
   ['ー'],
 ];
 
+// Canvas上ひらがなキーボード定義（10列×5行 + 特殊行）
+const CKB_ROWS=[
+  ['あ','か','さ','た','な','は','ま','や','ら','わ'],
+  ['い','き','し','ち','に','ひ','み','ゆ','り','を'],
+  ['う','く','す','つ','ぬ','ふ','む','よ','る','ん'],
+  ['え','け','せ','て','ね','へ','め','っ','れ','ゃ'],
+  ['お','こ','そ','と','の','ほ','も','ー','ろ','ゅ'],
+];
+const CKB_BTN_W=30,CKB_BTN_H=22,CKB_GAP=2,CKB_START_X=1,CKB_START_Y=56;
+
 // Maps: 4 areas, each 16 wide x 15 tall
 // NPC positions are stored separately; tile data has chests added
 const MAPS = [
@@ -335,7 +345,7 @@ function initGame(gender) {
   G = {
     screen:'field', gender, heroName: nameInput || (gender==='boy'?'ゆうき':'はな'),
     area:0, px:7, py:13, facing:'down',
-    stepCount:0, catsFound:[false,false,false], bossDefeated:[false,false,false],
+    stepCount:0, stepsToNextBattle:Math.floor(Math.random()*8)+8, catsFound:[false,false,false], bossDefeated:[false,false,false],
     openedChests:{}, gold:50,
     items:[{id:'きずぐすり',count:2}],
     equipment:{hat:null,accessory:null,weapon:null,shield:null,ring:null,armor:null},
@@ -391,41 +401,11 @@ function applyEquipment(){
 }
 
 // ---- ひらがなキーボード ----
-function buildHiraganaKeyboard() {
-  const kb = document.getElementById('hiragana-keyboard');
-  kb.innerHTML = '';
-  for(const row of HIRAGANA_ROWS) {
-    for(const ch of row) {
-      const b = document.createElement('div');
-      b.className = 'hira-btn';
-      b.textContent = ch;
-      b.addEventListener('touchstart', e=>{e.preventDefault();inputHiragana(ch);},{passive:false});
-      b.addEventListener('mousedown', e=>{e.preventDefault();inputHiragana(ch);});
-      kb.appendChild(b);
-    }
-  }
-  // けす button
-  const del = document.createElement('div');
-  del.className = 'hira-btn hira-special';
-  del.textContent = 'けす';
-  del.addEventListener('touchstart',e=>{e.preventDefault();deleteHiragana();},{passive:false});
-  del.addEventListener('mousedown',e=>{e.preventDefault();deleteHiragana();});
-  kb.appendChild(del);
-  // おわり button
-  const ok = document.createElement('div');
-  ok.className = 'hira-btn hira-special';
-  ok.textContent = 'おわり';
-  ok.style.background='#1a4a1a';
-  ok.style.borderColor='#44aa44';
-  ok.addEventListener('touchstart',e=>{e.preventDefault();confirmName();},{passive:false});
-  ok.addEventListener('mousedown',e=>{e.preventDefault();confirmName();});
-  kb.appendChild(ok);
-}
+// Canvas上に描画するため、HTMLキーボードは使用しない
+function buildHiraganaKeyboard() { /* Canvas描画に切り替え済み - no-op */ }
 
-function showHiraganaKeyboard(show) {
-  const kb = document.getElementById('hiragana-keyboard');
-  if(show) kb.classList.add('active'); else kb.classList.remove('active');
-}
+
+function showHiraganaKeyboard(show) { /* Canvas描画に切り替え済み - no-op */ }
 
 function inputHiragana(ch) {
   if(currentScreen !== 'nameInput') return;
@@ -479,6 +459,17 @@ setupBtn('btn-z','z');setupBtn('btn-x','x');
   b.addEventListener('touchstart',doStatus,{passive:false});
   b.addEventListener('mousedown',doStatus);
 })();
+// Canvas上タップ式キーボードのイベント（名前入力画面専用）
+canvas.addEventListener('touchstart',e=>{
+  if(currentScreen!=='nameInput')return;
+  e.preventDefault();
+  if(e.touches.length>0)handleCanvasTap(e.touches[0].clientX,e.touches[0].clientY);
+},{passive:false});
+canvas.addEventListener('mousedown',e=>{
+  if(currentScreen!=='nameInput')return;
+  e.preventDefault();
+  handleCanvasTap(e.clientX,e.clientY);
+});
 
 function processInput(key) {
   if(currentScreen==='title'){
@@ -553,7 +544,8 @@ function handleFieldInput(key){
   checkTileEvents();
   if([T.GRASS,T.PATH,T.SAND,T.FLOWER].includes(tile)){
     G.stepCount++;
-    if(G.stepCount%((G.area+1)*4+Math.floor(Math.random()*6))===0)startBattle(null);
+    G.stepsToNextBattle--;
+    if(G.stepsToNextBattle<=0){G.stepsToNextBattle=(G.area+1)*8+Math.floor(Math.random()*8);startBattle(null);}
   }
 }
 
@@ -1404,39 +1396,86 @@ function drawGenderSelect(){
   txt('← → で　えらぶ　けってい で　きめる',40,210,'#aaa',6);
 }
 
-// NAME INPUT SCREEN
-function drawNameInput(){
-  ctx.fillStyle='#0a0a22';ctx.fillRect(0,0,640,480);
-  txtC('なまえを　いれてね',30,'#ffff00',10);
-  txt('２～６もじで　いれてください',30,50,'#aaa',7);
-  // Name display box
-  box2(30,60,260,30,'#000033','#4488ff');
-  const disp = nameInput || '　　　　　　';
-  txt(nameInput,40,83,'#ffff00',11);
-  // cursor blink (show underscore after name)
-  if(nameInput.length<6){
-    const blinkOn = Math.floor(titleAnim/15)%2===0;
-    if(blinkOn){
-      // measure text offset
-      ctx.font=`${11*SCALE}px monospace`;
-      const nameW = ctx.measureText(nameInput).width / SCALE;
-      txt('_',40+nameW,83,'#888888',11);
+// ---- Canvas上キーボード描画 ----
+function drawKBBtn(x,y,w,h,label,bg,border){
+  ctx.fillStyle=bg||'#2a2a4a';
+  ctx.fillRect(x*SCALE,y*SCALE,w*SCALE,h*SCALE);
+  ctx.strokeStyle=border||'#555555';
+  ctx.lineWidth=2;
+  ctx.strokeRect(x*SCALE+1,y*SCALE+1,(w*SCALE)-2,(h*SCALE)-2);
+  ctx.fillStyle='#ffffff';
+  ctx.font=`${7*SCALE}px monospace`;
+  ctx.textAlign='center';
+  ctx.textBaseline='middle';
+  ctx.fillText(label,(x+w/2)*SCALE,(y+h/2)*SCALE);
+}
+
+function drawCanvasKeyboard(){
+  for(let r=0;r<CKB_ROWS.length;r++){
+    const row=CKB_ROWS[r];
+    for(let c=0;c<row.length;c++){
+      const ch=row[c];if(!ch)continue;
+      const bx=CKB_START_X+c*(CKB_BTN_W+CKB_GAP);
+      const by=CKB_START_Y+r*(CKB_BTN_H+CKB_GAP);
+      drawKBBtn(bx,by,CKB_BTN_W,CKB_BTN_H,ch,'#2a2a4a','#555555');
     }
   }
-  // status
+  // 特殊行（ょ / けす / おわり）
+  const sy=CKB_START_Y+CKB_ROWS.length*(CKB_BTN_H+CKB_GAP);
+  drawKBBtn(1,sy,30,CKB_BTN_H,'ょ','#2a2a4a','#555555');
+  drawKBBtn(33,sy,137,CKB_BTN_H,'けす','#4a2a2a','#aa4444');
+  const okLen=nameInput.length>=2;
+  drawKBBtn(172,sy,147,CKB_BTN_H,'おわり',okLen?'#1a4a1a':'#2a3a2a',okLen?'#44aa44':'#445544');
+  ctx.textAlign='left';ctx.textBaseline='alphabetic';
+}
+
+// Canvas上のタップ/クリックをゲーム座標に変換して処理
+function handleCanvasTap(cx,cy){
+  if(currentScreen!=='nameInput')return;
+  const rect=canvas.getBoundingClientRect();
+  const scaleX=canvas.width/rect.width;
+  const scaleY=canvas.height/rect.height;
+  const gx=((cx-rect.left)*scaleX)/SCALE;
+  const gy=((cy-rect.top)*scaleY)/SCALE;
+  // 通常行チェック
+  for(let r=0;r<CKB_ROWS.length;r++){
+    const row=CKB_ROWS[r];
+    for(let c=0;c<row.length;c++){
+      const ch=row[c];if(!ch)continue;
+      const bx=CKB_START_X+c*(CKB_BTN_W+CKB_GAP);
+      const by=CKB_START_Y+r*(CKB_BTN_H+CKB_GAP);
+      if(gx>=bx&&gx<bx+CKB_BTN_W&&gy>=by&&gy<by+CKB_BTN_H){inputHiragana(ch);return;}
+    }
+  }
+  // 特殊行チェック
+  const sy=CKB_START_Y+CKB_ROWS.length*(CKB_BTN_H+CKB_GAP);
+  if(gy>=sy&&gy<sy+CKB_BTN_H){
+    if(gx>=1&&gx<31){inputHiragana('ょ');return;}
+    if(gx>=33&&gx<170){deleteHiragana();return;}
+    if(gx>=172&&gx<319){confirmName();return;}
+  }
+}
+
+// NAME INPUT SCREEN（Canvas上タップ式キーボード）
+function drawNameInput(){
+  ctx.fillStyle='#0a0a22';ctx.fillRect(0,0,640,480);
+  txtC('なまえを　いれてね',10,'#ffff00',8);
+  // 名前表示ボックス
+  box2(5,14,310,28,'#000033','#4488ff');
+  txt(nameInput,10,35,'#ffff00',11);
+  // カーソル点滅
+  if(nameInput.length<6){
+    const blinkOn=Math.floor(titleAnim/15)%2===0;
+    if(blinkOn){ctx.font=`${11*SCALE}px monospace`;const nw=ctx.measureText(nameInput).width/SCALE;txt('_',10+nw,35,'#888888',11);}
+  }
+  // 文字数表示
   const len=nameInput.length;
   const ok=len>=2&&len<=6;
-  txt('もじすう：'+len+'/6',30,103,ok?'#44ff44':'#ff6666',7);
-  if(!ok&&len<2)txt('もっと　いれてね',30,118,'#ffaa00',7);
-  if(len>6)txt('みじかくしてね',30,118,'#ffaa00',7);
-  // instruction
-  txt('スマホのばあいは　したの　キーボードで　いれてね',8,135,'#888',5);
-  txt('キーボードの「おわり」で　けってい',8,148,'#888',5);
-  // show "decided" button hint
-  if(ok){
-    box2(90,158,140,18,'#1a4a1a','#44aa44');
-    txtC('おわり：けってい',166,'#44ff44',7);
-  }
+  txt('もじすう：'+len+'/6',8,50,ok?'#44ff44':'#ff6666',6);
+  if(!ok&&len<2)txt('２もじ　いじょう　いれてね',105,50,'#ffaa00',6);
+  if(len>6)txt('みじかくしてね',105,50,'#ffaa00',6);
+  // Canvas上のキーボードを描画
+  drawCanvasKeyboard();
 }
 
 // OPENING
@@ -1538,7 +1577,7 @@ function drawShop(){
 // ENDING
 function drawEnding(){
   ctx.fillStyle='#001133';ctx.fillRect(0,0,640,480);
-  for(let i=0;i<20;i++){ctx.fillStyle=['#f00','#ff0','#0f0','#08f','#f0f'][i%5];ctx.fillRect(((i*37+titleAnim*2)%320)*SCALE,((i*23)%90)*SCALE,4*SCALE,4*SCALE);}
+  for(let i=0;i<20;i++){ctx.fillStyle=['#f00','#fff0','#0f0','#08f','#f0f'][i%5];ctx.fillRect(((i*37+titleAnim*2)%320)*SCALE,((i*23)%90)*SCALE,4*SCALE,4*SCALE);}
   txtC('おめでとう！',50,'#ffff00',13);
   txtC('ネズミ大王を　たおした！',75,'#fff',8);
   txtC('３びきの　ネコも　みつけた！',95,'#44ff44',7);

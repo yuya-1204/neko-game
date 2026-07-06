@@ -6,8 +6,8 @@
 <title>ネコをさがせ！だいぼうけん</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { background: #1a1a2e; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; font-family: sans-serif; touch-action: none; }
-#gameCanvas { display: block; image-rendering: pixelated; border: 4px solid #444; }
+body { background: #1a1a2e; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; font-family: sans-serif; touch-action: pan-y; }
+#gameCanvas { display: block; image-rendering: pixelated; border: 4px solid #444; touch-action: none; }
 #controls { display: flex; flex-direction: column; align-items: center; gap: 4px; margin-top: 8px; }
 .dpad-row { display: flex; gap: 4px; }
 .btn { background: #333; color: #fff; border: 2px solid #666; border-radius: 6px; cursor: pointer; font-size: 18px; user-select: none; -webkit-user-select: none; display: flex; align-items: center; justify-content: center; }
@@ -86,6 +86,8 @@ const CKB_ROWS=[
   ['お','こ','そ','と','の','ほ','も','ー','ろ','ゅ'],
 ];
 const CKB_BTN_W=30,CKB_BTN_H=22,CKB_GAP=2,CKB_START_X=1,CKB_START_Y=56;
+// 特殊行1: 小文字・長音符（10列）
+const CKB_SMALL_ROW=['ぁ','ぃ','ぅ','ぇ','ぉ','ゃ','ゅ','ょ','っ','ー'];
 
 // Maps: 4 areas, each 16 wide x 15 tall
 // NPC positions are stored separately; tile data has chests added
@@ -414,6 +416,21 @@ function inputHiragana(ch) {
 function deleteHiragana() {
   if(currentScreen !== 'nameInput') return;
   nameInput = nameInput.slice(0,-1);
+}
+function addDakuten() {
+  if(currentScreen !== 'nameInput' || nameInput.length === 0) return;
+  const last = nameInput[nameInput.length-1];
+  const map = {'か':'が','き':'ぎ','く':'ぐ','け':'げ','こ':'ご',
+               'さ':'ざ','し':'じ','す':'ず','せ':'ぜ','そ':'ぞ',
+               'た':'だ','ち':'ぢ','つ':'づ','て':'で','と':'ど',
+               'は':'ば','ひ':'び','ふ':'ぶ','へ':'べ','ほ':'ぼ'};
+  if(map[last]) nameInput = nameInput.slice(0,-1) + map[last];
+}
+function addHandakuten() {
+  if(currentScreen !== 'nameInput' || nameInput.length === 0) return;
+  const last = nameInput[nameInput.length-1];
+  const map = {'は':'ぱ','ひ':'ぴ','ふ':'ぷ','へ':'ぺ','ほ':'ぽ'};
+  if(map[last]) nameInput = nameInput.slice(0,-1) + map[last];
 }
 function confirmName() {
   if(currentScreen !== 'nameInput') return;
@@ -1420,12 +1437,19 @@ function drawCanvasKeyboard(){
       drawKBBtn(bx,by,CKB_BTN_W,CKB_BTN_H,ch,'#2a2a4a','#555555');
     }
   }
-  // 特殊行（ょ / けす / おわり）
+  // 特殊行1: 小文字・ー（10列）
   const sy=CKB_START_Y+CKB_ROWS.length*(CKB_BTN_H+CKB_GAP);
-  drawKBBtn(1,sy,30,CKB_BTN_H,'ょ','#2a2a4a','#555555');
-  drawKBBtn(33,sy,137,CKB_BTN_H,'けす','#4a2a2a','#aa4444');
+  for(let c=0;c<CKB_SMALL_ROW.length;c++){
+    const bx=CKB_START_X+c*(CKB_BTN_W+CKB_GAP);
+    drawKBBtn(bx,sy,CKB_BTN_W,CKB_BTN_H,CKB_SMALL_ROW[c],'#2a3a4a','#446688');
+  }
+  // 特殊行2: 濁音・半濁音・けす・おわり
+  const sy2=sy+CKB_BTN_H+CKB_GAP;
+  drawKBBtn(1,sy2,30,CKB_BTN_H,'゛','#3a2a4a','#7755aa');
+  drawKBBtn(33,sy2,30,CKB_BTN_H,'゜','#3a2a4a','#7755aa');
+  drawKBBtn(65,sy2,110,CKB_BTN_H,'けす','#4a2a2a','#aa4444');
   const okLen=nameInput.length>=2;
-  drawKBBtn(172,sy,147,CKB_BTN_H,'おわり',okLen?'#1a4a1a':'#2a3a2a',okLen?'#44aa44':'#445544');
+  drawKBBtn(177,sy2,142,CKB_BTN_H,'おわり',okLen?'#1a4a1a':'#2a3a2a',okLen?'#44aa44':'#445544');
   ctx.textAlign='left';ctx.textBaseline='alphabetic';
 }
 
@@ -1447,12 +1471,21 @@ function handleCanvasTap(cx,cy){
       if(gx>=bx&&gx<bx+CKB_BTN_W&&gy>=by&&gy<by+CKB_BTN_H){inputHiragana(ch);return;}
     }
   }
-  // 特殊行チェック
+  // 特殊行1チェック: 小文字・ー
   const sy=CKB_START_Y+CKB_ROWS.length*(CKB_BTN_H+CKB_GAP);
   if(gy>=sy&&gy<sy+CKB_BTN_H){
-    if(gx>=1&&gx<31){inputHiragana('ょ');return;}
-    if(gx>=33&&gx<170){deleteHiragana();return;}
-    if(gx>=172&&gx<319){confirmName();return;}
+    for(let c=0;c<CKB_SMALL_ROW.length;c++){
+      const bx=CKB_START_X+c*(CKB_BTN_W+CKB_GAP);
+      if(gx>=bx&&gx<bx+CKB_BTN_W){inputHiragana(CKB_SMALL_ROW[c]);return;}
+    }
+  }
+  // 特殊行2チェック: 濁音・半濁音・けす・おわり
+  const sy2=sy+CKB_BTN_H+CKB_GAP;
+  if(gy>=sy2&&gy<sy2+CKB_BTN_H){
+    if(gx>=1&&gx<31){addDakuten();return;}
+    if(gx>=33&&gx<63){addHandakuten();return;}
+    if(gx>=65&&gx<175){deleteHiragana();return;}
+    if(gx>=177&&gx<319){confirmName();return;}
   }
 }
 
@@ -1590,6 +1623,20 @@ function drawEnding(){
 
 // Save shortcut
 document.addEventListener('keydown',e=>{if(e.key==='s'&&currentScreen==='field'){showSaveScreen();e.preventDefault();}});
+
+// ---- スマホ対応：キャンバスを画面に収める動的スケーリング ----
+function resizeCanvas() {
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  // コントロール類のために最低220pxを確保
+  const availH = Math.max(vh - 220, 200);
+  const scale = Math.min(vw / 640, availH / 480, 1); // 1倍を超えない
+  canvas.style.width  = Math.floor(640 * scale) + 'px';
+  canvas.style.height = Math.floor(480 * scale) + 'px';
+}
+window.addEventListener('resize', resizeCanvas);
+window.addEventListener('orientationchange', () => setTimeout(resizeCanvas, 200));
+resizeCanvas(); // 初期実行
 
 // MAIN LOOP
 let lastTime=0;

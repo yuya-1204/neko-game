@@ -1771,6 +1771,8 @@ function render(){
   if(fieldMoveDelay>0) fieldMoveDelay--;
   if(loadError>0) loadError--;
   try {
+    // 毎フレーム全画面をクリア（前の画面の描き残りを防ぐ）
+    ctx.fillStyle='#0a0a22'; ctx.fillRect(0,0,640,480);
     switch(screen){
       case 'title': drawTitle(); break;
       case 'gender': drawGender(); break;

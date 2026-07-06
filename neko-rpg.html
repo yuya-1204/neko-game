@@ -20,6 +20,10 @@ body { background: #1a1a2e; display: flex; flex-direction: column; align-items: 
 .hira-btn { background: #2a2a4a; color: #fff; border: 1px solid #555; border-radius: 4px; width: 38px; height: 38px; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; touch-action: manipulation; }
 .hira-btn:active { background: #554a80; }
 .hira-special { background: #4a2a2a; border-color: #aa4444; width: 58px; }
+#utility-row { display: flex; gap: 12px; margin-top: 8px; }
+.utility-btn { height: 48px; font-size: 13px; font-weight: bold; padding: 0 14px; min-width: 90px; }
+.btn-save-style { background: #4a3500; border-color: #ddaa00; color: #ffe066; }
+.btn-status-style { background: #1a1a5a; border-color: #4466cc; color: #aaccff; }
 </style>
 </head>
 <body>
@@ -35,6 +39,10 @@ body { background: #1a1a2e; display: flex; flex-direction: column; align-items: 
   <div id="action-row">
     <div class="btn action-btn" id="btn-z">けってい</div>
     <div class="btn action-btn" id="btn-x">キャンセル</div>
+  </div>
+  <div id="utility-row">
+    <div class="btn utility-btn btn-save-style" id="btn-save">💾 セーブ</div>
+    <div class="btn utility-btn btn-status-style" id="btn-status">📋 ステータス</div>
   </div>
 </div>
 <div id="hiragana-keyboard"></div>
@@ -222,6 +230,7 @@ let nameInput = '';
 let npcTalkIdx = 0;   // which NPC is being talked to
 let npcMsgPage = 0;   // current page in NPC dialog
 let chestMinigameReward = null;
+let statusTab = 0; // 0=パーティー, 1=どうぐ, 2=そうび
 
 // Battle state
 let battle = {
@@ -456,6 +465,21 @@ function setupBtn(id,key){
 setupBtn('btn-up','up');setupBtn('btn-down','down');setupBtn('btn-left','left');setupBtn('btn-right','right');
 setupBtn('btn-z','z');setupBtn('btn-x','x');
 
+// セーブボタン：フィールド画面のときだけ動作
+(function(){
+  const b=document.getElementById('btn-save');
+  function doSave(e){e.preventDefault();if(currentScreen==='field')showSaveScreen();}
+  b.addEventListener('touchstart',doSave,{passive:false});
+  b.addEventListener('mousedown',doSave);
+})();
+// ステータスボタン：フィールド画面のときだけ動作
+(function(){
+  const b=document.getElementById('btn-status');
+  function doStatus(e){e.preventDefault();if(currentScreen==='field'){statusTab=0;currentScreen='status';}}
+  b.addEventListener('touchstart',doStatus,{passive:false});
+  b.addEventListener('mousedown',doStatus);
+})();
+
 function processInput(key) {
   if(currentScreen==='title'){
     if(key==='up'||key==='down')titleCursor=titleCursor===0?1:0;
@@ -481,6 +505,7 @@ function processInput(key) {
   else if(currentScreen==='npcDialog'){handleNpcDialogInput(key);}
   else if(currentScreen==='minigame'){handleMinigameInput(key);}
   else if(currentScreen==='save'){if(key==='z'||key==='x')currentScreen='field';}
+  else if(currentScreen==='status'){handleStatusInput(key);}
   else if(currentScreen==='load'){handleLoadInput(key);}
   else if(currentScreen==='shop'){handleShopInput(key);}
   else if(currentScreen==='ending'){if(key==='z')currentScreen='title';}
@@ -878,6 +903,136 @@ function finishMinigame(){
   }
 }
 
+// STATUS SCREEN
+function handleStatusInput(key){
+  if(key==='left')statusTab=Math.max(0,statusTab-1);
+  else if(key==='right')statusTab=Math.min(2,statusTab+1);
+  else if(key==='z'||key==='x')currentScreen='field';
+}
+
+function drawStatus(){
+  ctx.fillStyle='#0a0a22';ctx.fillRect(0,0,640,480);
+  // Tab bar
+  const tabs=['パーティー','どうぐ','そうび'];
+  for(let i=0;i<3;i++){
+    const sel=statusTab===i;
+    const tx=4+i*106;
+    ctx.fillStyle=sel?'#223388':'#0d0d33';
+    ctx.fillRect(tx*SCALE,2*SCALE,102*SCALE,16*SCALE);
+    ctx.strokeStyle=sel?'#4488ff':'#334477';ctx.lineWidth=2;
+    ctx.strokeRect(tx*SCALE+1,2*SCALE+1,102*SCALE-2,16*SCALE-2);
+    ctx.fillStyle=sel?'#ffff00':'#888888';
+    ctx.font=`${6*SCALE}px monospace`;ctx.textAlign='left';ctx.textBaseline='alphabetic';
+    ctx.fillText(tabs[i],(tx+8)*SCALE,14*SCALE);
+  }
+  // Tab content
+  if(statusTab===0)drawStatusParty();
+  else if(statusTab===1)drawStatusItems();
+  else if(statusTab===2)drawStatusEquip();
+  // Bottom hint
+  ctx.fillStyle='#000033';ctx.fillRect(0,228*SCALE,640,12*SCALE);
+  ctx.strokeStyle='#333366';ctx.lineWidth=1;ctx.strokeRect(0,228*SCALE,640,12*SCALE);
+  ctx.fillStyle='#666666';ctx.font=`${5*SCALE}px monospace`;
+  ctx.fillText('◀ ▶ タブきりかえ   けってい・キャンセル：もどる',6*SCALE,237*SCALE);
+}
+
+function drawStatusParty(){
+  const members=[...(G.party||[]),...(G.cats||[])];
+  let y=22;
+  for(const m of members){
+    if(y>200)break;
+    ctx.fillStyle='#000033';ctx.fillRect(4*SCALE,y*SCALE,312*SCALE,38*SCALE);
+    ctx.strokeStyle=m.alive?'#334488':'#553333';ctx.lineWidth=2;
+    ctx.strokeRect(4*SCALE+1,y*SCALE+1,312*SCALE-2,38*SCALE-2);
+    // Name & Level
+    ctx.fillStyle='#ffffff';ctx.font=`${7*SCALE}px monospace`;
+    ctx.fillText(m.name,8*SCALE,(y+11)*SCALE);
+    ctx.fillStyle='#ffff00';ctx.font=`${6*SCALE}px monospace`;
+    ctx.fillText('Lv'+m.lv,8*SCALE,(y+24)*SCALE);
+    if(!m.alive){ctx.fillStyle='#ff4444';ctx.fillText('たおれ中',8*SCALE,(y+35)*SCALE);}
+    // HP bar
+    ctx.fillStyle='#44ff44';ctx.font=`${5*SCALE}px monospace`;
+    ctx.fillText('HP',60*SCALE,(y+11)*SCALE);
+    ctx.fillStyle='#333';ctx.fillRect(76*SCALE,(y+3)*SCALE,80*SCALE,6*SCALE);
+    const hf=Math.max(0,Math.floor(m.hp/m.maxHP*80));
+    const hc=m.hp>m.maxHP*0.5?'#44ff44':m.hp>m.maxHP*0.25?'#ffff00':'#ff4444';
+    if(hf>0){ctx.fillStyle=hc;ctx.fillRect(76*SCALE,(y+3)*SCALE,hf*SCALE,6*SCALE);}
+    ctx.fillStyle='#44ff44';ctx.fillText(m.hp+'/'+m.maxHP,160*SCALE,(y+11)*SCALE);
+    // MP bar
+    if(m.maxMP>0){
+      ctx.fillStyle='#4488ff';ctx.fillText('MP',60*SCALE,(y+24)*SCALE);
+      ctx.fillStyle='#333';ctx.fillRect(76*SCALE,(y+16)*SCALE,80*SCALE,6*SCALE);
+      const mf=Math.max(0,Math.floor(m.mp/m.maxMP*80));
+      if(mf>0){ctx.fillStyle='#4488ff';ctx.fillRect(76*SCALE,(y+16)*SCALE,mf*SCALE,6*SCALE);}
+      ctx.fillStyle='#4488ff';ctx.fillText(m.mp+'/'+m.maxMP,160*SCALE,(y+24)*SCALE);
+    }
+    // Stats
+    ctx.fillStyle='#ffffff';ctx.font=`${6*SCALE}px monospace`;
+    ctx.fillText('こう:'+m.atk,204*SCALE,(y+11)*SCALE);
+    ctx.fillText('ぼう:'+m.def,204*SCALE,(y+24)*SCALE);
+    ctx.fillText('ま:'+m.mag,264*SCALE,(y+11)*SCALE);
+    ctx.fillText('す:'+m.spd,264*SCALE,(y+24)*SCALE);
+    y+=42;
+  }
+}
+
+function drawStatusItems(){
+  const items=G.items||[];
+  ctx.fillStyle='#000033';ctx.fillRect(4*SCALE,20*SCALE,312*SCALE,202*SCALE);
+  ctx.strokeStyle='#334488';ctx.lineWidth=2;ctx.strokeRect(5*SCALE,21*SCALE,310*SCALE,200*SCALE);
+  ctx.fillStyle='#ffff00';ctx.font=`${7*SCALE}px monospace`;
+  ctx.fillText('もちもの',10*SCALE,34*SCALE);
+  ctx.fillStyle='#ffff00';ctx.font=`${6*SCALE}px monospace`;
+  ctx.fillText('もちきん: '+(G.gold||0)+'G',180*SCALE,34*SCALE);
+  // Separator
+  ctx.fillStyle='#334488';ctx.fillRect(8*SCALE,37*SCALE,306*SCALE,1*SCALE);
+  if(items.length===0){
+    ctx.fillStyle='#666666';ctx.font=`${7*SCALE}px monospace`;
+    ctx.fillText('どうぐが ない',70*SCALE,120*SCALE);
+    return;
+  }
+  let y=52;
+  for(const item of items){
+    ctx.fillStyle='#ffffff';ctx.font=`${6*SCALE}px monospace`;
+    ctx.fillText('・ '+item.id,16*SCALE,y*SCALE);
+    ctx.fillStyle='#ffff00';ctx.fillText('x'+item.count,270*SCALE,y*SCALE);
+    y+=18;
+    if(y>210)break;
+  }
+}
+
+function drawStatusEquip(){
+  const eq=G.equipment||{};
+  const slots=[
+    {key:'hat',   name:'ぼうし　　'},
+    {key:'weapon', name:'ぶき　　　'},
+    {key:'shield', name:'たて　　　'},
+    {key:'armor',  name:'よろい　　'},
+    {key:'accessory',name:'かみかざり'},
+    {key:'ring',   name:'ゆびわ　　'},
+  ];
+  ctx.fillStyle='#000033';ctx.fillRect(4*SCALE,20*SCALE,312*SCALE,202*SCALE);
+  ctx.strokeStyle='#334488';ctx.lineWidth=2;ctx.strokeRect(5*SCALE,21*SCALE,310*SCALE,200*SCALE);
+  ctx.fillStyle='#ffff00';ctx.font=`${7*SCALE}px monospace`;
+  ctx.fillText('そうびひん（'+heroName()+'）',10*SCALE,34*SCALE);
+  ctx.fillStyle='#334488';ctx.fillRect(8*SCALE,37*SCALE,306*SCALE,1*SCALE);
+  let y=54;
+  for(const slot of slots){
+    const item=eq[slot.key];
+    ctx.fillStyle='#aaaaaa';ctx.font=`${6*SCALE}px monospace`;
+    ctx.fillText(slot.name+':',12*SCALE,y*SCALE);
+    if(item){
+      ctx.fillStyle='#ffffff';ctx.fillText(item.name,116*SCALE,y*SCALE);
+      ctx.fillStyle='#88ffff';
+      const statLabel={atk:'こうげき',def:'ぼうぎょ',mag:'まほう'}[item.stat]||item.stat;
+      ctx.fillText(statLabel+'+'+item.val,220*SCALE,y*SCALE);
+    }else{
+      ctx.fillStyle='#444444';ctx.fillText('なし',116*SCALE,y*SCALE);
+    }
+    y+=28;
+  }
+}
+
 // DRAWING HELPERS
 function cls(){ctx.fillStyle='#1a1a2e';ctx.fillRect(0,0,640,480);}
 function px2(x,y,w,h,c){ctx.fillStyle=c;ctx.fillRect(x*SCALE,y*SCALE,w*SCALE,h*SCALE);}
@@ -1242,184 +1397,4 @@ function drawGenderSelect(){
   const bsel=genderCursor===0,gsel=genderCursor===1;
   if(bsel)px2(35,75,100,140,'#223388');
   drawHero(65,95,'boy');
-  txt('おとこのこ',44,185,bsel?'#ffff00':'#fff',8);
-  if(gsel)px2(185,75,100,140,'#223388');
-  drawHero(215,95,'girl');
-  txt('おんなのこ',194,185,gsel?'#ffff00':'#fff',8);
-  txt('← → で　えらぶ　けってい で　きめる',40,210,'#aaa',6);
-}
-
-// NAME INPUT SCREEN
-function drawNameInput(){
-  ctx.fillStyle='#0a0a22';ctx.fillRect(0,0,640,480);
-  txtC('なまえを　いれてね',30,'#ffff00',10);
-  txt('２〜６もじで　いれてください',30,50,'#aaa',7);
-  // Name display box
-  box2(30,60,260,30,'#000033','#4488ff');
-  const disp = nameInput || '　　　　　　';
-  txt(nameInput,40,83,'#ffff00',11);
-  // cursor blink (show underscore after name)
-  if(nameInput.length<6){
-    const blinkOn = Math.floor(titleAnim/15)%2===0;
-    if(blinkOn){
-      // measure text offset
-      ctx.font=`${11*SCALE}px monospace`;
-      const nameW = ctx.measureText(nameInput).width / SCALE;
-      txt('_',40+nameW,83,'#888888',11);
-    }
-  }
-  // status
-  const len=nameInput.length;
-  const ok=len>=2&&len<=6;
-  txt('もじすう：'+len+'/6',30,103,ok?'#44ff44':'#ff6666',7);
-  if(!ok&&len<2)txt('もっと　いれてね',30,118,'#ffaa00',7);
-  if(len>6)txt('みじかくしてね',30,118,'#ffaa00',7);
-  // instruction
-  txt('スマホのばあいは　したの　キーボードで　いれてね',8,135,'#888',5);
-  txt('キーボードの「おわり」で　けってい',8,148,'#888',5);
-  // show "decided" button hint
-  if(ok){
-    box2(90,158,140,18,'#1a4a1a','#44aa44');
-    txtC('おわり：けってい',166,'#44ff44',7);
-  }
-}
-
-// OPENING
-function drawOpening(){
-  ctx.fillStyle='#000011';ctx.fillRect(0,0,640,480);
-  box2(20,60,280,110,'#000033','#4444cc');
-  const lines=OPENING_TEXTS[openingPage]||[];
-  for(let i=0;i<lines.length;i++)txt(lines[i],30,90+i*22,'#fff',8);
-  txt('▼ けってい で　つぎへ',150,195,'#888',6);
-  drawCat(20,140,0);drawCat(258,140,2);
-}
-
-// DIALOG (field dialog - draquestle style at bottom)
-function drawDialog(){
-  drawField();
-  const lines=dialogQueue[dialogIdx]||[];
-  // DQ-style dialog box at bottom
-  box2(4,168,312,66,'#000033','#4488ff');
-  for(let i=0;i<lines.length;i++){
-    const line=lines[i];
-    txt(line,10,184+i*18,'#fff',7);
-  }
-  txt('▼',300,228,'#ffff00',8);
-}
-
-// NPC DIALOG
-function drawNpcDialog(){
-  drawField();
-  const area=G.area;
-  const npcs=NPC_DATA[area]||[];
-  const npc=npcs[npcTalkIdx];
-  if(!npc)return;
-  const msgs=npc.msgs[npcMsgPage]||[];
-  // DQ-style dialog box
-  box2(4,168,312,66,'#000033','#44aaff');
-  // NPC name header
-  box2(4,158,80,14,'#002244','#44aaff');
-  txt(npc.name,8,169,'#ffff88',6);
-  for(let i=0;i<msgs.length;i++){
-    txt(msgs[i],10,184+i*18,'#fff',7);
-  }
-  const hasMore=npcMsgPage<npc.msgs.length-1;
-  txt(hasMore?'▼ つぎへ':'▼ おわり',246,228,'#ffff00',6);
-}
-
-// SAVE
-function drawSave(){
-  ctx.fillStyle='#0a0a22';ctx.fillRect(0,0,640,480);
-  box2(20,20,280,200,'#000033','#4488ff');
-  txtC('ふっかつのじゅもん',42,'#ffff00',9);
-  txt('このじゅもんを　メモしてね！',28,65,'#fff',7);
-  box2(40,78,240,40,'#000011','#8888ff');
-  const code=G.saveCode||'??????????';
-  ctx.fillStyle='#ffff00';ctx.font=`${14*SCALE}px monospace`;ctx.textAlign='center';
-  ctx.fillText(code,160*SCALE,107*SCALE);ctx.textAlign='left';
-  txt('エリア：'+AREA_NAMES[G.area||0],30,132,'#fff',7);
-  txt('ネコ：'+(G.catsFound||[]).filter(Boolean).length+'/3',30,148,'#fff',7);
-  txt('ゴールド：'+(G.gold||0)+'G',30,164,'#fff',7);
-  txt('レベル：'+((G.party&&G.party[0])?G.party[0].lv:1),30,180,'#fff',7);
-  txt('けってい/キャンセル で　もどる',30,206,'#aaa',6);
-}
-
-// LOAD
-function drawLoad(){
-  ctx.fillStyle='#0a0a22';ctx.fillRect(0,0,640,480);
-  box2(20,20,280,210,'#000033','#4488ff');
-  txtC('じゅもん　にゅうりょく',40,'#ffff00',9);
-  txt('ふっかつのじゅもんを　いれてね',26,62,'#fff',7);
-  box2(20,72,280,30,'#000011','#8888ff');
-  const disp=(loadInput+'__________').slice(0,10);
-  for(let i=0;i<10;i++){
-    const bx=28+i*26;
-    if(i===loadCursor)px2(bx-2,75,23,24,'#223388');
-    ctx.fillStyle=i===loadCursor?'#ffff00':'#fff';
-    ctx.font=`${9*SCALE}px monospace`;ctx.textAlign='left';
-    ctx.fillText(disp[i]||'_',bx*SCALE,96*SCALE);
-  }
-  txt('↑↓ カーソル　←→ もじかえる',25,118,'#aaa',6);
-  txt('けってい で　かくにん　キャンセル もどる',25,132,'#aaa',6);
-  txt('A-Z 0-9 のもじが　つかえます',25,150,'#666',5);
-}
-
-// SHOP
-function drawShop(){
-  ctx.fillStyle='#0a0a1a';ctx.fillRect(0,0,640,480);
-  box2(0,0,320,240,'#0a0a1a','#8844cc');
-  txtC('おみせ',14,'#ffff00',9);txt('もちきん：'+G.gold+'G',195,14,'#ffff00',7);
-  box2(0,18,320,208,'#000022','#553399');
-  for(let i=0;i<SHOP_ITEMS.length;i++){
-    const item=SHOP_ITEMS[i];const y=30+i*24;const sel=shopCursor===i;
-    if(sel)px2(2,y-8,316,18,'#33116a');
-    txt(sel?'▶':' ',3,y,'#ff0',7);txt(item.name,14,y,'#fff',7);
-    txt(item.price+'G',240,y,'#ff0',7);
-    if(item.stat)txt(item.stat.toUpperCase()+'+'+item.val,175,y,'#8ff',6);
-  }
-  txt('↑↓えらぶ　けってい かう　キャンセル でる',4,225,'#888',5);
-}
-
-// ENDING
-function drawEnding(){
-  ctx.fillStyle='#001133';ctx.fillRect(0,0,640,480);
-  for(let i=0;i<20;i++){ctx.fillStyle=['#f00','#ff0','#0f0','#08f','#f0f'][i%5];ctx.fillRect(((i*37+titleAnim*2)%320)*SCALE,((i*23)%90)*SCALE,4*SCALE,4*SCALE);}
-  txtC('おめでとう！',50,'#ffff00',13);
-  txtC('ネズミ大王を　たおした！',75,'#fff',8);
-  txtC('３びきの　ネコも　みつけた！',95,'#44ff44',7);
-  drawHero(50,108,G.gender||'boy');drawMama(90,108);drawPapa(130,108);
-  drawCat(174,112,0);drawCat(198,112,1);drawCat(222,112,2);
-  txtC('みんなで　しあわせに　くらしましたとさ。',168,'#fff',7);
-  txtC('おわり',195,'#ffff00',11);
-  txt('けってい で　タイトルへ',80,230,'#888',6);
-}
-
-// Save shortcut
-document.addEventListener('keydown',e=>{if(e.key==='s'&&currentScreen==='field'){showSaveScreen();e.preventDefault();}});
-
-// MAIN LOOP
-let lastTime=0;
-function gameLoop(ts){
-  const dt=ts-lastTime;lastTime=ts;
-  if(fieldMoveDelay>0)fieldMoveDelay--;
-  titleAnim+=dt*0.03;
-  cls();
-  if(currentScreen==='title')drawTitle();
-  else if(currentScreen==='gender')drawGenderSelect();
-  else if(currentScreen==='nameInput')drawNameInput();
-  else if(currentScreen==='opening')drawOpening();
-  else if(currentScreen==='field')drawField();
-  else if(currentScreen==='battle')drawBattle();
-  else if(currentScreen==='dialog')drawDialog();
-  else if(currentScreen==='npcDialog')drawNpcDialog();
-  else if(currentScreen==='minigame')drawMinigame();
-  else if(currentScreen==='save')drawSave();
-  else if(currentScreen==='load')drawLoad();
-  else if(currentScreen==='shop')drawShop();
-  else if(currentScreen==='ending')drawEnding();
-  requestAnimationFrame(gameLoop);
-}
-requestAnimationFrame(gameLoop);
-</script>
-</body>
-</html>
+  txt('おとこのこ',44,185,bsel?'#ffff00':'#fff',8

@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ネコのシューティング</title>
+<style>
+  html,body{margin:0;padding:0;background:#1a1a2e;height:100%;overflow:hidden;
+    font-family:'Hiragino Kaku Gothic ProN','Meiryo',sans-serif;}
+  #wrap{display:flex;justify-content:center;align-items:center;height:100%;}
+  canvas{background:#16213e;max-width:100vw;max-height:100vh;touch-action:none;
+    border-radius:8px;box-shadow:0 0 30px rgba(0,0,0,.6);}
+</style>
+</head>
+<body>
+<div id="wrap"><canvas id="game" width="480" height="640"></canvas></div>
+<script>
+'use strict';
+const cv = document.getElementById('game');
+const cx = cv.getContext('2d');
+const W = 480, H = 640;
+
+// ---------- ネコたち(残機ローテーション順) ----------
+const CATS = [
+  {name:'シャロ', body:'#c8862f', dark:'#8f5c1a', ear:'#ffb3c1', eye:'#3f7d2f', stripe:true},
+  {name:'ゆき',   body:'#3b3b45', dark:'#1e1e26', ear:'#e58aa0', eye:'#e8b830', stripe:false},
+  {name:'ほたて', body:'#f5f2ec', dark:'#b8b2a6', ear:'#ffb3c1', eye:'#4a7fd4', stripe:false},
+];
+
+// ---------- サウンド ----------
+let ac = null;
+function beep(freq, dur, type, vol){
+  if(!ac) return;
+  try{
+    const o = ac.createOscillator(), g = ac.createGain();
+    o.type = type || 'square'; o.frequency.value = freq;
+    g.gain.setValueAtTime(vol || .06, ac.currentTime);
+    g.gain.exponentialRampToValueAtTime(.0001, ac.currentTime + dur);
+    o.connect(g); g.connect(ac.destination);
+    o.start(); o.stop(ac.currentTime + dur);
+  }catch(e){}
+}
+function initAudio(){
+  if(!ac){
+    try{ ac = new (window.AudioContext || window.webkitAudioContext)(); }catch(e){}
+  }
+  if(ac && ac.state === 'suspended') ac.resume();
+}
+
+// ---------- 状態 ----------
+let state = 'title';   // title / play / stageclear / over / clear
+let stage = 1, score = 0, hiScore = 0, frame = 0;
+let phase = 'wave';    // wave / boss
+let player, bullets, foods, items, bosses, ebullets, parts;
+let lives = 3, catIdx = 0, nextExtend = 15000;
+let quota = 0, killed = 0, msgT = 0, msgText = '', shake = 0;
+const keys = {};
+let touchTarget = null;
+
+// ---------- 初期化 ----------
+function newGame(){
+  stage = 1; score = 0;
+  lives = 3; catIdx = 0; nextExtend = 15000;
+  player = {x: W/2, y: H-90, hp: 5, maxHp: 5, wpn: 1, inv: 0, cool: 0};
+  startStage();
+  state = 'play';
+}
+function startStage(){
+  bullets = []; foods = []; items = []; bosses = []; ebullets = []; parts = [];
+  phase = 'wave';
+  quota = 10 + stage * 5;   // ボス出現に必要なエサ数
+  killed = 0; frame = 0;
+  setMsg('STAGE ' + stage, 90);
+}
+function setMsg(t, dur){ msgText = t; msgT = dur; }
+function spawnBosses(n){
+  for(let i = 0; i < n; i++){
+    bosses.push({
+      baseX: W * (i+1) / (n+1), x: W * (i+1) / (n+1), y: -70,
+      w: 64, h: 56, t: -i * 25,
+      hp: 26 + stage * 12, maxHp: 26 + stage * 12,
+      amp: Math.max(40, W/(n+1) - 60)
+    });
+  }
+}
+
+// ---------- 入力 ----------
+addEventListener('keydown', e => {
+  if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)) e.preventDefault();
+  keys[e.key] = true;
+  initAudio();
+  if(e.key === ' ' || e.key === 'Enter'){
+    if(state === 'title') newGame();
+    else if(state === 'over' || state === 'clear') state = 'title';
+  }
+});
+addEventListener('keyup', e => keys[e.key] = false);
+
+function toGameXY(e){
+  const r = cv.getBoundingClientRect();
+  return { x: (e.clientX - r.left) * W / r.width,
+           y: (e.clientY - r.top) * H / r.height };
+}
+cv.addEventListener('pointerdown', e => {
+  e.preventDefault(); initAudio();
+  if(state === 'title'){ newGame(); return; }
+  if(state === 'over' || state === 'clear'){ state = 'title'; return; }
+  touchTarget = toGameXY(e);
+});
+cv.addEventListener('pointermove', e => {
+  if(touchTarget !== null) touchTarget = toGameXY(e);
+});
+addEventListener('pointerup', () => touchTarget = null);
+cv.addEventListener('contextmenu', e => e.preventDefault());
+
+// ---------- ヘルパー ----------
+function hit(a, aw, ah, b, bw, bh){
+  return Math.abs(a.x - b.x) < (aw + bw)/2 && Math.abs(a.y - b.y) < (ah + bh)/2;
+}
+function burst(x, y, color, n){
+  for(let i = 0; i < (n||8); i++){
+    const a = Math.random() * Math.PI * 2, s = 1 + Math.random() * 3;
+    parts.push({x, y, vx: Math.cos(a)*s, vy: Math.sin(a)*s, life: 22 + Math.random()*10, color});
+  }
+}
+function addScore(v){
+  score += v;
+  if(score >= nextExtend){
+    lives++;
+    setMsg('残機 +1! ' + CATS[(catIdx + (lives-1)) % 3].name + ' がひかえに!', 100);
+    nextExtend += 20000;
+    beep(900, .1, 'square', .06); beep(1350, .15, 'square', .05); beep(1800, .2, 'square', .05);
+  }
+}
+function damagePlayer(){
+  if(player.inv > 0) return;
+  player.hp--; player.inv = 75; shake = 10;
+  burst(player.x, player.y, '#ff8888', 14);
+  beep(120, .3, 'sawtooth', .09);
+  if(player.hp <= 0) loseLife();
+}
+function loseLife(){
+  burst(player.x, player.y, CATS[catIdx].body, 26);
+  shake = 16;
+  lives--;
+  if(lives <= 0){
+    state = 'over';
+    hiScore = Math.max(hiScore, score);
+    beep(80, .6, 'sawtooth', .1);
+    return;
+  }
+  // ローテーション: シャロ→ゆき→ほたて→シャロ→…
+  catIdx = (catIdx + 1) % 3;
+  player.hp = player.maxHp;
+  player.inv = 130;
+  player.x = W/2; player.y = H-90;
+  setMsg(CATS[catIdx].name + ' しゅつげき!', 100);
+  beep(500, .12, 'triangle', .06); beep(750, .18, 'triangle', .05);
+}
+
+// ---------- 更新 ----------
+function update(){
+  if(state !== 'play') return;
+  frame++;
+  if(msgT > 0) msgT--;
+  if(shake > 0) shake--;
+  if(player.inv > 0) player.inv--;
+
+  // --- プレイヤー移動 ---
+  const sp = 5;
+  if(keys['ArrowLeft'] || keys['a']) player.x -= sp;
+  if(keys['ArrowRight'] || keys['d']) player.x += sp;
+  if(keys['ArrowUp'] || keys['w']) player.y -= sp;
+  if(keys['ArrowDown'] || keys['s']) player.y += sp;
+  if(touchTarget){
+    // 指の少し上を目標にして指で自機が隠れないように
+    const tx = touchTarget.x, ty = touchTarget.y - 70;
+    player.x += (tx - player.x) * .25;
+    player.y += (ty - player.y) * .25;
+  }
+  player.x = Math.max(22, Math.min(W-22, player.x));
+  player.y = Math.max(60, Math.min(H-30, player.y));
+
+  // --- 自動発射 ---
+  if(--player.cool <= 0){
+    player.cool = 9;
+    const y = player.y - 26;
+    if(player.wpn === 1){
+      bullets.push({x: player.x, y, vx: 0, vy: -9});
+    }else if(player.wpn === 2){
+      bullets.push({x: player.x-10, y, vx: 0, vy: -9});
+      bullets.push({x: player.x+10, y, vx: 0, vy: -9});
+    }else{
+      bullets.push({x: player.x, y, vx: 0, vy: -10});
+      bullets.push({x: player.x-12, y, vx: -2, vy: -9});
+      bullets.push({x: player.x+12, y, vx: 2, vy: -9});
+    }
+    beep(880, .04, 'square', .015);
+  }
+  bullets = bullets.filter(b => (b.x += b.vx, b.y += b.vy, b.y > -20 && b.x > -20 && b.x < W+20));
+
+  // --- エサ出現 ---
+  const waveRate = Math.max(18, 46 - stage * 8);
+  const spawnFood = (phase === 'wave' && frame % waveRate === 0) ||
+                    (phase === 'boss' && frame % 120 === 0);
+  if(spawnFood){
+    foods.push({
+      x: 30 + Math.random() * (W-60), y: -20,
+      vy: 1.4 + stage * .35 + Math.random(),
+      sway: Math.random() * Math.PI * 2,
+      hp: (stage === 3 && Math.random() < .4) ? 2 : 1,
+      w: 36, h: 22
+    });
+  }
+
+  // --- エサ更新 ---
+  for(const f of foods){
+    f.y += f.vy;
+    f.sway += .05;
+    f.x += Math.sin(f.sway) * .8;
+  }
+  foods = foods.filter(f => {
+    if(f.y > H + 30) return false;
+    if(hit(f, f.w, f.h, player, 30, 30)){ damagePlayer(); return false; }
+    return f.hp > 0;
+  });
+
+  // --- 弾 vs エサ ---
+  for(const b of bullets){
+    for(const f of foods){
+      if(f.hp > 0 && hit(b, 8, 8, f, f.w, f.h)){
+        f.hp--; b.y = -99;
+        if(f.hp <= 0){
+          killed++; addScore(100);
+          burst(f.x, f.y, '#b5813f', 10);
+          beep(440, .07, 'triangle', .04);
+          const r = Math.random();
+          if(r < .09) items.push({x: f.x, y: f.y, vy: 2, type: 'W'});
+          else if(r < .17) items.push({x: f.x, y: f.y, vy: 2, type: 'H'});
+        }else{
+          beep(300, .04, 'square', .03);
+        }
+      }
+    }
+  }
+  foods = foods.filter(f => f.hp > 0);
+
+  // --- アイテム ---
+  items = items.filter(it => {
+    it.y += it.vy;
+    if(it.y > H + 20) return false;
+    if(hit(it, 26, 26, player, 34, 34)){
+      if(it.type === 'W'){
+        if(player.wpn < 3){ player.wpn++; }
+        else addScore(500);
+        beep(1200, .12, 'square', .05); beep(1600, .15, 'square', .04);
+      }else{
+        if(player.hp < player.maxHp) player.hp++;
+        else addScore(300);
+        beep(700, .12, 'sine', .06); beep(1050, .18, 'sine', .05);
+      }
+      burst(it.x, it.y, it.type === 'W' ? '#ffd700' : '#7fff9f', 10);
+      return false;
+    }
+    return true;
+  });
+
+  // --- ボス出現 ---
+  if(phase === 'wave' && killed >= quota){
+    phase = 'boss';
+    spawnBosses(stage);
+    setMsg('🐭 ネズミボス しゅつげん!! 🐭', 110);
+    beep(200, .4, 'sawtooth', .07);
+  }
+
+  // --- ボス更新 ---
+  for(const bo of bosses){
+    bo.t++;
+    if(bo.t < 0) continue;
+    if(bo.y < 95) bo.y += 2.2;
+    else{
+      bo.x = bo.baseX + Math.sin(bo.t * .022) * bo.amp;
+      bo.y = 95 + Math.sin(bo.t * .04) * 22;
+    }
+    // 攻撃(チーズ弾)
+    const rate = Math.max(55, 95 - stage * 12);
+    if(bo.t > 80 && bo.t % rate === 0){
+      const dx = player.x - bo.x, dy = player.y - bo.y;
+      const d = Math.hypot(dx, dy) || 1, s = 2.6 + stage * .4;
+      ebullets.push({x: bo.x, y: bo.y + 20, vx: dx/d*s, vy: dy/d*s});
+      if(stage >= 2){
+        ebullets.push({x: bo.x, y: bo.y + 20, vx: dx/d*s - 1.1, vy: dy/d*s});
+        ebullets.push({x: bo.x, y: bo.y + 20, vx: dx/d*s + 1.1, vy: dy/d*s});
+      }
+      beep(260, .08, 'square', .03);
+    }
+    // 体当たり
+    if(hit(bo, bo.w, bo.h, player, 30, 30)) damagePlayer();
+  }
+
+  // --- 弾 vs ボス ---
+  for(const b of bullets){
+    for(const bo of bosses){
+      if(bo.t >= 0 && bo.hp > 0 && hit(b, 8, 8, bo, bo.w, bo.h)){
+        bo.hp--; b.y = -99; addScore(10);
+        burst(b.x, b.y - 5, '#cccccc', 3);
+        if(bo.hp <= 0){
+          addScore(2000);
+          burst(bo.x, bo.y, '#aaaaaa', 30);
+          burst(bo.x, bo.y, '#ffd700', 20);
+          shake = 14;
+          beep(150, .5, 'sawtooth', .09);
+        }
+      }
+    }
+  }
+  bosses = bosses.filter(bo => bo.hp > 0);
+
+  // --- 敵弾 ---
+  ebullets = ebullets.filter(eb => {
+    eb.x += eb.vx; eb.y += eb.vy;
+    if(eb.y > H+20 || eb.y < -20 || eb.x < -20 || eb.x > W+20) return false;
+    if(hit(eb, 12, 12, player, 26, 26)){ damagePlayer(); return false; }
+    return true;
+  });
+
+  // --- パーティクル ---
+  parts = parts.filter(p => (p.x += p.vx, p.y += p.vy, p.vy += .06, --p.life > 0));
+
+  // --- ステージクリア ---
+  if(phase === 'boss' && bosses.length === 0 && state === 'play'){
+    hiScore = Math.max(hiScore, score);
+    if(stage >= 3){ state = 'clear'; }
+    else{ state = 'stageclear'; msgT = 130; }
+  }
+}
+
+// ---------- 描画 ----------
+function roundRect(x, y, w, h, r){
+  cx.beginPath();
+  cx.moveTo(x+r, y);
+  cx.arcTo(x+w, y, x+w, y+h, r);
+  cx.arcTo(x+w, y+h, x, y+h, r);
+  cx.arcTo(x, y+h, x, y, r);
+  cx.arcTo(x, y, x+w, y, r);
+  cx.closePath();
+}
+// ネコ描画(s=1 で全高約48px)
+function drawCat(x, y, s, c){
+  cx.save();
+  cx.translate(x, y);
+  cx.scale(s, s);
+  cx.lineWidth = 2; cx.strokeStyle = c.dark;
+  // しっぽ
+  cx.beginPath();
+  cx.moveTo(0, 16);
+  cx.quadraticCurveTo(18, 22, 20, 8);
+  cx.strokeStyle = c.body === '#f5f2ec' ? c.dark : c.body;
+  cx.lineWidth = 5; cx.lineCap = 'round'; cx.stroke();
+  // 体
+  cx.fillStyle = c.body; cx.strokeStyle = c.dark; cx.lineWidth = 2;
+  cx.beginPath(); cx.ellipse(0, 12, 13, 11, 0, 0, 7); cx.fill(); cx.stroke();
+  // 耳
+  cx.beginPath(); cx.moveTo(-14, -12); cx.lineTo(-10, -24); cx.lineTo(-4, -15); cx.closePath();
+  cx.fill(); cx.stroke();
+  cx.beginPath(); cx.moveTo(14, -12); cx.lineTo(10, -24); cx.lineTo(4, -15); cx.closePath();
+  cx.fill(); cx.stroke();
+  cx.fillStyle = c.ear;
+  cx.beginPath(); cx.moveTo(-12, -14); cx.lineTo(-10, -20); cx.lineTo(-7, -15); cx.closePath(); cx.fill();
+  cx.beginPath(); cx.moveTo(12, -14); cx.lineTo(10, -20); cx.lineTo(7, -15); cx.closePath(); cx.fill();
+  // 頭
+  cx.fillStyle = c.body;
+  cx.beginPath(); cx.arc(0, -6, 14, 0, 7); cx.fill(); cx.stroke();
+  // 茶トラのしま模様
+  if(c.stripe){
+    cx.strokeStyle = c.dark; cx.lineWidth = 2;
+    cx.beginPath(); cx.moveTo(-5, -19); cx.lineTo(-4, -14); cx.stroke();
+    cx.beginPath(); cx.moveTo(0, -20); cx.lineTo(0, -15); cx.stroke();
+    cx.beginPath(); cx.moveTo(5, -19); cx.lineTo(4, -14); cx.stroke();
+    cx.beginPath(); cx.moveTo(-8, 6); cx.lineTo(8, 6); cx.stroke();
+    cx.beginPath(); cx.moveTo(-9, 12); cx.lineTo(9, 12); cx.stroke();
+    cx.beginPath(); cx.moveTo(-8, 18); cx.lineTo(8, 18); cx.stroke();
+  }
+  // 目
+  cx.fillStyle = c.eye;
+  cx.beginPath(); cx.ellipse(-5.5, -7, 2.6, 3.2, 0, 0, 7); cx.fill();
+  cx.beginPath(); cx.ellipse(5.5, -7, 2.6, 3.2, 0, 0, 7); cx.fill();
+  cx.fillStyle = '#111';
+  cx.beginPath(); cx.ellipse(-5.5, -6.6, 1.1, 2.2, 0, 0, 7); cx.fill();
+  cx.beginPath(); cx.ellipse(5.5, -6.6, 1.1, 2.2, 0, 0, 7); cx.fill();
+  // 鼻・口
+  cx.fillStyle = '#e58aa0';
+  cx.beginPath(); cx.moveTo(-2, -1.5); cx.lineTo(2, -1.5); cx.lineTo(0, 1); cx.closePath(); cx.fill();
+  cx.strokeStyle = c.dark; cx.lineWidth = 1;
+  cx.beginPath(); cx.moveTo(0, 1); cx.quadraticCurveTo(-3, 4, -5, 2); cx.stroke();
+  cx.beginPath(); cx.moveTo(0, 1); cx.quadraticCurveTo(3, 4, 5, 2); cx.stroke();
+  // ひげ
+  cx.beginPath(); cx.moveTo(-12, -2); cx.lineTo(-20, -4); cx.stroke();
+  cx.beginPath(); cx.moveTo(-12, 0); cx.lineTo(-20, 0); cx.stroke();
+  cx.beginPath(); cx.moveTo(12, -2); cx.lineTo(20, -4); cx.stroke();
+  cx.beginPath(); cx.moveTo(12, 0); cx.lineTo(20, 0); cx.stroke();
+  cx.restore();
+}
+function drawBG(){
+  const g = cx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, '#0f1b3d'); g.addColorStop(1, '#1c2f52');
+  cx.fillStyle = g; cx.fillRect(0, 0, W, H);
+  cx.fillStyle = 'rgba(255,255,255,.35)';
+  for(let i = 0; i < 40; i++){
+    const sx = (i * 137) % W;
+    const sy = ((i * 251) + frame * (1 + i % 3)) % H;
+    cx.fillRect(sx, sy, 2, 2);
+  }
+}
+function drawFood(f){
+  cx.save();
+  cx.translate(f.x, f.y);
+  cx.fillStyle = f.hp >= 2 ? '#6d4318' : '#8b5a2b';
+  roundRect(-f.w/2, -f.h/2, f.w, f.h, 5); cx.fill();
+  cx.fillStyle = 'rgba(0,0,0,.25)';
+  cx.beginPath(); cx.arc(-8, -2, 2.5, 0, 7); cx.fill();
+  cx.beginPath(); cx.arc(3, 4, 2.5, 0, 7); cx.fill();
+  cx.beginPath(); cx.arc(9, -4, 2, 0, 7); cx.fill();
+  cx.strokeStyle = 'rgba(255,255,255,.25)'; cx.lineWidth = 1.5;
+  roundRect(-f.w/2, -f.h/2, f.w, f.h, 5); cx.stroke();
+  cx.restore();
+}
+function emoji(ch, x, y, size){
+  cx.font = size + 'px serif';
+  cx.textAlign = 'center'; cx.textBaseline = 'middle';
+  cx.fillText(ch, x, y);
+}
+function draw(){
+  cx.save();
+  if(shake > 0) cx.translate((Math.random()-.5)*shake, (Math.random()-.5)*shake);
+  drawBG();
+
+  if(state === 'title'){ drawTitle(); cx.restore(); return; }
+
+  // エサ・アイテム・弾
+  for(const f of foods) drawFood(f);
+  for(const it of items){
+    cx.save();
+    cx.shadowColor = it.type === 'W' ? '#ffd700' : '#7fff9f'; cx.shadowBlur = 12;
+    emoji(it.type === 'W' ? '⭐' : '🐟', it.x, it.y, 26);
+    cx.restore();
+  }
+  cx.fillStyle = '#ff9ecb';
+  for(const b of bullets){ cx.beginPath(); cx.arc(b.x, b.y, 5, 0, 7); cx.fill(); }
+  for(const eb of ebullets){
+    cx.fillStyle = '#ffe14d';
+    cx.beginPath(); cx.arc(eb.x, eb.y, 7, 0, 7); cx.fill();
+    cx.fillStyle = 'rgba(0,0,0,.2)';
+    cx.beginPath(); cx.arc(eb.x-2, eb.y-2, 2, 0, 7); cx.fill();
+  }
+
+  // ボス
+  for(const bo of bosses){
+    if(bo.t < 0) continue;
+    emoji('🐭', bo.x, bo.y, 60);
+    const bw = 70;
+    cx.fillStyle = 'rgba(0,0,0,.5)';
+    cx.fillRect(bo.x - bw/2, bo.y - 48, bw, 7);
+    cx.fillStyle = '#ff5555';
+    cx.fillRect(bo.x - bw/2, bo.y - 48, bw * bo.hp / bo.maxHp, 7);
+  }
+
+  // プレイヤー(無敵中は点滅)
+  if(!(player.inv > 0 && (player.inv >> 2) % 2 === 0)){
+    drawCat(player.x, player.y, .9, CATS[catIdx]);
+  }
+
+  // パーティクル
+  for(const p of parts){
+    cx.globalAlpha = Math.max(0, p.life / 30);
+    cx.fillStyle = p.color;
+    cx.fillRect(p.x-2, p.y-2, 4, 4);
+  }
+  cx.globalAlpha = 1;
+
+  drawHUD();
+
+  // メッセージ
+  cx.textAlign = 'center'; cx.textBaseline = 'middle';
+  if(state === 'play' && msgT > 0 && msgText){
+    cx.fillStyle = '#ffffff'; cx.font = 'bold 28px sans-serif';
+    cx.fillText(msgText, W/2, H/2 - 40);
+  }
+  if(state === 'stageclear'){
+    cx.fillStyle = '#ffd700'; cx.font = 'bold 36px sans-serif';
+    cx.fillText('STAGE ' + stage + ' クリア!', W/2, H/2 - 20);
+    if(--msgT <= 0){ stage++; startStage(); state = 'play'; }
+  }
+  if(state === 'over') drawEnd('ゲームオーバー…', '#ff6666', '🙀');
+  if(state === 'clear') drawEnd('ゲームクリア!おめでとう!', '#ffd700', '😸🎉');
+  cx.restore();
+}
+function drawHUD(){
+  cx.textAlign = 'left'; cx.textBaseline = 'top';
+  cx.fillStyle = '#ffffff'; cx.font = 'bold 16px sans-serif';
+  cx.fillText('STAGE ' + stage, 12, 10);
+  cx.fillText('SCORE ' + score, 12, 32);
+  let hearts = '';
+  for(let i = 0; i < player.maxHp; i++) hearts += i < player.hp ? '❤️' : '🖤';
+  cx.font = '16px serif';
+  cx.fillText(hearts, 12, 54);
+  cx.font = 'bold 14px sans-serif';
+  cx.fillStyle = '#ffd700';
+  cx.fillText('武器 Lv.' + player.wpn, 12, 78);
+  // 出撃中のネコと残機(次のネコから順に表示)
+  cx.fillStyle = '#ffffff';
+  cx.fillText(CATS[catIdx].name, 12, 100);
+  for(let i = 1; i < lives; i++){
+    drawCat(85 + (i-1) * 30, 112, .42, CATS[(catIdx + i) % 3]);
+  }
+  cx.textBaseline = 'top';
+  if(phase === 'wave'){
+    cx.fillStyle = '#aaddff'; cx.textAlign = 'right'; cx.font = 'bold 14px sans-serif';
+    cx.fillText('エサ ' + Math.min(killed, quota) + ' / ' + quota, W-12, 10);
+  }
+}
+function drawTitle(){
+  cx.textAlign = 'center'; cx.textBaseline = 'middle';
+  cx.fillStyle = '#ffffff'; cx.font = 'bold 34px sans-serif';
+  cx.fillText('ネコのシューティング', W/2, 90);
+  // 3匹のネコ紹介
+  const names = ['シャロ', 'ゆき', 'ほたて'];
+  for(let i = 0; i < 3; i++){
+    const x = W/2 + (i-1) * 120;
+    drawCat(x, 185, 1.2, CATS[i]);
+    cx.fillStyle = '#ccddff'; cx.font = 'bold 16px sans-serif';
+    cx.fillText(names[i], x, 245);
+  }
+  cx.fillStyle = '#aabbdd'; cx.font = '13px sans-serif';
+  cx.fillText('← この順番で出撃!(残機3機)', W/2, 275);
+  cx.font = '16px sans-serif'; cx.fillStyle = '#ccddff';
+  cx.fillText('エサ(茶色のかたまり)を撃って進もう!', W/2, 320);
+  cx.fillText('⭐ = 武器パワーアップ / 🐟 = HPかいふく', W/2, 348);
+  cx.fillText('ボスはいつものネズミ🐭 (1匹→2匹→3匹!)', W/2, 376);
+  cx.fillStyle = '#aabbdd';
+  cx.fillText('PC: 矢印キーで移動(自動で発射)', W/2, 420);
+  cx.fillText('スマホ: 画面をタッチしたまま動かす', W/2, 446);
+  if((frame >> 5) % 2 === 0){
+    cx.fillStyle = '#ffd700'; cx.font = 'bold 22px sans-serif';
+    cx.fillText('タップ または スペースキーでスタート', W/2, 520);
+  }
+  if(hiScore > 0){
+    cx.fillStyle = '#ffffff'; cx.font = '16px sans-serif';
+    cx.fillText('ハイスコア: ' + hiScore, W/2, 570);
+  }
+  frame++;
+}
+function drawEnd(msg, color, face){
+  cx.fillStyle = 'rgba(0,0,0,.55)'; cx.fillRect(0, 0, W, H);
+  cx.textAlign = 'center'; cx.textBaseline = 'middle';
+  emoji(face, W/2, H/2 - 90, 60);
+  cx.fillStyle = color; cx.font = 'bold 32px sans-serif';
+  cx.fillText(msg, W/2, H/2 - 20);
+  cx.fillStyle = '#ffffff'; cx.font = '20px sans-serif';
+  cx.fillText('SCORE: ' + score, W/2, H/2 + 25);
+  cx.fillText('ハイスコア: ' + hiScore, W/2, H/2 + 55);
+  cx.font = '18px sans-serif'; cx.fillStyle = '#ffd700';
+  cx.fillText('タップ / スペースキーでタイトルへ', W/2, H/2 + 105);
+}
+
+// ---------- メインループ ----------
+function loop(){
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+loop();
+</script>
+</body>
+</html>

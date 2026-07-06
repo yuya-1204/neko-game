@@ -1397,4 +1397,185 @@ function drawGenderSelect(){
   const bsel=genderCursor===0,gsel=genderCursor===1;
   if(bsel)px2(35,75,100,140,'#223388');
   drawHero(65,95,'boy');
-  txt('おとこのこ',44,185,bsel?'#ffff00':'#fff',8
+  txt('おとこのこ',44,185,bsel?'#ffff00':'#fff',8);
+  if(gsel)px2(185,75,100,140,'#223388');
+  drawHero(215,95,'girl');
+  txt('おんなのこ',194,185,gsel?'#ffff00':'#fff',8);
+  txt('← → で　えらぶ　けってい で　きめる',40,210,'#aaa',6);
+}
+
+// NAME INPUT SCREEN
+function drawNameInput(){
+  ctx.fillStyle='#0a0a22';ctx.fillRect(0,0,640,480);
+  txtC('なまえを　いれてね',30,'#ffff00',10);
+  txt('２～６もじで　いれてください',30,50,'#aaa',7);
+  // Name display box
+  box2(30,60,260,30,'#000033','#4488ff');
+  const disp = nameInput || '　　　　　　';
+  txt(nameInput,40,83,'#ffff00',11);
+  // cursor blink (show underscore after name)
+  if(nameInput.length<6){
+    const blinkOn = Math.floor(titleAnim/15)%2===0;
+    if(blinkOn){
+      // measure text offset
+      ctx.font=`${11*SCALE}px monospace`;
+      const nameW = ctx.measureText(nameInput).width / SCALE;
+      txt('_',40+nameW,83,'#888888',11);
+    }
+  }
+  // status
+  const len=nameInput.length;
+  const ok=len>=2&&len<=6;
+  txt('もじすう：'+len+'/6',30,103,ok?'#44ff44':'#ff6666',7);
+  if(!ok&&len<2)txt('もっと　いれてね',30,118,'#ffaa00',7);
+  if(len>6)txt('みじかくしてね',30,118,'#ffaa00',7);
+  // instruction
+  txt('スマホのばあいは　したの　キーボードで　いれてね',8,135,'#888',5);
+  txt('キーボードの「おわり」で　けってい',8,148,'#888',5);
+  // show "decided" button hint
+  if(ok){
+    box2(90,158,140,18,'#1a4a1a','#44aa44');
+    txtC('おわり：けってい',166,'#44ff44',7);
+  }
+}
+
+// OPENING
+function drawOpening(){
+  ctx.fillStyle='#000011';ctx.fillRect(0,0,640,480);
+  box2(20,60,280,110,'#000033','#4444cc');
+  const lines=OPENING_TEXTS[openingPage]||[];
+  for(let i=0;i<lines.length;i++)txt(lines[i],30,90+i*22,'#fff',8);
+  txt('▼ けってい で　つぎへ',150,195,'#888',6);
+  drawCat(20,140,0);drawCat(258,140,2);
+}
+
+// DIALOG (field dialog - draquestle style at bottom)
+function drawDialog(){
+  drawField();
+  const lines=dialogQueue[dialogIdx]||[];
+  // DQ-style dialog box at bottom
+  box2(4,168,312,66,'#000033','#4488ff');
+  for(let i=0;i<lines.length;i++){
+    const line=lines[i];
+    txt(line,10,184+i*18,'#fff',7);
+  }
+  txt('▼',300,228,'#ffff00',8);
+}
+
+// NPC DIALOG
+function drawNpcDialog(){
+  drawField();
+  const area=G.area;
+  const npcs=NPC_DATA[area]||[];
+  const npc=npcs[npcTalkIdx];
+  if(!npc)return;
+  const msgs=npc.msgs[npcMsgPage]||[];
+  // DQ-style dialog box
+  box2(4,168,312,66,'#000033','#44aaff');
+  // NPC name header
+  box2(4,158,80,14,'#002244','#44aaff');
+  txt(npc.name,8,169,'#ffff88',6);
+  for(let i=0;i<msgs.length;i++){
+    txt(msgs[i],10,184+i*18,'#fff',7);
+  }
+  const hasMore=npcMsgPage<npc.msgs.length-1;
+  txt(hasMore?'▼ つぎへ':'▼ おわり',246,228,'#ffff00',6);
+}
+
+// SAVE
+function drawSave(){
+  ctx.fillStyle='#0a0a22';ctx.fillRect(0,0,640,480);
+  box2(20,20,280,200,'#000033','#4488ff');
+  txtC('ふっかつのじゅもん',42,'#ffff00',9);
+  txt('このじゅもんを　メモしてね！',28,65,'#fff',7);
+  box2(40,78,240,40,'#000011','#8888ff');
+  const code=G.saveCode||'??????????';
+  ctx.fillStyle='#ffff00';ctx.font=`${14*SCALE}px monospace`;ctx.textAlign='center';
+  ctx.fillText(code,160*SCALE,107*SCALE);ctx.textAlign='left';
+  txt('エリア：'+AREA_NAMES[G.area||0],30,132,'#fff',7);
+  txt('ネコ：'+(G.catsFound||[]).filter(Boolean).length+'/3',30,148,'#fff',7);
+  txt('ゴールド：'+(G.gold||0)+'G',30,164,'#fff',7);
+  txt('レベル：'+((G.party&&G.party[0])?G.party[0].lv:1),30,180,'#fff',7);
+  txt('けってい/キャンセル で　もどる',30,206,'#aaa',6);
+}
+
+// LOAD
+function drawLoad(){
+  ctx.fillStyle='#0a0a22';ctx.fillRect(0,0,640,480);
+  box2(20,20,280,210,'#000033','#4488ff');
+  txtC('じゅもん　にゅうりょく',40,'#ffff00',9);
+  txt('ふっかつのじゅもんを　いれてね',26,62,'#fff',7);
+  box2(20,72,280,30,'#000011','#8888ff');
+  const disp=(loadInput+'__________').slice(0,10);
+  for(let i=0;i<10;i++){
+    const bx=28+i*26;
+    if(i===loadCursor)px2(bx-2,75,23,24,'#223388');
+    ctx.fillStyle=i===loadCursor?'#ffff00':'#fff';
+    ctx.font=`${9*SCALE}px monospace`;ctx.textAlign='left';
+    ctx.fillText(disp[i]||'_',bx*SCALE,96*SCALE);
+  }
+  txt('↑↓ カーソル　←→ もじかえる',25,118,'#aaa',6);
+  txt('けってい で　かくにん　キャンセル もどる',25,132,'#aaa',6);
+  txt('A-Z 0-9 のもじが　つかえます',25,150,'#666',5);
+}
+
+// SHOP
+function drawShop(){
+  ctx.fillStyle='#0a0a1a';ctx.fillRect(0,0,640,480);
+  box2(0,0,320,240,'#0a0a1a','#8844cc');
+  txtC('おみせ',14,'#ffff00',9);txt('もちきん：'+G.gold+'G',195,14,'#ffff00',7);
+  box2(0,18,320,208,'#000022','#553399');
+  for(let i=0;i<SHOP_ITEMS.length;i++){
+    const item=SHOP_ITEMS[i];const y=30+i*24;const sel=shopCursor===i;
+    if(sel)px2(2,y-8,316,18,'#33116a');
+    txt(sel?'▶':' ',3,y,'#ff0',7);txt(item.name,14,y,'#fff',7);
+    txt(item.price+'G',240,y,'#ff0',7);
+    if(item.stat)txt(item.stat.toUpperCase()+'+'+item.val,175,y,'#8ff',6);
+  }
+  txt('↑↓えらぶ　けってい かう　キャンセル でる',4,225,'#888',5);
+}
+
+// ENDING
+function drawEnding(){
+  ctx.fillStyle='#001133';ctx.fillRect(0,0,640,480);
+  for(let i=0;i<20;i++){ctx.fillStyle=['#f00','#ff0','#0f0','#08f','#f0f'][i%5];ctx.fillRect(((i*37+titleAnim*2)%320)*SCALE,((i*23)%90)*SCALE,4*SCALE,4*SCALE);}
+  txtC('おめでとう！',50,'#ffff00',13);
+  txtC('ネズミ大王を　たおした！',75,'#fff',8);
+  txtC('３びきの　ネコも　みつけた！',95,'#44ff44',7);
+  drawHero(50,108,G.gender||'boy');drawMama(90,108);drawPapa(130,108);
+  drawCat(174,112,0);drawCat(198,112,1);drawCat(222,112,2);
+  txtC('みんなで　しあわせに　くらしましたとさ。',168,'#fff',7);
+  txtC('おわり',195,'#ffff00',11);
+  txt('けってい で　タイトルへ',80,230,'#888',6);
+}
+
+// Save shortcut
+document.addEventListener('keydown',e=>{if(e.key==='s'&&currentScreen==='field'){showSaveScreen();e.preventDefault();}});
+
+// MAIN LOOP
+let lastTime=0;
+function gameLoop(ts){
+  const dt=ts-lastTime;lastTime=ts;
+  if(fieldMoveDelay>0)fieldMoveDelay--;
+  titleAnim+=dt*0.03;
+  cls();
+  if(currentScreen==='title')drawTitle();
+  else if(currentScreen==='gender')drawGenderSelect();
+  else if(currentScreen==='nameInput')drawNameInput();
+  else if(currentScreen==='opening')drawOpening();
+  else if(currentScreen==='field')drawField();
+  else if(currentScreen==='battle')drawBattle();
+  else if(currentScreen==='dialog')drawDialog();
+  else if(currentScreen==='npcDialog')drawNpcDialog();
+  else if(currentScreen==='minigame')drawMinigame();
+  else if(currentScreen==='save')drawSave();
+  else if(currentScreen==='load')drawLoad();
+  else if(currentScreen==='shop')drawShop();
+  else if(currentScreen==='status')drawStatus();
+  else if(currentScreen==='ending')drawEnding();
+  requestAnimationFrame(gameLoop);
+}
+requestAnimationFrame(gameLoop);
+</script>
+</body>
+</html>

@@ -1,0 +1,1403 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light">
+<title>ネコオフィス：ねこオフィス調整室</title>
+<style>
+  :root {
+    --navy: #26344b;
+    --navy-2: #354761;
+    --teal: #2f817d;
+    --teal-dark: #246965;
+    --teal-soft: #dff1ee;
+    --orange: #d9793f;
+    --orange-soft: #fff0e4;
+    --cream: #fffaf1;
+    --paper: #ffffff;
+    --ink: #253248;
+    --muted: #667085;
+    --line: #d8e0e8;
+    --ok: #247a54;
+    --ok-soft: #e4f5ec;
+    --warn: #8a581c;
+    --warn-soft: #fff3d8;
+    --bad: #a53d3d;
+    --shadow: 0 12px 30px rgba(38, 52, 75, .12);
+    --radius: 20px;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    color: var(--ink);
+    background:
+      radial-gradient(circle at 10% 0%, rgba(47,129,125,.14), transparent 38%),
+      radial-gradient(circle at 100% 90%, rgba(217,121,63,.12), transparent 35%),
+      #f4f7f9;
+    font-family: "Hiragino Sans", "Yu Gothic UI", "Yu Gothic", Meiryo, system-ui, sans-serif;
+    line-height: 1.65;
+  }
+  body.text-large { font-size: 115%; }
+  body.text-xlarge { font-size: 130%; }
+
+  button, input { font: inherit; }
+  button { touch-action: manipulation; }
+  button:focus-visible, input:focus-visible, [tabindex]:focus-visible {
+    outline: 4px solid rgba(217,121,63,.4);
+    outline-offset: 3px;
+  }
+
+  .skip-link {
+    position: fixed;
+    left: 12px;
+    top: -80px;
+    z-index: 100;
+    padding: 10px 16px;
+    color: #fff;
+    background: var(--navy);
+    border-radius: 0 0 10px 10px;
+  }
+  .skip-link:focus { top: 0; }
+  .sr-only {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+  }
+
+  .page-shell {
+    width: min(980px, calc(100% - 24px));
+    margin: 0 auto;
+    padding: 18px 0 42px;
+  }
+  .site-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+    padding: 10px 14px;
+    color: #fff;
+    background: var(--navy);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+  }
+  .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .brand-cats {
+    flex: 0 0 auto;
+    padding-right: 8px;
+    font-size: 28px;
+    letter-spacing: -8px;
+    filter: drop-shadow(0 2px 0 rgba(255,255,255,.2));
+  }
+  .brand-text { min-width: 0; }
+  .brand-text strong { display: block; font-size: clamp(15px, 3.5vw, 18px); line-height: 1.25; }
+  .brand-text span { display: block; color: #d7e6ee; font-size: 12px; }
+  .header-actions { display: flex; align-items: center; gap: 7px; flex: 0 0 auto; }
+  .icon-button {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 8px 9px;
+    color: #fff;
+    background: var(--navy-2);
+    border: 1px solid rgba(255,255,255,.25);
+    border-radius: 12px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 800;
+  }
+  .icon-button:hover { background: #435875; }
+
+  .progress-wrap {
+    margin: 0 2px 14px;
+    padding: 12px 16px;
+    background: rgba(255,255,255,.9);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+  }
+  .progress-labels { display: flex; justify-content: space-between; gap: 8px; color: var(--muted); font-size: 12px; }
+  .progress-labels strong { color: var(--teal-dark); }
+  .progress-track { height: 9px; margin-top: 7px; overflow: hidden; background: #e7edf1; border-radius: 999px; }
+  .progress-bar { width: 0; height: 100%; background: linear-gradient(90deg, var(--teal), #63aaa0); border-radius: inherit; transition: width .25s ease; }
+
+  main { min-height: 560px; }
+  .screen {
+    display: none;
+    padding: clamp(20px, 5vw, 38px);
+    background: rgba(255,255,255,.97);
+    border: 1px solid rgba(216,224,232,.95);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+  .screen.active { display: block; animation: fade-in .2s ease-out; }
+  @keyframes fade-in {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: none; }
+  }
+
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 0 8px;
+    padding: 4px 10px;
+    color: var(--teal-dark);
+    background: var(--teal-soft);
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 800;
+  }
+  h1, h2, h3 { line-height: 1.35; color: var(--navy); }
+  h1 { margin: 0 0 12px; font-size: clamp(27px, 7vw, 44px); letter-spacing: -.02em; }
+  h2 { margin: 0 0 14px; font-size: clamp(23px, 5.4vw, 33px); }
+  h3 { margin: 0 0 9px; font-size: 18px; }
+  p { margin: 0 0 14px; }
+  .lead { max-width: 720px; color: #40516a; font-size: clamp(16px, 3.7vw, 19px); }
+  .small-note { color: var(--muted); font-size: 13px; }
+
+  .hero-grid { display: grid; grid-template-columns: minmax(0,1.45fr) minmax(230px,.55fr); gap: 24px; align-items: center; }
+  .hero-art {
+    min-height: 250px;
+    display: grid;
+    place-items: center;
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(145deg, #e7f5f2, #fff5e8);
+    border: 1px solid #d8e9e6;
+    border-radius: 24px;
+  }
+  .hero-art::before, .hero-art::after { content: ""; position: absolute; border-radius: 50%; opacity: .65; }
+  .hero-art::before { width: 160px; height: 160px; right: -60px; top: -50px; background: #f8c59e; }
+  .hero-art::after { width: 130px; height: 130px; left: -45px; bottom: -52px; background: #8fd0c7; }
+  .desk-scene { position: relative; z-index: 1; text-align: center; }
+  .desk-controls { display: flex; justify-content: center; gap: 8px; margin-bottom: 13px; }
+  .desk-control { width: 42px; height: 34px; display: grid; place-items: center; background: #fff; border: 2px solid #b8d8d3; border-radius: 10px; font-size: 19px; }
+  .desk-cat { font-size: 68px; filter: drop-shadow(0 5px 0 rgba(38,52,75,.12)); }
+  .desk { width: 190px; height: 18px; margin: -3px auto 0; background: #a76d42; border-radius: 8px; box-shadow: 0 55px 0 -6px #8b5936; }
+  .bubble { margin: 46px 14px 0; padding: 10px 13px; color: var(--navy); background: #fff; border-radius: 14px; box-shadow: 0 6px 18px rgba(38,52,75,.13); font-weight: 800; }
+
+  .notice {
+    margin: 18px 0;
+    padding: 14px 16px;
+    color: #344b58;
+    background: #eff8f6;
+    border-left: 5px solid var(--teal);
+    border-radius: 10px;
+  }
+  .notice.warning { background: var(--orange-soft); border-left-color: var(--orange); }
+  .notice strong { color: var(--navy); }
+  .feature-list { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 10px; margin: 20px 0; padding: 0; list-style: none; }
+  .feature-list li { padding: 13px; background: var(--cream); border: 1px solid #eee0c9; border-radius: 14px; text-align: center; font-size: 14px; font-weight: 700; }
+  .feature-list span { display: block; font-size: 24px; }
+
+  .button-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 22px; }
+  .button {
+    min-height: 48px;
+    padding: 11px 20px;
+    border: 2px solid transparent;
+    border-radius: 14px;
+    cursor: pointer;
+    font-weight: 800;
+    transition: transform .06s ease, box-shadow .12s ease, background .12s ease;
+  }
+  .button:hover { transform: translateY(-1px); }
+  .button:active { transform: translateY(1px); }
+  .button.primary { color: #fff; background: var(--teal); box-shadow: 0 4px 0 var(--teal-dark); }
+  .button.primary:hover { background: #357f79; }
+  .button.secondary { color: var(--navy); background: #fff; border-color: var(--line); }
+  .button.secondary:hover { background: #f5f7f9; }
+  .button.orange { color: #fff; background: var(--orange); box-shadow: 0 4px 0 #ad5e30; }
+  .button.danger { color: var(--bad); background: #fff; border-color: #e7b7b2; }
+  .button:disabled { opacity: .45; cursor: not-allowed; transform: none; box-shadow: none; }
+
+  .selection-heading { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; margin: 18px 0 12px; }
+  .selection-heading h3 { margin: 0; }
+  .selection-counter { flex: 0 0 auto; padding: 5px 10px; color: var(--teal-dark); background: var(--teal-soft); border-radius: 999px; font-size: 13px; font-weight: 800; }
+  .card-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; }
+  .choice-card {
+    position: relative;
+    width: 100%;
+    min-height: 132px;
+    padding: 17px 18px;
+    color: var(--ink);
+    background: #fff;
+    border: 2px solid var(--line);
+    border-radius: 16px;
+    cursor: pointer;
+    text-align: left;
+  }
+  .choice-card:hover { background: #f7fbfa; border-color: #8ec3bd; }
+  .choice-card[aria-pressed="true"] { background: #eff9f7; border-color: var(--teal); box-shadow: 0 0 0 4px rgba(47,129,125,.12); }
+  .choice-card .card-icon { display: block; margin-bottom: 6px; font-size: 28px; }
+  .choice-card strong { display: block; padding-right: 64px; color: var(--navy); font-size: 17px; }
+  .choice-card p { margin: 6px 0 0; color: var(--muted); font-size: 13px; }
+  .selected-mark { display: none; position: absolute; right: 11px; top: 11px; padding: 2px 8px; color: #fff; background: var(--teal); border-radius: 999px; font-size: 12px; font-weight: 800; }
+  .choice-card[aria-pressed="true"] .selected-mark { display: block; }
+  .match-mark { display: inline-block; margin-top: 9px; padding: 2px 8px; color: #79501d; background: var(--warn-soft); border-radius: 999px; font-size: 11px; font-weight: 800; }
+  .selection-message { min-height: 27px; margin-top: 10px; color: var(--muted); font-size: 13px; }
+  .selected-summary { margin: 16px 0; padding: 14px 16px; background: #f8fafb; border: 1px solid var(--line); border-radius: 14px; }
+  .selected-summary strong { color: var(--navy); }
+
+  .work-layout { display: grid; grid-template-columns: minmax(0,1fr) 260px; gap: 18px; align-items: start; }
+  .work-panel { min-height: 430px; padding: 20px; background: #fff; border: 1px solid var(--line); border-radius: 16px; }
+  .work-panel.soft-light { background: #fffdf7; border-color: #ded7c7; }
+  .work-panel.quiet-view { box-shadow: inset 0 0 0 3px rgba(47,129,125,.06); }
+  .ambient-cues { display: flex; flex-wrap: wrap; gap: 7px; margin: 0 0 14px; padding: 10px; background: #f5f7f9; border: 1px solid var(--line); border-radius: 12px; }
+  .ambient-cues strong { flex: 1 0 100%; color: var(--muted); font-size: 12px; }
+  .ambient-cue { padding: 4px 8px; color: #596579; background: #fff; border: 1px solid #dce3e9; border-radius: 999px; font-size: 12px; }
+  .work-panel.notifications-paused .notification-cue,
+  .work-panel.quiet-space .sound-cue,
+  .work-panel.seat-focus .movement-cue { display: none; }
+  .work-panel.desk-clean .reference-grid { grid-template-columns: 1fr; }
+  .desk-mode-note { margin: -5px 0 10px; color: var(--teal-dark); font-size: 12px; font-weight: 800; }
+  .side-panel { position: sticky; top: 10px; display: grid; gap: 12px; }
+  .side-card { padding: 14px; background: #f8fafb; border: 1px solid var(--line); border-radius: 14px; }
+  .side-card strong { display: block; margin-bottom: 5px; color: var(--navy); }
+  .environment-list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+  .environment-list li { padding: 9px 10px; color: #31585a; background: var(--teal-soft); border-radius: 10px; font-size: 13px; }
+  .environment-list li strong, .environment-list li small { display: block; }
+  .environment-list li small { margin-top: 2px; color: #42686a; }
+  .written-plan { margin: 0; padding-left: 22px; font-size: 13px; }
+  .written-plan li { margin: 4px 0; }
+  .written-plan li.current { color: var(--teal-dark); font-weight: 800; }
+  .privacy-mini { color: var(--muted); font-size: 12px; }
+  .round-banner { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 20px; padding: 12px 15px; color: #fff; background: var(--navy); border-radius: 14px; }
+  .round-banner strong { font-size: 17px; }
+  .round-banner span { color: #dce7ee; font-size: 13px; text-align: right; }
+
+  .reference-sheet { margin: 15px 0 20px; padding: 17px; background: var(--cream); border: 1px solid #eadcc4; border-radius: 14px; }
+  .reference-sheet h3 { margin-bottom: 10px; }
+  .reference-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 8px 14px; margin: 0; }
+  .reference-row { padding: 9px 10px; background: rgba(255,255,255,.72); border-radius: 9px; }
+  .reference-row dt { color: var(--muted); font-size: 12px; }
+  .reference-row dd { margin: 1px 0 0; color: var(--navy); font-weight: 800; }
+  .question-card { padding-top: 4px; }
+  .question-number { display: inline-block; margin-bottom: 7px; color: var(--teal-dark); font-size: 13px; font-weight: 800; }
+  .choice-grid { display: grid; gap: 11px; margin-top: 15px; }
+  .choice-button {
+    width: 100%;
+    min-height: 54px;
+    padding: 14px 16px;
+    color: var(--ink);
+    background: #fff;
+    border: 2px solid var(--line);
+    border-radius: 14px;
+    cursor: pointer;
+    text-align: left;
+  }
+  .choice-button:hover { background: #f7fbfa; border-color: #8ec3bd; }
+  .choice-button.chosen { background: #eff8f6; border-color: var(--teal); }
+  .choice-button:disabled { color: var(--ink); cursor: default; opacity: 1; }
+  .task-feedback { min-height: 0; margin-top: 14px; padding: 0; border-radius: 12px; }
+  .task-feedback.show { min-height: 48px; padding: 12px 14px; color: #31585a; background: #eaf6f3; }
+  .task-feedback.review { color: #6b4b22; background: var(--warn-soft); }
+  .completion-card { padding: 20px; background: linear-gradient(145deg, #e8f6f3, #fffaf1); border: 2px solid #add7d0; border-radius: 18px; }
+  .completion-cat { font-size: 46px; }
+
+  .rating-group { margin: 24px 0; padding: 18px; background: #f8fafb; border: 1px solid var(--line); border-radius: 16px; }
+  .rating-group legend { padding: 0 6px; color: var(--navy); font-weight: 800; }
+  .rating-help { display: block; margin-top: 4px; color: var(--muted); font-size: 12px; }
+  .rating-scale { display: grid; grid-template-columns: repeat(5, minmax(50px,1fr)); gap: 8px; margin-top: 12px; }
+  .rating-option { position: relative; }
+  .rating-option input { position: absolute; opacity: 0; pointer-events: none; }
+  .rating-option label { display: grid; place-items: center; min-height: 69px; padding: 6px 3px; background: #fff; border: 2px solid var(--line); border-radius: 12px; cursor: pointer; text-align: center; font-weight: 800; }
+  .rating-option label small { display: block; color: var(--muted); font-size: 9px; font-weight: 500; line-height: 1.25; }
+  .rating-option input:checked + label { color: var(--teal-dark); background: var(--teal-soft); border-color: var(--teal); box-shadow: 0 0 0 3px rgba(47,129,125,.12); }
+  .rating-option input:focus-visible + label { outline: 4px solid rgba(217,121,63,.4); outline-offset: 3px; }
+
+  .report-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 14px; margin: 18px 0; }
+  .report-card { padding: 17px; background: #f8fafb; border: 1px solid var(--line); border-radius: 15px; }
+  .report-card.adjustments { background: #eff9f7; border-color: #acd7d1; }
+  .report-card h3 { margin-bottom: 10px; }
+  .report-list { margin: 0; padding-left: 23px; }
+  .report-list li { margin: 7px 0; }
+  .report-list strong { color: var(--navy); }
+  .metric-row { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; border-top: 1px solid var(--line); }
+  .metric-row:first-of-type { border-top: 0; }
+  .metric-row span { color: var(--muted); }
+  .metric-row strong { text-align: right; }
+  .report-highlight { margin: 18px 0; padding: 20px; background: linear-gradient(145deg, #e8f6f3, #fffaf1); border: 2px solid #add7d0; border-radius: 18px; }
+  .report-highlight h3 { color: var(--teal-dark); }
+  .share-phrase { margin-top: 13px; padding: 16px; background: #fff; border: 2px dashed #9ecbc5; border-radius: 13px; font-weight: 700; }
+  .saved-banner { display: none; margin-top: 12px; padding: 10px 13px; color: var(--ok); background: var(--ok-soft); border-radius: 10px; }
+  .saved-banner.show { display: block; }
+
+  .dialog-backdrop { display: none; position: fixed; inset: 0; z-index: 80; place-items: center; padding: 18px; background: rgba(27,38,55,.62); }
+  .dialog-backdrop.show { display: grid; }
+  .dialog { width: min(570px, 100%); max-height: min(82vh, 700px); overflow: auto; padding: 24px; background: #fff; border-radius: 20px; box-shadow: 0 22px 60px rgba(0,0,0,.25); }
+  .dialog h2 { font-size: 24px; }
+  .dialog ol { padding-left: 24px; }
+  .dialog li { margin: 7px 0; }
+  .footer-note { margin: 18px 4px 0; color: var(--muted); text-align: center; font-size: 12px; }
+  .noscript { margin: 20px auto; padding: 18px; background: #fff; border: 2px solid var(--bad); border-radius: 14px; }
+
+  @media (max-width: 780px) {
+    .hero-grid, .work-layout { grid-template-columns: 1fr; }
+    .hero-art { min-height: 210px; }
+    .side-panel { position: static; grid-template-columns: repeat(2, minmax(0,1fr)); }
+    .side-card:first-child, .privacy-mini { grid-column: 1 / -1; }
+    .feature-list { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 620px) {
+    .card-grid, .report-grid, .reference-grid { grid-template-columns: 1fr; }
+    .choice-card { min-height: auto; }
+  }
+  @media (max-width: 480px) {
+    .page-shell { width: min(100% - 14px, 980px); padding-top: 7px; }
+    .site-header { align-items: flex-start; padding: 8px 9px; border-radius: 12px; }
+    .brand-cats { display: none; }
+    .brand-text span { display: none; }
+    .header-actions { gap: 4px; }
+    .icon-button { min-width: 40px; min-height: 42px; padding: 6px; font-size: 12px; }
+    .screen { padding: 20px 16px; border-radius: 16px; }
+    .progress-wrap { margin-bottom: 8px; }
+    .selection-heading { align-items: flex-start; flex-direction: column; }
+    .rating-scale { gap: 5px; }
+    .rating-option label { min-height: 58px; font-size: 14px; }
+    .rating-option label small { display: none; }
+    .round-banner { align-items: flex-start; flex-direction: column; }
+    .round-banner span { text-align: left; }
+    .side-panel { grid-template-columns: 1fr; }
+    .side-card:first-child, .privacy-mini { grid-column: auto; }
+    .button-row .button { width: 100%; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: .01ms !important;
+      animation-iteration-count: 1 !important;
+      scroll-behavior: auto !important;
+      transition-duration: .01ms !important;
+    }
+  }
+  @media print {
+    @page { margin: 14mm; }
+    body { background: #fff; }
+    .site-header, .progress-wrap, .screen:not(#reportScreen), .button-row, .footer-note, .saved-banner { display: none !important; }
+    .page-shell { width: 100%; padding: 0; }
+    #reportScreen { display: block !important; padding: 0; border: 0; box-shadow: none; }
+    #reportScreen::before { content: "ネコオフィス　働きやすい環境メモ"; display: block; margin-bottom: 14px; color: var(--navy); font-size: 24px; font-weight: 900; }
+    .report-card, .report-highlight, .notice { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<a class="skip-link" href="#mainContent">ゲーム本文へ移動</a>
+<div class="page-shell">
+  <header class="site-header">
+    <div class="brand">
+      <div class="brand-cats" aria-hidden="true">🐈🐈‍⬛🐈</div>
+      <div class="brand-text">
+        <strong>ネコオフィス</strong>
+        <span>仕事の工夫を見つけるミニゲーム</span>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="icon-button" id="textSizeButton" type="button" aria-label="文字を大きくする" title="文字サイズ">文字</button>
+      <button class="icon-button" id="helpButton" type="button" aria-label="使い方を開く" title="使い方">？</button>
+      <button class="icon-button" id="soundButton" type="button" aria-pressed="false" aria-label="操作音をオンにする" title="操作音のオン・オフ">🔇</button>
+      <button class="icon-button" id="pauseButton" type="button" aria-label="中断して休む" title="中断">休む</button>
+    </div>
+  </header>
+
+  <div class="progress-wrap" id="progressWrap" aria-label="ゲームの進み具合">
+    <div class="progress-labels"><span id="progressName">はじめに</span><strong id="progressPercent">0%</strong></div>
+    <div class="progress-track" id="progressTrack" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="ゲームの進み具合">
+      <div class="progress-bar" id="progressBar"></div>
+    </div>
+  </div>
+
+  <noscript><div class="noscript">このゲームにはJavaScriptが必要です。ブラウザの設定でJavaScriptを有効にしてください。</div></noscript>
+  <div class="sr-only" id="liveRegion" role="status" aria-live="polite" aria-atomic="true"></div>
+
+  <main id="mainContent" tabindex="-1">
+    <section class="screen active" id="introScreen" aria-labelledby="gameTitle">
+      <div class="hero-grid">
+        <div>
+          <p class="eyebrow">成人向け・環境調整ミニゲーム</p>
+          <h1 id="gameTitle">ねこオフィス<br>調整室</h1>
+          <p class="lead">気になりやすいことを選び、仕事場で使えそうな環境の工夫を2つ試します。速さや能力を測るゲームではありません。</p>
+          <ul class="feature-list" aria-label="ゲームの特徴">
+            <li><span aria-hidden="true">⏱️</span>約3〜5分</li>
+            <li><span aria-hidden="true">📱</span>スマホ・キーボード対応</li>
+            <li><span aria-hidden="true">🔒</span>入力の送信なし</li>
+          </ul>
+          <div class="notice">
+            <strong>刺激は再現しません</strong><br>
+            まぶしさ、雑音、通知の多さなどを、画面や音で強制的に再現することはありません。音は初めはオフです。
+          </div>
+          <div class="notice warning">
+            <strong>大切なお知らせ</strong><br>
+            このゲームは、疾病の診断・治療、能力評価、復職可否の判断を行いません。負担を感じたら、いつでも「休む」から中断してください。
+          </div>
+          <div class="button-row">
+            <button class="button primary" id="startButton" type="button">調整室へ入る</button>
+            <button class="button secondary" id="showSavedButton" type="button">端末に保存したメモを見る</button>
+          </div>
+          <p class="small-note">氏名・診断名・会社名の入力はありません。プレイ内容は自動送信されません。</p>
+        </div>
+        <div class="hero-art" aria-hidden="true">
+          <div class="desk-scene">
+            <div class="desk-controls">
+              <span class="desk-control">☀️</span>
+              <span class="desk-control">🔕</span>
+              <span class="desk-control">📄</span>
+            </div>
+            <div class="desk-cat">🐈‍⬛</div>
+            <div class="desk"></div>
+            <div class="bubble">合う工夫を、少しずつ。</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen" id="signScreen" aria-labelledby="signTitle">
+      <p class="eyebrow">ステップ 1</p>
+      <h2 id="signTitle">気になりやすいことを選ぶ</h2>
+      <p>今の自分や、よくある仕事場面を思い浮かべてください。条件や日によって変わってかまいません。</p>
+      <div class="notice"><strong>1つ以上、3つまで</strong>選べます。ここでの選択に正解・不正解はありません。</div>
+      <div class="selection-heading">
+        <h3>困りサイン</h3>
+        <span class="selection-counter" id="signCounter">0 / 3 選択中</span>
+      </div>
+      <div class="card-grid" id="signGrid" aria-label="困りサインの選択肢"></div>
+      <p class="selection-message" id="signMessage" role="status" aria-live="polite"></p>
+      <div class="button-row">
+        <button class="button primary" id="toAdjustmentButton" type="button" disabled>環境の工夫を選ぶ</button>
+        <button class="button secondary" data-go="introScreen" type="button">戻る</button>
+      </div>
+    </section>
+
+    <section class="screen" id="adjustmentScreen" aria-labelledby="adjustmentTitle">
+      <p class="eyebrow">ステップ 2</p>
+      <h2 id="adjustmentTitle">試してみる環境の工夫</h2>
+      <p>短い仕事体験で使ってみたい工夫を、ちょうど2つ選んでください。実際の職場で使えるかどうかは、あとで別に考えてかまいません。</p>
+      <div class="selected-summary" id="selectedSignSummary"></div>
+      <div class="selection-heading">
+        <h3>環境調整カード</h3>
+        <span class="selection-counter" id="adjustmentCounter">0 / 2 選択中</span>
+      </div>
+      <div class="card-grid" id="adjustmentGrid" aria-label="環境の工夫の選択肢"></div>
+      <p class="selection-message" id="adjustmentMessage" role="status" aria-live="polite"></p>
+      <div class="button-row">
+        <button class="button primary" id="beginWorkButton" type="button" disabled>2つの工夫を試す</button>
+        <button class="button secondary" data-go="signScreen" type="button">戻る</button>
+      </div>
+    </section>
+
+    <section class="screen" id="workScreen" aria-labelledby="workTitle">
+      <div class="round-banner">
+        <strong id="workTitle">短い仕事体験</strong>
+        <span>時間制限・得点・成績記録はありません</span>
+      </div>
+      <div class="work-layout">
+        <div class="work-panel" id="workPanel">
+          <div id="workContent"></div>
+        </div>
+        <aside class="side-panel" aria-label="今回の環境設定">
+          <div class="side-card">
+            <strong>今回試している工夫</strong>
+            <ul class="environment-list" id="environmentList"></ul>
+          </div>
+          <div class="side-card" id="writtenPlanCard">
+            <strong>仕事の進め方</strong>
+            <ol class="written-plan" id="writtenPlan"></ol>
+          </div>
+          <div class="side-card privacy-mini">選んだ答えや所要時間は、成績として記録しません。通信も行いません。</div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="screen" id="reflectionScreen" aria-labelledby="reflectionTitle">
+      <p class="eyebrow">ステップ 4</p>
+      <h2 id="reflectionTitle">使ってみた感覚を振り返る</h2>
+      <p>短い体験なので、はっきり分からなくても大丈夫です。今の感覚に一番近いものを選んでください。</p>
+      <div class="notice"><strong>結果は自己観察のメモです。</strong>仕事の能力や、実際の職場での適性を示すものではありません。</div>
+      <fieldset class="rating-group">
+        <legend>今回の仕事体験で感じた負担はどのくらいでしたか？</legend>
+        <span class="rating-help">1は「とても少ない」、5は「とても多い」です。</span>
+        <div class="rating-scale" id="burdenScale"></div>
+      </fieldset>
+      <fieldset class="rating-group">
+        <legend>選んだ2つの工夫は、どのくらい使いやすく感じましたか？</legend>
+        <span class="rating-help">1は「とても使いにくい」、5は「とても使いやすい」です。</span>
+        <div class="rating-scale" id="easeScale"></div>
+      </fieldset>
+      <div class="button-row">
+        <button class="button primary" id="showReportButton" type="button" disabled>働きやすい環境メモを見る</button>
+        <button class="button secondary" data-go="adjustmentScreen" type="button">工夫を選び直す</button>
+      </div>
+    </section>
+
+    <section class="screen" id="reportScreen" aria-labelledby="reportTitle">
+      <p class="eyebrow">振り返り</p>
+      <h2 id="reportTitle">働きやすい環境メモ</h2>
+      <p class="small-note" id="reportDate"></p>
+      <p class="small-note" id="reportScenario"></p>
+      <div class="report-grid">
+        <div class="report-card">
+          <h3>今回選んだ困りサイン</h3>
+          <ul class="report-list" id="reportSigns"></ul>
+        </div>
+        <div class="report-card adjustments">
+          <h3>今回試した環境の工夫</h3>
+          <ul class="report-list" id="reportAdjustments"></ul>
+        </div>
+      </div>
+      <div class="report-card">
+        <h3>本人が感じたこと</h3>
+        <div class="metric-row"><span>仕事体験の負担感</span><strong id="reportBurden"></strong></div>
+        <div class="metric-row"><span>工夫の使いやすさ</span><strong id="reportEase"></strong></div>
+      </div>
+      <div class="report-highlight">
+        <h3>今回の見つけ方メモ</h3>
+        <ul class="report-list" id="reportObservations"></ul>
+        <div class="share-phrase" id="sharePhrase"></div>
+      </div>
+      <div class="notice warning">
+        一度の短い体験だけで、工夫の効果は決まりません。実際に試すときは、仕事内容・体調・職場の状況に合わせ、必要に応じて支援者や職場の担当者と相談してください。
+      </div>
+      <div class="button-row">
+        <button class="button primary" id="saveButton" type="button">この端末にメモを保存</button>
+        <button class="button secondary" id="printButton" type="button">印刷・PDF保存</button>
+        <button class="button secondary" id="playAgainButton" type="button">別の組み合わせを試す</button>
+        <button class="button danger" id="clearSavedButton" type="button">端末保存を削除</button>
+      </div>
+      <div class="saved-banner" id="savedBanner" role="status" aria-live="polite">この端末のブラウザ内に保存しました。外部には送信していません。</div>
+    </section>
+  </main>
+
+  <p class="footer-note">ネコオフィス：ねこオフィス調整室（試作版 v0.1）｜山岸産業医事務所</p>
+</div>
+
+<div class="dialog-backdrop" id="helpDialog" aria-hidden="true">
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="helpTitle" tabindex="-1">
+    <h2 id="helpTitle">使い方</h2>
+    <ol>
+      <li>気になりやすい「困りサイン」を1〜3つ選びます。</li>
+      <li>仕事体験で試したい環境の工夫を2つ選びます。</li>
+      <li>表示された資料を見ながら、短い確認作業をします。</li>
+      <li>負担感と工夫の使いやすさを振り返ります。</li>
+      <li>最後に「働きやすい環境メモ」を確認します。保存は任意です。</li>
+    </ol>
+    <p>刺激そのものを再現するゲームではありません。選択肢は毎回順番が変わることがあります。キーボードのTab・Shift＋Tab・Enter・Spaceでも操作できます。</p>
+    <div class="button-row"><button class="button primary" id="closeHelpButton" type="button">閉じる</button></div>
+  </div>
+</div>
+
+<div class="dialog-backdrop" id="pauseDialog" aria-hidden="true">
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="pauseTitle" tabindex="-1">
+    <h2 id="pauseTitle">いったん休みますか？</h2>
+    <p>この画面を開いたままなら、少し休んでから続きを再開できます。最初へ戻ると、まだ保存していない今回の選択は消えます。</p>
+    <div class="button-row">
+      <button class="button primary" id="resumeButton" type="button">続きを再開</button>
+      <button class="button secondary" id="quitButton" type="button">最初の画面へ戻る</button>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+const STORAGE_KEY = 'nekoOfficeAdjustmentV1';
+
+const SIGNS = {
+  light: {
+    icon: '☀️',
+    name: '光や画面の見え方が気になる',
+    description: '照明がまぶしい、画面が見づらい、光の反射が気になることがあります。'
+  },
+  notification: {
+    icon: '🔔',
+    name: '通知に注意が向きやすい',
+    description: 'メールやチャットの表示があると、今の作業から注意が移りやすいことがあります。'
+  },
+  sound: {
+    icon: '🎧',
+    name: '周囲の音が気になる',
+    description: '会話、電話、機械音などが重なると、負担に感じることがあります。'
+  },
+  movement: {
+    icon: '🪑',
+    name: '人の動きが視界に入りやすい',
+    description: '通路や出入口の動きが見えると、注意が向きやすいことがあります。'
+  },
+  clutter: {
+    icon: '🗂️',
+    name: '情報が多いと探しづらい',
+    description: '机や画面に情報が多いと、必要なものを見つけにくいことがあります。'
+  },
+  verbal: {
+    icon: '💬',
+    name: '口頭だけの指示を保ちにくい',
+    description: '聞いた手順や条件を、作業中に確かめ直したいことがあります。'
+  }
+};
+
+const ADJUSTMENTS = {
+  lighting: {
+    icon: '🕯️',
+    name: '光と画面を穏やかにする',
+    description: '照明の位置、画面の明るさ、反射を調整する想定です。',
+    workLabel: '落ち着いた画面の見え方',
+    matches: ['light'],
+    phrase: '照明や画面の明るさを調整する',
+    effect: '仕事画面の背景色と境界を穏やかに変更しています。'
+  },
+  notifications: {
+    icon: '🔕',
+    name: '通知を見る時間を分ける',
+    description: '作業中の通知を一時停止し、確認する時間を決める想定です。',
+    workLabel: '通知を一時停止',
+    matches: ['notification'],
+    phrase: '作業中の通知を一時停止する',
+    effect: '周辺情報欄の通知表示を隠しています。'
+  },
+  quiet: {
+    icon: '🎧',
+    name: '周囲の音を減らす',
+    description: '静かな場所や、職場で認められた音対策を使う想定です。',
+    workLabel: '周囲の音が少ない場所',
+    matches: ['sound'],
+    phrase: '周囲の音が少ない場所を選ぶ',
+    effect: '周辺情報欄の会話・電話音の表示を外しています。'
+  },
+  seat: {
+    icon: '🪑',
+    name: '席の向きを変える',
+    description: '通路や出入口が視界に入りにくい向きを選ぶ想定です。',
+    workLabel: '人の動きが入りにくい席',
+    matches: ['movement', 'sound'],
+    phrase: '人の動きが視界に入りにくい席を選ぶ',
+    effect: '周辺情報欄の通路の動きを視界から外しています。'
+  },
+  desk: {
+    icon: '🗃️',
+    name: '今使う情報だけ置く',
+    description: '机や画面には、今の作業に必要な資料だけを出す想定です。',
+    workLabel: '今使う資料だけを表示',
+    matches: ['clutter', 'notification'],
+    phrase: '今使う資料だけを手元に置く',
+    effect: '各設問で必要な参照項目だけを表示しています。'
+  },
+  written: {
+    icon: '📋',
+    name: '指示を文章で確かめる',
+    description: '手順や条件を短い文章やチェックリストで確認します。',
+    workLabel: '文章の手順を表示',
+    matches: ['verbal', 'clutter'],
+    phrase: '手順や条件を文章でも確認する',
+    effect: '3つの進め方を文章で常に表示しています。'
+  }
+};
+
+const SCENARIOS = [
+  {
+    id: 'meeting',
+    title: '会議案内を確認する',
+    introduction: '企画チームへ送る会議案内を、準備メモと照らし合わせます。',
+    referenceTitle: '会議準備メモ',
+    reference: [
+      ['日時', '7月24日（木）10:30'],
+      ['会議室', '3階 B会議室'],
+      ['共有先', '企画チーム全員']
+    ],
+    questions: [
+      { prompt: '会議の開始時刻を選んでください。', choices: ['10:00', '10:30', '11:00'], answer: '10:30' },
+      { prompt: '使う会議室を選んでください。', choices: ['2階 A会議室', '3階 B会議室', 'オンラインのみ'], answer: '3階 B会議室' },
+      { prompt: '案内の共有先を選んでください。', choices: ['企画チーム全員', '上司だけ', '総務部だけ'], answer: '企画チーム全員' }
+    ]
+  },
+  {
+    id: 'delivery',
+    title: '社内便の発送メモを確認する',
+    introduction: '社内便へ入れるものと届け先を、発送メモで確認します。',
+    referenceTitle: '社内便 発送メモ',
+    reference: [
+      ['届け先', '経理部'],
+      ['同封物', '青い契約ファイル'],
+      ['発送便', '午後便']
+    ],
+    questions: [
+      { prompt: '社内便の届け先を選んでください。', choices: ['営業部', '経理部', '人事部'], answer: '経理部' },
+      { prompt: '同封するものを選んでください。', choices: ['青い契約ファイル', '赤い研修ファイル', '白い封筒'], answer: '青い契約ファイル' },
+      { prompt: '利用する便を選んでください。', choices: ['午前便', '午後便', '翌朝便'], answer: '午後便' }
+    ]
+  },
+  {
+    id: 'supplies',
+    title: '備品補充の内容を確認する',
+    introduction: '共有スペースへ補充する備品を、依頼票で確認します。',
+    referenceTitle: '備品補充 依頼票',
+    reference: [
+      ['品名', '黒の油性ペン'],
+      ['数量', '6本'],
+      ['置き場所', '第2会議室']
+    ],
+    questions: [
+      { prompt: '補充する品名を選んでください。', choices: ['黒の油性ペン', '青のボールペン', '赤の蛍光ペン'], answer: '黒の油性ペン' },
+      { prompt: '補充する数量を選んでください。', choices: ['3本', '6本', '10本'], answer: '6本' },
+      { prompt: '備品を置く場所を選んでください。', choices: ['受付', '第1会議室', '第2会議室'], answer: '第2会議室' }
+    ]
+  },
+  {
+    id: 'visitor',
+    title: '来客予定を確認する',
+    introduction: '受付へ伝える来客予定を、予約メモで確認します。',
+    referenceTitle: '来客予約メモ',
+    reference: [
+      ['到着予定', '14:20'],
+      ['会社名', 'みどり商事'],
+      ['案内先', '応接室 2']
+    ],
+    questions: [
+      { prompt: '来客の到着予定時刻を選んでください。', choices: ['14:00', '14:20', '14:40'], answer: '14:20' },
+      { prompt: '来客の会社名を選んでください。', choices: ['あおぞら物産', 'みどり商事', 'やまねこ企画'], answer: 'みどり商事' },
+      { prompt: '来客の案内先を選んでください。', choices: ['会議室 A', '応接室 1', '応接室 2'], answer: '応接室 2' }
+    ]
+  }
+];
+
+const screens = [...document.querySelectorAll('.screen')];
+const progressBar = document.getElementById('progressBar');
+const progressTrack = document.getElementById('progressTrack');
+const progressName = document.getElementById('progressName');
+const progressPercent = document.getElementById('progressPercent');
+const liveRegion = document.getElementById('liveRegion');
+const soundButton = document.getElementById('soundButton');
+const textSizeButton = document.getElementById('textSizeButton');
+const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+let audioContext = null;
+let soundOn = false;
+let textSizeLevel = 0;
+let lastFocused = null;
+let activeDialog = null;
+let currentReportData = null;
+
+const state = {
+  signOrder: [],
+  adjustmentOrder: [],
+  selectedSigns: [],
+  selectedAdjustments: [],
+  scenario: null,
+  questions: [],
+  questionIndex: 0,
+  burden: null,
+  ease: null
+};
+
+function shuffled(items) {
+  const copy = [...items];
+  for (let index = copy.length - 1; index > 0; index--) {
+    const swapIndex = Math.floor(Math.random() * (index + 1));
+    [copy[index], copy[swapIndex]] = [copy[swapIndex], copy[index]];
+  }
+  return copy;
+}
+
+function safeFocus(element) {
+  window.setTimeout(() => {
+    if (element && typeof element.focus === 'function') element.focus();
+  }, 30);
+}
+
+function announce(message) {
+  liveRegion.textContent = '';
+  window.setTimeout(() => { liveRegion.textContent = message; }, 20);
+}
+
+function setProgress(value, label) {
+  const safeValue = Math.max(0, Math.min(100, Math.round(value)));
+  progressBar.style.width = `${safeValue}%`;
+  progressPercent.textContent = `${safeValue}%`;
+  progressName.textContent = label;
+  progressTrack.setAttribute('aria-valuenow', String(safeValue));
+}
+
+function showScreen(id, progress, label) {
+  screens.forEach(screen => {
+    const active = screen.id === id;
+    screen.classList.toggle('active', active);
+    screen.setAttribute('aria-hidden', active ? 'false' : 'true');
+  });
+  setProgress(progress, label);
+  const main = document.getElementById('mainContent');
+  main.focus({ preventScroll: true });
+  window.scrollTo({ top: 0, behavior: motionQuery.matches ? 'auto' : 'smooth' });
+  announce(`${label}の画面です。`);
+}
+
+function beep() {
+  if (!soundOn) return;
+  try {
+    if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioContext.state === 'suspended') audioContext.resume();
+    const oscillator = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    oscillator.type = 'sine';
+    oscillator.frequency.value = 560;
+    gain.gain.setValueAtTime(.04, audioContext.currentTime);
+    gain.gain.exponentialRampToValueAtTime(.0001, audioContext.currentTime + .12);
+    oscillator.connect(gain);
+    gain.connect(audioContext.destination);
+    oscillator.start();
+    oscillator.stop(audioContext.currentTime + .12);
+  } catch (_) {}
+}
+
+function resetState() {
+  state.signOrder = shuffled(Object.keys(SIGNS));
+  state.adjustmentOrder = shuffled(Object.keys(ADJUSTMENTS));
+  state.selectedSigns = [];
+  state.selectedAdjustments = [];
+  state.scenario = SCENARIOS[Math.floor(Math.random() * SCENARIOS.length)];
+  state.questions = shuffled(state.scenario.questions).map(question => ({
+    ...question,
+    choices: shuffled(question.choices)
+  }));
+  state.questionIndex = 0;
+  state.burden = null;
+  state.ease = null;
+  currentReportData = null;
+  document.getElementById('savedBanner').classList.remove('show');
+  document.getElementById('showReportButton').disabled = true;
+}
+
+function startGame() {
+  resetState();
+  renderSigns();
+  showScreen('signScreen', 18, '困りサイン');
+  safeFocus(document.querySelector('#signGrid .choice-card'));
+}
+
+function renderSigns() {
+  const grid = document.getElementById('signGrid');
+  grid.innerHTML = '';
+  state.signOrder.forEach(key => {
+    const sign = SIGNS[key];
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'choice-card';
+    button.dataset.key = key;
+    button.setAttribute('aria-pressed', 'false');
+    button.innerHTML = `<span class="selected-mark">選択中</span><span class="card-icon" aria-hidden="true">${sign.icon}</span><strong>${sign.name}</strong><p>${sign.description}</p>`;
+    button.addEventListener('click', () => toggleSign(key));
+    grid.appendChild(button);
+  });
+  updateSignState('');
+}
+
+function toggleSign(key) {
+  const selected = state.selectedSigns.includes(key);
+  let message = '';
+  if (selected) {
+    state.selectedSigns = state.selectedSigns.filter(item => item !== key);
+    message = `${SIGNS[key].name}の選択を外しました。`;
+  } else if (state.selectedSigns.length >= 3) {
+    message = '困りサインは3つまでです。選択中の項目を1つ外すと、別の項目を選べます。';
+  } else {
+    state.selectedSigns.push(key);
+    message = `${SIGNS[key].name}を選びました。`;
+    beep();
+  }
+  updateSignState(message);
+}
+
+function updateSignState(message) {
+  document.querySelectorAll('#signGrid .choice-card').forEach(button => {
+    button.setAttribute('aria-pressed', state.selectedSigns.includes(button.dataset.key) ? 'true' : 'false');
+  });
+  document.getElementById('signCounter').textContent = `${state.selectedSigns.length} / 3 選択中`;
+  document.getElementById('signMessage').textContent = message;
+  document.getElementById('toAdjustmentButton').disabled = state.selectedSigns.length === 0;
+}
+
+function renderAdjustments() {
+  document.getElementById('selectedSignSummary').innerHTML = `<strong>今回選んだ困りサイン：</strong> ${state.selectedSigns.map(key => SIGNS[key].name).join('／')}`;
+  const grid = document.getElementById('adjustmentGrid');
+  grid.innerHTML = '';
+  state.adjustmentOrder.forEach(key => {
+    const adjustment = ADJUSTMENTS[key];
+    const isRelated = adjustment.matches.some(match => state.selectedSigns.includes(match));
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'choice-card';
+    button.dataset.key = key;
+    button.setAttribute('aria-pressed', 'false');
+    button.innerHTML = `<span class="selected-mark">選択中</span><span class="card-icon" aria-hidden="true">${adjustment.icon}</span><strong>${adjustment.name}</strong><p>${adjustment.description}</p>${isRelated ? '<span class="match-mark">選んだサインと関連する例</span>' : ''}`;
+    button.addEventListener('click', () => toggleAdjustment(key));
+    grid.appendChild(button);
+  });
+  updateAdjustmentState('2つ選んでください。関連表示のない工夫を選んでもかまいません。');
+}
+
+function toggleAdjustment(key) {
+  const selected = state.selectedAdjustments.includes(key);
+  let message = '';
+  if (selected) {
+    state.selectedAdjustments = state.selectedAdjustments.filter(item => item !== key);
+    message = `${ADJUSTMENTS[key].name}の選択を外しました。`;
+  } else if (state.selectedAdjustments.length >= 2) {
+    message = '工夫は2つまでです。選択中の工夫を1つ外すと、別の工夫を選べます。';
+  } else {
+    state.selectedAdjustments.push(key);
+    message = `${ADJUSTMENTS[key].name}を選びました。`;
+    beep();
+  }
+  updateAdjustmentState(message);
+}
+
+function updateAdjustmentState(message) {
+  document.querySelectorAll('#adjustmentGrid .choice-card').forEach(button => {
+    button.setAttribute('aria-pressed', state.selectedAdjustments.includes(button.dataset.key) ? 'true' : 'false');
+  });
+  document.getElementById('adjustmentCounter').textContent = `${state.selectedAdjustments.length} / 2 選択中`;
+  document.getElementById('adjustmentMessage').textContent = message;
+  document.getElementById('beginWorkButton').disabled = state.selectedAdjustments.length !== 2;
+}
+
+function prepareWork() {
+  state.questions = shuffled(state.scenario.questions).map(question => ({
+    ...question,
+    choices: shuffled(question.choices)
+  }));
+  state.questionIndex = 0;
+  const workPanel = document.getElementById('workPanel');
+  workPanel.className = 'work-panel';
+  if (state.selectedAdjustments.includes('lighting')) workPanel.classList.add('soft-light');
+  if (state.selectedAdjustments.includes('notifications')) workPanel.classList.add('notifications-paused');
+  if (state.selectedAdjustments.includes('quiet')) workPanel.classList.add('quiet-space');
+  if (state.selectedAdjustments.includes('seat')) workPanel.classList.add('seat-focus', 'quiet-view');
+  if (state.selectedAdjustments.includes('desk')) workPanel.classList.add('desk-clean', 'quiet-view');
+  const environmentList = document.getElementById('environmentList');
+  environmentList.innerHTML = '';
+  state.selectedAdjustments.forEach(key => {
+    const item = document.createElement('li');
+    const label = document.createElement('strong');
+    const effect = document.createElement('small');
+    label.textContent = `${ADJUSTMENTS[key].icon} ${ADJUSTMENTS[key].workLabel}`;
+    effect.textContent = ADJUSTMENTS[key].effect;
+    item.append(label, effect);
+    environmentList.appendChild(item);
+  });
+  renderWrittenPlan();
+  renderQuestion();
+  showScreen('workScreen', 55, '短い仕事体験');
+  safeFocus(document.querySelector('#workContent .choice-button'));
+}
+
+function referenceMarkup(question) {
+  const deskMode = state.selectedAdjustments.includes('desk');
+  const references = deskMode
+    ? state.scenario.reference.filter(([, detail]) => String(detail).includes(String(question.answer)))
+    : state.scenario.reference;
+  const rows = references.map(([term, detail]) => `<div class="reference-row"><dt>${term}</dt><dd>${detail}</dd></div>`).join('');
+  const note = deskMode ? '<p class="desk-mode-note">「今使う情報だけ」を表示中です。</p>' : '';
+  return `<div class="reference-sheet"><h3>${state.scenario.referenceTitle}</h3>${note}<dl class="reference-grid">${rows}</dl></div>`;
+}
+
+function renderWrittenPlan() {
+  const plan = document.getElementById('writtenPlan');
+  const explicit = state.selectedAdjustments.includes('written');
+  document.getElementById('writtenPlanCard').style.display = explicit ? '' : 'none';
+  if (!explicit) {
+    plan.innerHTML = '';
+    return;
+  }
+  const steps = ['準備メモを見る', '該当する内容を選ぶ', '選んだ内容を確認する'];
+  plan.innerHTML = steps.map((step, index) => `<li class="${index === 1 ? 'current' : ''}">${step}</li>`).join('');
+}
+
+function renderQuestion() {
+  const question = state.questions[state.questionIndex];
+  const workContent = document.getElementById('workContent');
+  const choiceButtons = question.choices.map(choice => `<button class="choice-button" type="button" data-choice="${escapeAttribute(choice)}">${escapeText(choice)}</button>`).join('');
+  workContent.innerHTML = `
+    <p class="eyebrow">ステップ 3</p>
+    <h2>${state.scenario.title}</h2>
+    <p>${state.scenario.introduction}</p>
+    <div class="ambient-cues" aria-label="周辺情報の表示状態">
+      <strong>周辺情報（刺激そのものは再現しません）</strong>
+      <span class="ambient-cue notification-cue">🔔 チャット通知</span>
+      <span class="ambient-cue sound-cue">☎️ 周囲の会話・電話音</span>
+      <span class="ambient-cue movement-cue">🚶 通路の人の動き</span>
+    </div>
+    ${referenceMarkup(question)}
+    <div class="question-card">
+      <span class="question-number">確認 ${state.questionIndex + 1} / ${state.questions.length}</span>
+      <h3>${question.prompt}</h3>
+      <div class="choice-grid">${choiceButtons}</div>
+      <div class="task-feedback" id="taskFeedback" role="status" aria-live="polite"></div>
+      <div class="button-row" id="questionNextRow"></div>
+    </div>`;
+  workContent.querySelectorAll('.choice-button').forEach(button => {
+    button.addEventListener('click', () => answerQuestion(button, question));
+  });
+  setProgress(55 + state.questionIndex * 8, `仕事体験 ${state.questionIndex + 1}/${state.questions.length}`);
+}
+
+function answerQuestion(button, question) {
+  const buttons = [...document.querySelectorAll('#workContent .choice-button')];
+  if (buttons.some(item => item.disabled)) return;
+  buttons.forEach(item => { item.disabled = true; });
+  button.classList.add('chosen');
+  const selected = button.dataset.choice;
+  const confirmed = selected === question.answer;
+  const feedback = document.getElementById('taskFeedback');
+  feedback.className = `task-feedback show${confirmed ? '' : ' review'}`;
+  feedback.textContent = confirmed
+    ? `準備メモと同じ「${question.answer}」を確認できました。`
+    : `準備メモでは「${question.answer}」と書かれています。覚える必要はありません。今、資料で確認できれば十分です。`;
+  const nextButton = document.createElement('button');
+  nextButton.type = 'button';
+  nextButton.className = 'button primary';
+  nextButton.textContent = state.questionIndex + 1 < state.questions.length ? '次の確認へ' : '仕事体験を終える';
+  nextButton.addEventListener('click', nextQuestion);
+  document.getElementById('questionNextRow').appendChild(nextButton);
+  beep();
+  safeFocus(nextButton);
+}
+
+function nextQuestion() {
+  state.questionIndex += 1;
+  if (state.questionIndex < state.questions.length) {
+    renderQuestion();
+    safeFocus(document.querySelector('#workContent .choice-button'));
+    return;
+  }
+  renderWorkCompletion();
+}
+
+function renderWorkCompletion() {
+  document.getElementById('workContent').innerHTML = `
+    <div class="completion-card">
+      <div class="completion-cat" aria-hidden="true">🐈‍⬛</div>
+      <h2>仕事体験はここまでです</h2>
+      <p>選んだ2つの工夫を画面の表示や情報量へ反映し、準備メモを確認しました。速さや正解数は保存していません。</p>
+      <p>次は、仕事の出来ではなく、環境の使い心地を振り返ります。</p>
+      <div class="button-row"><button class="button primary" id="toReflectionButton" type="button">使った感覚を振り返る</button></div>
+    </div>`;
+  setProgress(78, '仕事体験を完了');
+  const button = document.getElementById('toReflectionButton');
+  button.addEventListener('click', openReflection);
+  safeFocus(button);
+}
+
+function makeRatingScale(container, name, descriptions, onChange) {
+  container.innerHTML = '';
+  for (let value = 1; value <= 5; value++) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'rating-option';
+    const input = document.createElement('input');
+    input.type = 'radio';
+    input.name = name;
+    input.id = `${name}-${value}`;
+    input.value = String(value);
+    input.setAttribute('aria-label', `${value}、${descriptions[value - 1]}`);
+    const label = document.createElement('label');
+    label.htmlFor = input.id;
+    label.innerHTML = `${value}<small>${descriptions[value - 1]}</small>`;
+    input.addEventListener('change', () => onChange(value));
+    wrapper.append(input, label);
+    container.appendChild(wrapper);
+  }
+}
+
+function openReflection() {
+  state.burden = null;
+  state.ease = null;
+  document.getElementById('showReportButton').disabled = true;
+  makeRatingScale(
+    document.getElementById('burdenScale'),
+    `burden-${Date.now()}`,
+    ['とても少ない', '少ない', '中くらい', '多い', 'とても多い'],
+    value => {
+      state.burden = value;
+      updateReflectionButton();
+    }
+  );
+  makeRatingScale(
+    document.getElementById('easeScale'),
+    `ease-${Date.now()}`,
+    ['とても使いにくい', '使いにくい', 'どちらともいえない', '使いやすい', 'とても使いやすい'],
+    value => {
+      state.ease = value;
+      updateReflectionButton();
+    }
+  );
+  showScreen('reflectionScreen', 88, '使った感覚の振り返り');
+  safeFocus(document.querySelector('#burdenScale input'));
+}
+
+function updateReflectionButton() {
+  document.getElementById('showReportButton').disabled = !(state.burden && state.ease);
+}
+
+function ratingText(value, kind) {
+  const labels = kind === 'burden'
+    ? ['とても少ない', '少ない', '中くらい', '多い', 'とても多い']
+    : ['とても使いにくい', '使いにくい', 'どちらともいえない', '使いやすい', 'とても使いやすい'];
+  return `${value} / 5（${labels[value - 1]}）`;
+}
+
+function makeReportData() {
+  return {
+    version: 1,
+    createdAt: new Date().toISOString(),
+    signIds: [...state.selectedSigns],
+    adjustmentIds: [...state.selectedAdjustments],
+    scenarioId: state.scenario.id,
+    ratings: { burden: state.burden, ease: state.ease }
+  };
+}
+
+function buildObservations(data) {
+  const observations = [];
+  if (data.ratings.burden <= 2) {
+    observations.push('今回の短い体験では、負担感は低めでした。別の日や別の仕事でも同じとは限らないため、条件と一緒に記録すると役立ちます。');
+  } else if (data.ratings.burden === 3) {
+    observations.push('今回の負担感は中くらいでした。作業時間を短くする、休憩を加えるなど、もう一つ工夫を試す余地もあります。');
+  } else {
+    observations.push('今回は負担を高めに感じました。無理に続けず、別の調整、作業量、休憩の取り方を試すことも選択肢です。');
+  }
+  if (data.ratings.ease >= 4) {
+    observations.push('選んだ工夫は、今回は使いやすいと感じました。「どの場面で使いやすかったか」を確かめると、相談の材料になります。');
+  } else if (data.ratings.ease <= 2) {
+    observations.push('選んだ工夫は、今回は使いにくさがありました。合わないことも大切な情報です。別の組み合わせを試してかまいません。');
+  } else {
+    observations.push('工夫の使いやすさは、今回はどちらとも言い切れない感覚でした。短時間だけ再度試す方法もあります。');
+  }
+  observations.push('この結果は一度の自己観察であり、能力や復職の可否を表すものではありません。');
+  return observations;
+}
+
+function renderReport(data, fromSaved = false) {
+  currentReportData = data;
+  const scenario = SCENARIOS.find(item => item.id === data.scenarioId);
+  const date = new Date(data.createdAt);
+  document.getElementById('reportDate').textContent = `作成：${date.toLocaleDateString('ja-JP')} ${date.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}`;
+  document.getElementById('reportScenario').textContent = `体験した仕事：${scenario.title}`;
+
+  const signList = document.getElementById('reportSigns');
+  signList.innerHTML = '';
+  data.signIds.forEach(key => {
+    const item = document.createElement('li');
+    const strong = document.createElement('strong');
+    strong.textContent = `${SIGNS[key].icon} ${SIGNS[key].name}`;
+    item.appendChild(strong);
+    signList.appendChild(item);
+  });
+
+  const adjustmentList = document.getElementById('reportAdjustments');
+  adjustmentList.innerHTML = '';
+  data.adjustmentIds.forEach(key => {
+    const item = document.createElement('li');
+    const strong = document.createElement('strong');
+    strong.textContent = `${ADJUSTMENTS[key].icon} ${ADJUSTMENTS[key].name}`;
+    item.appendChild(strong, document.createElement('br'), document.createTextNode(ADJUSTMENTS[key].description));
+    adjustmentList.appendChild(item);
+  });
+
+  document.getElementById('reportBurden').textContent = ratingText(data.ratings.burden, 'burden');
+  document.getElementById('reportEase').textContent = ratingText(data.ratings.ease, 'ease');
+  const observationList = document.getElementById('reportObservations');
+  observationList.innerHTML = '';
+  buildObservations(data).forEach(text => {
+    const item = document.createElement('li');
+    item.textContent = text;
+    observationList.appendChild(item);
+  });
+  const signNames = data.signIds.map(key => `「${SIGNS[key].name}」`).join('、');
+  const adjustmentPhrases = data.adjustmentIds.map(key => ADJUSTMENTS[key].phrase).join('ことと、');
+  document.getElementById('sharePhrase').textContent = `相談用の言い方例：${signNames}が気になるとき、${adjustmentPhrases}ことを試すと、取り組みやすいかもしれません。`;
+  const banner = document.getElementById('savedBanner');
+  banner.classList.toggle('show', fromSaved);
+  banner.textContent = fromSaved
+    ? 'この端末に保存されていたメモを表示しています。外部から読み込んだものではありません。'
+    : 'この端末のブラウザ内に保存しました。外部には送信していません。';
+  showScreen('reportScreen', 100, '働きやすい環境メモ');
+}
+
+function isValidSavedData(data) {
+  if (!data || data.version !== 1 || typeof data.createdAt !== 'string' || Number.isNaN(Date.parse(data.createdAt))) return false;
+  if (!Array.isArray(data.signIds) || data.signIds.length < 1 || data.signIds.length > 3) return false;
+  if (new Set(data.signIds).size !== data.signIds.length || !data.signIds.every(key => Object.hasOwn(SIGNS, key))) return false;
+  if (!Array.isArray(data.adjustmentIds) || data.adjustmentIds.length !== 2) return false;
+  if (new Set(data.adjustmentIds).size !== 2 || !data.adjustmentIds.every(key => Object.hasOwn(ADJUSTMENTS, key))) return false;
+  if (!SCENARIOS.some(scenario => scenario.id === data.scenarioId)) return false;
+  if (!data.ratings || !Number.isInteger(data.ratings.burden) || !Number.isInteger(data.ratings.ease)) return false;
+  return data.ratings.burden >= 1 && data.ratings.burden <= 5 && data.ratings.ease >= 1 && data.ratings.ease <= 5;
+}
+
+function saveReport() {
+  if (!currentReportData || !isValidSavedData(currentReportData)) return;
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(currentReportData));
+    const banner = document.getElementById('savedBanner');
+    banner.textContent = 'この端末のブラウザ内に保存しました。外部には送信していません。';
+    banner.classList.add('show');
+    beep();
+    safeFocus(banner);
+  } catch (_) {
+    alert('このブラウザでは端末保存を利用できませんでした。印刷・PDF保存をご利用ください。');
+  }
+}
+
+function loadSaved() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) {
+      alert('この端末に保存された「働きやすい環境メモ」はありません。');
+      return;
+    }
+    const data = JSON.parse(raw);
+    if (!isValidSavedData(data)) throw new Error('invalid saved data');
+    renderReport(data, true);
+  } catch (_) {
+    try { localStorage.removeItem(STORAGE_KEY); } catch (_) {}
+    alert('保存記録を読み込めなかったため、破損した記録を削除しました。');
+  }
+}
+
+function clearSaved() {
+  if (!confirm('この端末に保存した「働きやすい環境メモ」を削除しますか？')) return;
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+    document.getElementById('savedBanner').classList.remove('show');
+    alert('端末の保存記録を削除しました。');
+  } catch (_) {
+    alert('このブラウザでは保存記録を削除できませんでした。');
+  }
+}
+
+function escapeText(text) {
+  return String(text).replace(/[&<>'"]/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[character]));
+}
+
+function escapeAttribute(text) {
+  return escapeText(text);
+}
+
+function openDialog(dialog) {
+  if (activeDialog) closeDialog(activeDialog, false);
+  lastFocused = document.activeElement;
+  activeDialog = dialog;
+  dialog.classList.add('show');
+  dialog.setAttribute('aria-hidden', 'false');
+  safeFocus(dialog.querySelector('.dialog'));
+}
+
+function closeDialog(dialog, restoreFocus = true) {
+  dialog.classList.remove('show');
+  dialog.setAttribute('aria-hidden', 'true');
+  activeDialog = null;
+  if (restoreFocus) safeFocus(lastFocused);
+}
+
+function trapDialogFocus(event) {
+  if (!activeDialog) return;
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    closeDialog(activeDialog);
+    return;
+  }
+  if (event.key !== 'Tab') return;
+  const focusable = [...activeDialog.querySelectorAll('button:not([disabled]), [href], input:not([disabled]), [tabindex]:not([tabindex="-1"])')];
+  if (!focusable.length) return;
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+  if (event.shiftKey && document.activeElement === first) {
+    event.preventDefault();
+    last.focus();
+  } else if (!event.shiftKey && document.activeElement === last) {
+    event.preventDefault();
+    first.focus();
+  }
+}
+
+document.getElementById('startButton').addEventListener('click', startGame);
+document.getElementById('showSavedButton').addEventListener('click', loadSaved);
+document.getElementById('toAdjustmentButton').addEventListener('click', () => {
+  renderAdjustments();
+  showScreen('adjustmentScreen', 36, '環境の工夫');
+  safeFocus(document.querySelector('#adjustmentGrid .choice-card'));
+});
+document.getElementById('beginWorkButton').addEventListener('click', prepareWork);
+document.getElementById('showReportButton').addEventListener('click', () => renderReport(makeReportData()));
+document.getElementById('saveButton').addEventListener('click', saveReport);
+document.getElementById('printButton').addEventListener('click', () => window.print());
+document.getElementById('playAgainButton').addEventListener('click', startGame);
+document.getElementById('clearSavedButton').addEventListener('click', clearSaved);
+
+document.querySelectorAll('[data-go]').forEach(button => {
+  button.addEventListener('click', () => {
+    const target = button.dataset.go;
+    if (target === 'introScreen') {
+      showScreen('introScreen', 0, 'はじめに');
+    } else if (target === 'signScreen') {
+      renderSigns();
+      state.selectedSigns.forEach(key => {
+        const card = document.querySelector(`#signGrid [data-key="${key}"]`);
+        if (card) card.setAttribute('aria-pressed', 'true');
+      });
+      updateSignState('選び直せます。');
+      showScreen('signScreen', 18, '困りサイン');
+    } else if (target === 'adjustmentScreen') {
+      renderAdjustments();
+      state.selectedAdjustments.forEach(key => {
+        const card = document.querySelector(`#adjustmentGrid [data-key="${key}"]`);
+        if (card) card.setAttribute('aria-pressed', 'true');
+      });
+      updateAdjustmentState('選び直せます。');
+      showScreen('adjustmentScreen', 36, '環境の工夫');
+    }
+  });
+});
+
+textSizeButton.addEventListener('click', () => {
+  textSizeLevel = (textSizeLevel + 1) % 3;
+  document.body.classList.toggle('text-large', textSizeLevel === 1);
+  document.body.classList.toggle('text-xlarge', textSizeLevel === 2);
+  const labels = ['文字を大きくする', '文字をさらに大きくする', '文字を標準サイズに戻す'];
+  textSizeButton.setAttribute('aria-label', labels[textSizeLevel]);
+  textSizeButton.title = labels[textSizeLevel];
+  announce(textSizeLevel === 0 ? '文字を標準サイズに戻しました。' : `文字サイズを${textSizeLevel === 1 ? '大きく' : 'さらに大きく'}しました。`);
+});
+
+soundButton.addEventListener('click', () => {
+  soundOn = !soundOn;
+  soundButton.textContent = soundOn ? '🔊' : '🔇';
+  soundButton.setAttribute('aria-pressed', soundOn ? 'true' : 'false');
+  soundButton.setAttribute('aria-label', soundOn ? '操作音をオフにする' : '操作音をオンにする');
+  soundButton.title = soundOn ? '操作音をオフにする' : '操作音をオンにする';
+  if (soundOn) beep();
+  announce(`操作音を${soundOn ? 'オン' : 'オフ'}にしました。`);
+});
+
+const helpDialog = document.getElementById('helpDialog');
+const pauseDialog = document.getElementById('pauseDialog');
+document.getElementById('helpButton').addEventListener('click', () => openDialog(helpDialog));
+document.getElementById('closeHelpButton').addEventListener('click', () => closeDialog(helpDialog));
+document.getElementById('pauseButton').addEventListener('click', () => openDialog(pauseDialog));
+document.getElementById('resumeButton').addEventListener('click', () => closeDialog(pauseDialog));
+document.getElementById('quitButton').addEventListener('click', () => {
+  closeDialog(pauseDialog, false);
+  resetState();
+  showScreen('introScreen', 0, 'はじめに');
+  safeFocus(document.getElementById('startButton'));
+});
+document.addEventListener('keydown', trapDialogFocus);
+
+screens.forEach(screen => screen.setAttribute('aria-hidden', screen.id === 'introScreen' ? 'false' : 'true'));
+</script>
+</body>
+</html>

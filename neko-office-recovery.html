@@ -773,7 +773,12 @@ async function beep(kind = 'confirm') {
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
     if (!AudioContextClass) return false;
     if (!audioContext || audioContext.state === 'closed') audioContext = new AudioContextClass();
-    if (audioContext.state !== 'running') await audioContext.resume();
+    if (audioContext.state !== 'running') {
+      await Promise.race([
+        audioContext.resume(),
+        new Promise(resolve => window.setTimeout(resolve, 1500))
+      ]);
+    }
     if (!soundOn || audioContext.state !== 'running') return false;
 
     stopActiveSounds();

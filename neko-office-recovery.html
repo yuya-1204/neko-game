@@ -1,0 +1,1250 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light">
+<title>ネコオフィス：わりこみから戻ろう（試作版）</title>
+<style>
+  :root {
+    --navy: #26344b;
+    --navy-2: #354761;
+    --teal: #2f817d;
+    --teal-dark: #246965;
+    --teal-soft: #dff1ee;
+    --orange: #d9793f;
+    --orange-soft: #fff0e4;
+    --cream: #fffaf1;
+    --paper: #ffffff;
+    --ink: #253248;
+    --muted: #667085;
+    --line: #d8e0e8;
+    --ok: #247a54;
+    --ok-soft: #e4f5ec;
+    --warn: #9a5b18;
+    --warn-soft: #fff3d8;
+    --bad: #a53d3d;
+    --bad-soft: #fde9e7;
+    --shadow: 0 12px 30px rgba(38, 52, 75, .12);
+    --radius: 20px;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    color: var(--ink);
+    background:
+      radial-gradient(circle at 10% 0%, rgba(47,129,125,.14), transparent 38%),
+      radial-gradient(circle at 100% 90%, rgba(217,121,63,.12), transparent 35%),
+      #f4f7f9;
+    font-family: "Hiragino Sans", "Yu Gothic UI", "Yu Gothic", Meiryo, system-ui, sans-serif;
+    line-height: 1.65;
+  }
+  body.text-large { font-size: 115%; }
+  body.text-xlarge { font-size: 130%; }
+
+  button, input { font: inherit; }
+  button { touch-action: manipulation; }
+  button:focus-visible, input:focus-visible, [tabindex]:focus-visible {
+    outline: 4px solid rgba(217,121,63,.38);
+    outline-offset: 3px;
+  }
+
+  .skip-link {
+    position: fixed;
+    left: 12px;
+    top: -80px;
+    z-index: 100;
+    padding: 10px 16px;
+    color: #fff;
+    background: var(--navy);
+    border-radius: 0 0 10px 10px;
+  }
+  .skip-link:focus { top: 0; }
+
+  .page-shell {
+    width: min(960px, calc(100% - 24px));
+    margin: 0 auto;
+    padding: 18px 0 42px;
+  }
+
+  .site-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+    padding: 10px 14px;
+    color: #fff;
+    background: var(--navy);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+  }
+
+  .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .brand-cats {
+    flex: 0 0 auto;
+    font-size: 28px;
+    letter-spacing: -8px;
+    padding-right: 8px;
+    filter: drop-shadow(0 2px 0 rgba(255,255,255,.2));
+  }
+  .brand-text { min-width: 0; }
+  .brand-text strong { display: block; font-size: clamp(15px, 3.5vw, 18px); line-height: 1.25; }
+  .brand-text span { display: block; color: #d7e6ee; font-size: 12px; }
+
+  .header-actions { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+  .icon-button {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 8px 10px;
+    color: #fff;
+    background: var(--navy-2);
+    border: 1px solid rgba(255,255,255,.25);
+    border-radius: 12px;
+    cursor: pointer;
+  }
+  .icon-button:hover { background: #435875; }
+
+  .progress-wrap {
+    margin: 0 2px 14px;
+    padding: 12px 16px;
+    background: rgba(255,255,255,.9);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+  }
+  .progress-labels { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--muted); }
+  .progress-labels strong { color: var(--teal-dark); }
+  .progress-track { height: 9px; margin-top: 7px; overflow: hidden; background: #e7edf1; border-radius: 999px; }
+  .progress-bar { width: 0; height: 100%; background: linear-gradient(90deg, var(--teal), #63aaa0); border-radius: inherit; transition: width .25s ease; }
+
+  main { min-height: 550px; }
+  .screen {
+    display: none;
+    padding: clamp(20px, 5vw, 38px);
+    background: rgba(255,255,255,.96);
+    border: 1px solid rgba(216,224,232,.95);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+  .screen.active { display: block; animation: fade-in .2s ease-out; }
+  @keyframes fade-in { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 0 8px;
+    padding: 4px 10px;
+    color: var(--teal-dark);
+    background: var(--teal-soft);
+    border-radius: 999px;
+    font-weight: 800;
+    font-size: 13px;
+  }
+  h1, h2, h3 { line-height: 1.35; color: var(--navy); }
+  h1 { margin: 0 0 12px; font-size: clamp(27px, 7vw, 44px); letter-spacing: -.02em; }
+  h2 { margin: 0 0 14px; font-size: clamp(23px, 5.4vw, 33px); }
+  h3 { margin: 0 0 9px; font-size: 18px; }
+  p { margin: 0 0 14px; }
+  .lead { max-width: 720px; font-size: clamp(16px, 3.7vw, 19px); color: #40516a; }
+
+  .hero-grid { display: grid; grid-template-columns: minmax(0,1.45fr) minmax(230px,.55fr); gap: 24px; align-items: center; }
+  .hero-art {
+    min-height: 250px;
+    display: grid;
+    place-items: center;
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(145deg, #e7f5f2, #fff5e8);
+    border: 1px solid #d8e9e6;
+    border-radius: 24px;
+  }
+  .hero-art::before, .hero-art::after { content: ""; position: absolute; border-radius: 50%; opacity: .65; }
+  .hero-art::before { width: 160px; height: 160px; background: #f8c59e; right: -60px; top: -50px; }
+  .hero-art::after { width: 130px; height: 130px; background: #8fd0c7; left: -45px; bottom: -52px; }
+  .desk-scene { position: relative; z-index: 1; text-align: center; }
+  .desk-cats { font-size: 64px; letter-spacing: -12px; margin-right: 12px; filter: drop-shadow(0 5px 0 rgba(38,52,75,.12)); }
+  .desk { width: 190px; height: 18px; margin: -3px auto 0; background: #a76d42; border-radius: 8px; box-shadow: 0 55px 0 -6px #8b5936; }
+  .monitor { display: inline-grid; place-items: center; width: 90px; height: 60px; margin: 0 0 -8px; color: var(--teal-dark); background: #fff; border: 6px solid var(--navy); border-radius: 8px; font-size: 26px; }
+  .bubble { margin: 46px 14px 0; padding: 10px 13px; background: #fff; border-radius: 14px; color: var(--navy); font-weight: 800; box-shadow: 0 6px 18px rgba(38,52,75,.13); }
+
+  .notice {
+    margin: 18px 0;
+    padding: 14px 16px;
+    border-left: 5px solid var(--teal);
+    background: #eff8f6;
+    border-radius: 10px;
+    color: #344b58;
+  }
+  .notice.warning { border-left-color: var(--orange); background: var(--orange-soft); }
+  .notice strong { color: var(--navy); }
+
+  .feature-list { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 10px; margin: 20px 0; padding: 0; list-style: none; }
+  .feature-list li { padding: 13px; background: var(--cream); border: 1px solid #eee0c9; border-radius: 14px; text-align: center; font-weight: 700; font-size: 14px; }
+  .feature-list span { display: block; font-size: 24px; }
+
+  .button-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 22px; }
+  .button {
+    min-height: 48px;
+    padding: 11px 20px;
+    border: 2px solid transparent;
+    border-radius: 14px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: transform .06s ease, box-shadow .12s ease, background .12s ease;
+  }
+  .button:hover { transform: translateY(-1px); }
+  .button:active { transform: translateY(1px); }
+  .button.primary { color: #fff; background: var(--teal); box-shadow: 0 4px 0 var(--teal-dark); }
+  .button.primary:hover { background: #357f79; }
+  .button.secondary { color: var(--navy); background: #fff; border-color: var(--line); }
+  .button.secondary:hover { background: #f5f7f9; }
+  .button.orange { color: #fff; background: var(--orange); box-shadow: 0 4px 0 #ad5e30; }
+  .button.danger { color: var(--bad); background: #fff; border-color: #e7b7b2; }
+  .button:disabled { opacity: .45; cursor: not-allowed; transform: none; box-shadow: none; }
+  .small-note { font-size: 13px; color: var(--muted); }
+
+  .check-grid, .choice-grid, .support-grid { display: grid; gap: 12px; }
+  .check-grid { grid-template-columns: repeat(2, minmax(0,1fr)); margin-top: 18px; }
+  .check-card { padding: 16px; background: #f8fafb; border: 1px solid var(--line); border-radius: 14px; }
+  .check-card strong { display: block; color: var(--navy); }
+
+  .rating-group { margin: 24px 0; padding: 18px; background: #f8fafb; border: 1px solid var(--line); border-radius: 16px; }
+  .rating-group legend { padding: 0 6px; font-weight: 800; color: var(--navy); }
+  .rating-scale { display: grid; grid-template-columns: repeat(5, minmax(44px,1fr)); gap: 8px; margin-top: 12px; }
+  .rating-option { position: relative; }
+  .rating-option input { position: absolute; opacity: 0; pointer-events: none; }
+  .rating-option label { display: grid; place-items: center; min-height: 58px; padding: 6px; background: #fff; border: 2px solid var(--line); border-radius: 12px; cursor: pointer; font-weight: 800; }
+  .rating-option label small { display: block; font-size: 10px; font-weight: 500; color: var(--muted); }
+  .rating-option input:checked + label { color: var(--teal-dark); background: var(--teal-soft); border-color: var(--teal); box-shadow: 0 0 0 3px rgba(47,129,125,.12); }
+  .rating-option input:focus-visible + label { outline: 4px solid rgba(217,121,63,.38); outline-offset: 3px; }
+
+  .round-banner { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 20px; padding: 12px 15px; background: var(--navy); color: #fff; border-radius: 14px; }
+  .round-banner strong { font-size: 17px; }
+  .round-banner span { color: #dce7ee; font-size: 13px; text-align: right; }
+
+  .work-area { display: grid; grid-template-columns: minmax(0,1fr) 250px; gap: 18px; align-items: start; }
+  .work-panel { min-height: 330px; padding: 20px; background: #fff; border: 1px solid var(--line); border-radius: 16px; }
+  .side-panel { position: sticky; top: 10px; display: grid; gap: 12px; }
+  .office-clock, .support-aid, .privacy-mini { padding: 14px; background: #f8fafb; border: 1px solid var(--line); border-radius: 14px; }
+  .office-clock strong { display: block; color: var(--teal-dark); font-size: 22px; }
+  .privacy-mini { font-size: 12px; color: var(--muted); }
+
+  .job-grid { display: grid; gap: 11px; margin-top: 16px; }
+  .job-card, .choice-button {
+    width: 100%;
+    padding: 15px 16px;
+    color: var(--ink);
+    background: #fff;
+    border: 2px solid var(--line);
+    border-radius: 14px;
+    text-align: left;
+    cursor: pointer;
+  }
+  .job-card:hover, .choice-button:hover { background: #f7fbfa; border-color: #8ec3bd; }
+  .job-card .job-top { display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; }
+  .job-card strong { color: var(--navy); }
+  .deadline { flex: 0 0 auto; padding: 2px 8px; color: var(--warn); background: var(--warn-soft); border-radius: 999px; font-size: 12px; font-weight: 800; }
+  .job-card p { margin: 5px 0 0; font-size: 13px; color: var(--muted); }
+
+  .instruction-card { margin: 14px 0; padding: 17px; background: var(--cream); border: 1px solid #eadcc4; border-radius: 14px; }
+  .instruction-card ol { margin: 10px 0 0; padding-left: 25px; }
+  .instruction-card li { padding: 4px 0; }
+  .instruction-card li.done { color: var(--ok); text-decoration: line-through; text-decoration-thickness: 2px; }
+  .instruction-card li.current { padding-left: 4px; color: var(--teal-dark); background: var(--teal-soft); border-radius: 6px; font-weight: 800; }
+
+  .choice-grid { margin-top: 15px; }
+  .choice-button { min-height: 54px; }
+  .choice-button.correct { color: var(--ok); background: var(--ok-soft); border-color: #79bf9b; }
+  .choice-button.incorrect { color: var(--bad); background: var(--bad-soft); border-color: #d99189; }
+  .choice-button:disabled { cursor: default; }
+
+  .feedback { min-height: 0; margin-top: 14px; padding: 0; border-radius: 12px; }
+  .feedback.show { min-height: 48px; padding: 12px 14px; }
+  .feedback.good { color: var(--ok); background: var(--ok-soft); }
+  .feedback.try { color: var(--warn); background: var(--warn-soft); }
+
+  .interrupt-card { padding: 20px; background: linear-gradient(145deg, #fff5e8, #fff); border: 2px solid #efbe92; border-radius: 18px; box-shadow: 0 10px 25px rgba(154,91,24,.12); }
+  .interrupt-label { display: inline-block; margin-bottom: 8px; padding: 3px 9px; color: #fff; background: var(--orange); border-radius: 999px; font-size: 12px; font-weight: 900; }
+
+  .support-aid { display: none; color: #31585a; background: var(--teal-soft); border-color: #a7d7d0; }
+  .support-aid.show { display: block; }
+  .support-aid strong { display: block; color: var(--teal-dark); }
+  .sticky-note { margin-top: 8px; padding: 12px; color: #59471b; background: #fff2a9; border: 1px solid #ddca6b; border-radius: 5px 12px 12px 5px; transform: rotate(-1deg); box-shadow: 0 5px 10px rgba(89,71,27,.1); }
+
+  .support-grid { grid-template-columns: repeat(3, minmax(0,1fr)); margin-top: 20px; }
+  .support-card { position: relative; min-height: 225px; padding: 20px; background: #fff; border: 2px solid var(--line); border-radius: 18px; cursor: pointer; text-align: left; }
+  .support-card:hover { border-color: var(--teal); transform: translateY(-2px); box-shadow: 0 10px 22px rgba(47,129,125,.11); }
+  .support-card.selected { background: #f0faf8; border-color: var(--teal); box-shadow: 0 0 0 4px rgba(47,129,125,.12); }
+  .support-card .support-icon { display: block; font-size: 34px; }
+  .support-card strong { display: block; margin: 8px 0; color: var(--navy); font-size: 18px; }
+  .support-card p { margin: 0; color: var(--muted); font-size: 14px; }
+  .support-card .selected-mark { display: none; position: absolute; right: 12px; top: 12px; color: #fff; background: var(--teal); border-radius: 999px; padding: 2px 8px; font-size: 12px; font-weight: 800; }
+  .support-card.selected .selected-mark { display: block; }
+
+  .compare-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 14px; margin: 20px 0; }
+  .compare-card { padding: 17px; background: #f8fafb; border: 1px solid var(--line); border-radius: 15px; }
+  .compare-card.supported { background: #eff9f7; border-color: #acd7d1; }
+  .compare-card h3 { display: flex; justify-content: space-between; gap: 8px; }
+  .metric-row { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-top: 1px solid var(--line); }
+  .metric-row span { color: var(--muted); }
+  .metric-row strong { text-align: right; }
+
+  .report-highlight { margin: 18px 0; padding: 20px; background: linear-gradient(145deg, #e8f6f3, #fffaf1); border: 2px solid #add7d0; border-radius: 18px; }
+  .report-highlight h3 { color: var(--teal-dark); }
+  .report-list { margin: 10px 0 0; padding-left: 24px; }
+  .report-list li { margin: 6px 0; }
+  .share-phrase { padding: 16px; background: #fff; border: 2px dashed #9ecbc5; border-radius: 13px; font-weight: 700; }
+
+  .saved-banner { display: none; margin-top: 12px; padding: 10px 13px; color: var(--ok); background: var(--ok-soft); border-radius: 10px; }
+  .saved-banner.show { display: block; }
+
+  .dialog-backdrop { display: none; position: fixed; inset: 0; z-index: 80; place-items: center; padding: 18px; background: rgba(27,38,55,.62); }
+  .dialog-backdrop.show { display: grid; }
+  .dialog { width: min(560px, 100%); max-height: min(80vh, 680px); overflow: auto; padding: 24px; background: #fff; border-radius: 20px; box-shadow: 0 22px 60px rgba(0,0,0,.25); }
+  .dialog h2 { font-size: 24px; }
+
+  .footer-note { margin: 18px 4px 0; color: var(--muted); text-align: center; font-size: 12px; }
+  .noscript { margin: 20px auto; padding: 18px; background: #fff; border: 2px solid var(--bad); border-radius: 14px; }
+
+  @media (max-width: 760px) {
+    .hero-grid, .work-area { grid-template-columns: 1fr; }
+    .hero-art { min-height: 210px; }
+    .side-panel { position: static; grid-template-columns: repeat(2, minmax(0,1fr)); }
+    .support-aid { grid-column: 1 / -1; }
+    .support-grid, .feature-list { grid-template-columns: 1fr; }
+    .support-card { min-height: auto; }
+    .check-grid { grid-template-columns: 1fr; }
+  }
+
+  @media (max-width: 480px) {
+    .page-shell { width: min(100% - 14px, 960px); padding-top: 7px; }
+    .site-header { border-radius: 12px; padding: 8px 10px; }
+    .brand-cats { font-size: 23px; }
+    .brand-text span { display: none; }
+    .screen { padding: 20px 16px; border-radius: 16px; }
+    .progress-wrap { margin-bottom: 8px; }
+    .rating-scale { gap: 5px; }
+    .rating-option label { min-height: 53px; font-size: 14px; }
+    .rating-option label small { display: none; }
+    .round-banner { align-items: flex-start; flex-direction: column; }
+    .round-banner span { text-align: left; }
+    .side-panel { grid-template-columns: 1fr; }
+    .compare-grid { grid-template-columns: 1fr; }
+    .button-row .button { width: 100%; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; }
+  }
+
+  @media print {
+    body { background: #fff; }
+    .site-header, .progress-wrap, .screen:not(#reportScreen), .button-row, .footer-note, .saved-banner { display: none !important; }
+    .page-shell { width: 100%; padding: 0; }
+    #reportScreen { display: block !important; padding: 0; border: 0; box-shadow: none; }
+    #reportScreen::before { content: "ネコオフィス 振り返りメモ"; display: block; margin-bottom: 14px; color: var(--navy); font-size: 24px; font-weight: 900; }
+    .compare-card, .report-highlight { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<a class="skip-link" href="#mainContent">ゲーム本文へ移動</a>
+<div class="page-shell">
+  <header class="site-header">
+    <div class="brand">
+      <div class="brand-cats" aria-hidden="true">🐈🐈‍⬛🐈</div>
+      <div class="brand-text">
+        <strong>ネコオフィス</strong>
+        <span>仕事の工夫を見つけるミニゲーム</span>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="icon-button" id="textSizeButton" type="button" aria-label="文字を大きくする" title="文字サイズ">文字</button>
+      <button class="icon-button" id="helpButton" type="button" aria-label="使い方を開く" title="使い方">？</button>
+      <button class="icon-button" id="soundButton" type="button" aria-pressed="false" aria-label="音をオンにする" title="音のオン・オフ">🔇</button>
+    </div>
+  </header>
+
+  <div class="progress-wrap" id="progressWrap" aria-label="ゲームの進み具合">
+    <div class="progress-labels"><span id="progressName">はじめに</span><strong id="progressPercent">0%</strong></div>
+    <div class="progress-track"><div class="progress-bar" id="progressBar"></div></div>
+  </div>
+
+  <noscript><div class="noscript">このゲームにはJavaScriptが必要です。ブラウザの設定でJavaScriptを有効にしてください。</div></noscript>
+
+  <main id="mainContent" tabindex="-1">
+    <section class="screen active" id="introScreen" aria-labelledby="gameTitle">
+      <div class="hero-grid">
+        <div>
+          <p class="eyebrow">成人向け・試作版</p>
+          <h1 id="gameTitle">わりこみから<br>戻ろう</h1>
+          <p class="lead">短い仕事場面を2回体験し、割り込みのあとに仕事へ戻りやすくする「自分に合う工夫」を試します。</p>
+          <ul class="feature-list" aria-label="ゲームの特徴">
+            <li><span aria-hidden="true">⏱️</span>約5分</li>
+            <li><span aria-hidden="true">📱</span>スマホ対応</li>
+            <li><span aria-hidden="true">🔒</span>送信なし</li>
+          </ul>
+          <div class="notice warning">
+            <strong>大切なお知らせ</strong><br>
+            このゲームは、疾病の診断・治療、能力評価、復職可否の判定を行いません。負担を感じたら、いつでも中断してください。
+          </div>
+          <div class="button-row">
+            <button class="button primary" id="startButton" type="button">ゲームを始める</button>
+            <button class="button secondary" id="showSavedButton" type="button">端末に保存したメモを見る</button>
+          </div>
+          <p class="small-note">氏名・診断名・会社名の入力はありません。プレイ内容は自動送信されません。</p>
+        </div>
+        <div class="hero-art" aria-hidden="true">
+          <div class="desk-scene">
+            <div><span class="desk-cats">🐈🐈‍⬛🐈</span><span class="monitor">↩</span></div>
+            <div class="desk"></div>
+            <div class="bubble">「次はここ」から再開！</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen" id="prepScreen" aria-labelledby="prepTitle">
+      <p class="eyebrow">準備</p>
+      <h2 id="prepTitle">始める前の確認</h2>
+      <p>正解数を競うゲームではありません。急がず、ご自身のペースで進めてください。</p>
+      <div class="check-grid">
+        <div class="check-card"><strong>前半</strong>まず、工夫を使わずに短い仕事を体験します。</div>
+        <div class="check-card"><strong>後半</strong>選んだ「工夫カード」を使って、同程度の別の仕事を体験します。</div>
+      </div>
+      <fieldset class="rating-group" id="preRatingGroup">
+        <legend>今の「頭の余裕」はどのくらいですか？</legend>
+        <p class="small-note">体調の診断ではなく、今この瞬間の感覚です。</p>
+        <div class="rating-scale" id="preRatingScale"></div>
+      </fieldset>
+      <div class="notice"><strong>記録について：</strong>ゲーム中の結果は、この画面内だけで使います。終了時にご自身で「端末に保存」を選ばない限り、ブラウザを閉じると残りません。</div>
+      <div class="button-row">
+        <button class="button primary" id="beginBaselineButton" type="button" disabled>前半を始める</button>
+        <button class="button secondary" data-go="introScreen" type="button">戻る</button>
+      </div>
+    </section>
+
+    <section class="screen" id="roundScreen" aria-labelledby="roundTitle">
+      <div class="round-banner">
+        <strong id="roundTitle">前半：工夫なし</strong>
+        <span id="roundSubtitle">急がず、普段どおりに取り組んでください。</span>
+      </div>
+      <div class="work-area">
+        <div class="work-panel">
+          <div id="roundContent"></div>
+          <div class="feedback" id="roundFeedback" role="status" aria-live="polite"></div>
+        </div>
+        <aside class="side-panel" aria-label="仕事の補助情報">
+          <div class="office-clock"><span>オフィス時刻</span><strong id="officeClock">09:40</strong><small>時間制限はありません</small></div>
+          <div class="support-aid" id="supportAid"></div>
+          <div class="privacy-mini">🔒 入力内容やプレイ結果は、外部へ自動送信されません。</div>
+        </aside>
+      </div>
+      <div class="button-row">
+        <button class="button secondary" id="pauseButton" type="button">中断する</button>
+      </div>
+    </section>
+
+    <section class="screen" id="roundRatingScreen" aria-labelledby="roundRatingTitle">
+      <p class="eyebrow" id="ratingEyebrow">前半終了</p>
+      <h2 id="roundRatingTitle">取り組んだ感覚を教えてください</h2>
+      <p>結果に正解・不正解はありません。今感じたままを選んでください。</p>
+      <fieldset class="rating-group">
+        <legend>この仕事の負担感はどのくらいでしたか？</legend>
+        <div class="rating-scale" id="roundRatingScale"></div>
+      </fieldset>
+      <div class="button-row">
+        <button class="button primary" id="ratingNextButton" type="button" disabled>次へ</button>
+      </div>
+    </section>
+
+    <section class="screen" id="supportScreen" aria-labelledby="supportTitle">
+      <p class="eyebrow">工夫を選ぶ</p>
+      <h2 id="supportTitle">後半で試す「工夫カード」</h2>
+      <p>どれが一番よさそうか、今の感覚で1つ選んでください。優劣はありません。</p>
+      <div class="support-grid" id="supportGrid"></div>
+      <div class="button-row">
+        <button class="button primary" id="beginSupportedButton" type="button" disabled>この工夫で後半を始める</button>
+      </div>
+    </section>
+
+    <section class="screen" id="reportScreen" aria-labelledby="reportTitle">
+      <p class="eyebrow">振り返り</p>
+      <h2 id="reportTitle">あなたの「仕事の工夫メモ」</h2>
+      <p class="small-note" id="reportDate"></p>
+      <div class="compare-grid" id="compareGrid"></div>
+      <div class="report-highlight">
+        <h3 id="reportSupportTitle">今回試した工夫</h3>
+        <p id="reportSupportText"></p>
+        <ul class="report-list" id="reportObservations"></ul>
+      </div>
+      <h3>支援者や職場へ伝える場合の例</h3>
+      <p class="share-phrase" id="sharePhrase"></p>
+      <div class="notice warning">
+        <strong>この結果の見方</strong><br>
+        2つの場面はできるだけ同程度にしていますが、これは標準化された検査ではありません。前後の違いには、工夫だけでなく、2回目の慣れや課題内容の違いも含まれます。結果は能力や復職可否の判定ではなく、工夫を話し合うための参考としてお使いください。
+      </div>
+      <div class="button-row">
+        <button class="button primary" id="printButton" type="button">印刷・PDF保存</button>
+        <button class="button secondary" id="saveButton" type="button">この端末に保存</button>
+        <button class="button secondary" id="restartButton" type="button">もう一度試す</button>
+        <button class="button danger" id="clearButton" type="button">端末の記録を消す</button>
+      </div>
+      <div class="saved-banner" id="savedBanner" role="status">この端末に保存しました。個人情報は含まれていません。</div>
+    </section>
+  </main>
+
+  <p class="footer-note">ネコオフィス：わりこみから戻ろう（試作版 v0.1）｜山岸産業医事務所</p>
+</div>
+
+<div class="dialog-backdrop" id="helpDialog" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+  <div class="dialog" tabindex="-1">
+    <h2 id="helpTitle">使い方</h2>
+    <ol>
+      <li>前半で、工夫を使わずに短い仕事場面を体験します。</li>
+      <li>割り込みが入ったら、内容を確認して対応します。</li>
+      <li>割り込み後、どこから作業へ戻るかを選びます。</li>
+      <li>後半では「工夫カード」を1つ使って、別の同程度の場面を体験します。</li>
+      <li>最後に、負担感と取り組み方を振り返ります。</li>
+    </ol>
+    <p>途中で中断しても問題ありません。キーボードのTab・Enter・Spaceでも操作できます。</p>
+    <div class="button-row"><button class="button primary" id="closeHelpButton" type="button">閉じる</button></div>
+  </div>
+</div>
+
+<div class="dialog-backdrop" id="pauseDialog" role="dialog" aria-modal="true" aria-labelledby="pauseTitle">
+  <div class="dialog" tabindex="-1">
+    <h2 id="pauseTitle">いったん休みますか？</h2>
+    <p>この画面を開いたままなら、少し休んでから続きを再開できます。</p>
+    <div class="button-row">
+      <button class="button primary" id="resumeButton" type="button">続きを再開</button>
+      <button class="button secondary" id="quitButton" type="button">最初の画面へ戻る</button>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+const STORAGE_KEY = 'nekoOfficeRecoveryV1';
+
+const SUPPORTS = {
+  marker: {
+    icon: '🔖',
+    name: '再開マーク',
+    short: '次にすることを一行で残す',
+    description: '割り込みに対応する前に、「次はここ」と目印を残します。',
+    phrase: '割り込みの前に、次にする作業を一行だけ残すと戻りやすそうです。'
+  },
+  one: {
+    icon: '1️⃣',
+    name: '一つずつ表示',
+    short: '今する手順だけを見る',
+    description: '複数の手順を一度に抱えず、今取り組む内容だけを表示します。',
+    phrase: '手順を一度に全部ではなく、一つずつ確認できると取り組みやすそうです。'
+  },
+  check: {
+    icon: '☑️',
+    name: '再開前チェック',
+    short: '終えた所と次の所を確認する',
+    description: '割り込みから戻るとき、完了済みと次の手順を短く確認します。',
+    phrase: '再開前に、終えた所と次にする所を確認する時間があると戻りやすそうです。'
+  }
+};
+
+const SCENARIO_PAIRS = [
+  {
+    a: {
+      clock: '09:40',
+      jobs: [
+        { title: '取引先へ日程を回答', deadline: '今日 10:00', detail: '先方が午前中の回答を希望', correct: true },
+        { title: '備品の残数を確認', deadline: '明日 15:00', detail: '次回発注のための確認', correct: false },
+        { title: '議事録の書式を整える', deadline: '今日 16:00', detail: '内容確認は完了済み', correct: false }
+      ],
+      taskTitle: '会議資料を共有する',
+      steps: ['表紙の日付を確認する', '添付ファイル名を確認する', '送付先を確認する'],
+      questions: [
+        { prompt: '表紙に入れる日付はどれですか？', choices: ['7月21日', '7月22日', '7月23日'], correct: 1 },
+        { prompt: '指定されたファイル名はどれですか？', choices: ['定例会議_確定版.pdf', '定例会議_下書き.pdf', '会議メモ.pdf'], correct: 0 },
+        { prompt: '資料の送付先はどこですか？', choices: ['参加者全員', '直属の上司だけ', '総務部だけ'], correct: 0 }
+      ],
+      interrupt: {
+        title: '総務からチャットが届きました',
+        body: '「今日の会議室はB会議室で合っていますか？」',
+        choices: ['予定表を確認してから回答する', 'たぶん合っていると回答する'],
+        correct: 0
+      }
+    },
+    b: {
+      clock: '13:40',
+      jobs: [
+        { title: '来客名簿を受付へ送る', deadline: '今日 14:00', detail: '来客到着前の共有が必要', correct: true },
+        { title: '会議室の備品を予約', deadline: '明日 12:00', detail: '次回会議用の予約', correct: false },
+        { title: 'アンケート結果を整理', deadline: '今日 17:00', detail: '集計データは作成済み', correct: false }
+      ],
+      taskTitle: '面談予定を登録する',
+      steps: ['開始時刻を確認する', '会議室を確認する', '参加者へ共有する'],
+      questions: [
+        { prompt: '面談の開始時刻はどれですか？', choices: ['14:00', '14:30', '15:00'], correct: 1 },
+        { prompt: '使用する会議室はどこですか？', choices: ['A会議室', 'B会議室', 'オンラインのみ'], correct: 1 },
+        { prompt: '予定を共有する相手は誰ですか？', choices: ['参加者全員', '受付だけ', '自分だけ'], correct: 0 }
+      ],
+      interrupt: {
+        title: '電話が入りました',
+        body: '「提出日は今日で間違いないでしょうか？」',
+        choices: ['依頼票を確認してから回答する', '今日だと思うと回答する'],
+        correct: 0
+      }
+    }
+  },
+  {
+    a: {
+      clock: '10:20',
+      jobs: [
+        { title: 'オンライン会議URLを送る', deadline: '今日 10:30', detail: '開始前に全員へ共有', correct: true },
+        { title: '共有フォルダを整理', deadline: '今週金曜', detail: '古いファイルの整理', correct: false },
+        { title: '研修資料を印刷', deadline: '今日 15:00', detail: '午後の研修で使用', correct: false }
+      ],
+      taskTitle: '見積書を提出する',
+      steps: ['金額を照合する', '宛名を確認する', 'PDFで保存する'],
+      questions: [
+        { prompt: '今回の合計金額はどれですか？', choices: ['88,000円', '98,000円', '108,000円'], correct: 1 },
+        { prompt: '見積書の宛名はどれですか？', choices: ['株式会社みどり 御中', 'みどり様', '営業部様'], correct: 0 },
+        { prompt: '提出形式はどれですか？', choices: ['PDF', '写真', 'テキストのみ'], correct: 0 }
+      ],
+      interrupt: {
+        title: '同僚から声をかけられました',
+        body: '「午後の打合せは何時からでしたか？」',
+        choices: ['予定表を見て一緒に確認する', '記憶だけで答える'],
+        correct: 0
+      }
+    },
+    b: {
+      clock: '15:20',
+      jobs: [
+        { title: '宅配便の集荷を依頼', deadline: '今日 15:30', detail: '当日集荷の締切前に必要', correct: true },
+        { title: '書棚のラベルを更新', deadline: '来週月曜', detail: '部署内の整理作業', correct: false },
+        { title: '月報のグラフを調整', deadline: '今日 17:30', detail: '数値確認は完了済み', correct: false }
+      ],
+      taskTitle: '請求書を登録する',
+      steps: ['請求日を確認する', '取引先名を確認する', '保存先を選ぶ'],
+      questions: [
+        { prompt: '請求日はどれですか？', choices: ['7月18日', '7月19日', '7月20日'], correct: 1 },
+        { prompt: '取引先名はどれですか？', choices: ['青空商事', '青葉商事', '青海商事'], correct: 1 },
+        { prompt: '保存先はどこですか？', choices: ['今月分フォルダ', '個人メモ', 'ごみ箱'], correct: 0 }
+      ],
+      interrupt: {
+        title: '別のメールが届きました',
+        body: '「明日の会議資料は完成していますか？」',
+        choices: ['進捗表を確認して回答する', 'すぐ完成済みと回答する'],
+        correct: 0
+      }
+    }
+  },
+  {
+    a: {
+      clock: '11:40',
+      jobs: [
+        { title: '昼の来客予定を受付へ連絡', deadline: '今日 11:50', detail: '到着前の連絡が必要', correct: true },
+        { title: '名刺データを入力', deadline: '明日', detail: '今週分の一括作業', correct: false },
+        { title: '来月の会議候補日を集める', deadline: '今日 17:00', detail: '夕方までに回答', correct: false }
+      ],
+      taskTitle: '社内便を発送する',
+      steps: ['宛先部署を確認する', '同封物を確認する', '発送箱へ入れる'],
+      questions: [
+        { prompt: '宛先部署はどこですか？', choices: ['人事部', '経理部', '営業部'], correct: 1 },
+        { prompt: '同封するものはどれですか？', choices: ['申請書と控え', '申請書だけ', '控えだけ'], correct: 0 },
+        { prompt: 'どこへ入れますか？', choices: ['社内便の発送箱', '個人ロッカー', '廃棄箱'], correct: 0 }
+      ],
+      interrupt: {
+        title: '内線電話が鳴りました',
+        body: '「先ほどのメールは届いていますか？」',
+        choices: ['受信箱を確認して回答する', '届いているはずと回答する'],
+        correct: 0
+      }
+    },
+    b: {
+      clock: '16:10',
+      jobs: [
+        { title: '当日分の勤怠申請を確認', deadline: '今日 16:20', detail: '締め処理前の確認が必要', correct: true },
+        { title: '資料棚の在庫を数える', deadline: '明後日', detail: '補充計画用の確認', correct: false },
+        { title: '来週の議題案を入力', deadline: '今日 18:00', detail: '終業前までに入力', correct: false }
+      ],
+      taskTitle: '郵送書類を準備する',
+      steps: ['送付先住所を確認する', '封入物を確認する', '郵便トレイへ置く'],
+      questions: [
+        { prompt: '送付先の市はどこですか？', choices: ['小山市', '宇都宮市', '栃木市'], correct: 0 },
+        { prompt: '封入するものはどれですか？', choices: ['案内状と返信用封筒', '案内状だけ', '返信用封筒だけ'], correct: 0 },
+        { prompt: '準備後はどこへ置きますか？', choices: ['郵便トレイ', '机の下', '資料棚'], correct: 0 }
+      ],
+      interrupt: {
+        title: 'チャット通知が届きました',
+        body: '「明日の開始時刻は9時でしたか？」',
+        choices: ['予定表を確認して回答する', '9時だと思うと回答する'],
+        correct: 0
+      }
+    }
+  }
+];
+
+const screens = [...document.querySelectorAll('.screen')];
+const progressBar = document.getElementById('progressBar');
+const progressName = document.getElementById('progressName');
+const progressPercent = document.getElementById('progressPercent');
+const roundContent = document.getElementById('roundContent');
+const roundFeedback = document.getElementById('roundFeedback');
+const supportAid = document.getElementById('supportAid');
+const soundButton = document.getElementById('soundButton');
+const textSizeButton = document.getElementById('textSizeButton');
+
+let audioContext = null;
+let soundOn = false;
+let lastFocused = null;
+
+const state = {
+  scenarioPair: null,
+  preCapacity: null,
+  roundMode: 'baseline',
+  phase: 'priority',
+  stepIndex: 0,
+  selectedSupport: null,
+  roundStartedAt: 0,
+  pendingTimer: null,
+  results: {
+    baseline: null,
+    supported: null
+  },
+  currentMetrics: null,
+  roundRating: null,
+  resumeShownAt: 0
+};
+
+function safeFocus(el) {
+  window.setTimeout(() => { if (el && typeof el.focus === 'function') el.focus(); }, 30);
+}
+
+function showScreen(id, progress, label) {
+  screens.forEach(screen => screen.classList.toggle('active', screen.id === id));
+  progressBar.style.width = `${progress}%`;
+  progressPercent.textContent = `${progress}%`;
+  progressName.textContent = label;
+  document.getElementById('mainContent').focus({ preventScroll: true });
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function beep(kind = 'ok') {
+  if (!soundOn) return;
+  try {
+    if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioContext.state === 'suspended') audioContext.resume();
+    const oscillator = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    oscillator.type = 'sine';
+    oscillator.frequency.value = kind === 'ok' ? 620 : kind === 'notice' ? 440 : 260;
+    gain.gain.setValueAtTime(.05, audioContext.currentTime);
+    gain.gain.exponentialRampToValueAtTime(.0001, audioContext.currentTime + .13);
+    oscillator.connect(gain); gain.connect(audioContext.destination);
+    oscillator.start(); oscillator.stop(audioContext.currentTime + .13);
+  } catch (_) {}
+}
+
+function makeRatingScale(container, name, onChange) {
+  container.innerHTML = '';
+  const labels = ['少ない', '', '中くらい', '', '多い'];
+  for (let value = 1; value <= 5; value++) {
+    const wrap = document.createElement('div');
+    wrap.className = 'rating-option';
+    const input = document.createElement('input');
+    input.type = 'radio'; input.name = name; input.id = `${name}-${value}`; input.value = value;
+    const label = document.createElement('label');
+    label.htmlFor = input.id;
+    label.innerHTML = `${value}<small>${labels[value - 1] || '&nbsp;'}</small>`;
+    input.addEventListener('change', () => onChange(value));
+    wrap.append(input, label); container.appendChild(wrap);
+  }
+}
+
+makeRatingScale(document.getElementById('preRatingScale'), 'pre-capacity', value => {
+  state.preCapacity = value;
+  document.getElementById('beginBaselineButton').disabled = false;
+});
+
+function resetRoundRating() {
+  state.roundRating = null;
+  const scale = document.getElementById('roundRatingScale');
+  makeRatingScale(scale, `round-rating-${state.roundMode}-${Date.now()}`, value => {
+    state.roundRating = value;
+    document.getElementById('ratingNextButton').disabled = false;
+  });
+  document.getElementById('ratingNextButton').disabled = true;
+}
+
+function choosePair() {
+  const index = Math.floor(Math.random() * SCENARIO_PAIRS.length);
+  const pair = SCENARIO_PAIRS[index];
+  state.scenarioPair = Math.random() < .5 ? pair : { a: pair.b, b: pair.a };
+}
+
+function currentScenario() {
+  return state.roundMode === 'baseline' ? state.scenarioPair.a : state.scenarioPair.b;
+}
+
+function resetFeedback() {
+  roundFeedback.className = 'feedback';
+  roundFeedback.textContent = '';
+}
+
+function setFeedback(text, good = true) {
+  roundFeedback.className = `feedback show ${good ? 'good' : 'try'}`;
+  roundFeedback.textContent = text;
+  beep(good ? 'ok' : 'low');
+}
+
+function delayed(next, delay = 650) {
+  window.clearTimeout(state.pendingTimer);
+  state.pendingTimer = window.setTimeout(next, delay);
+}
+
+function startRound(mode) {
+  state.roundMode = mode;
+  state.phase = 'priority';
+  state.stepIndex = 0;
+  state.roundStartedAt = performance.now();
+  state.currentMetrics = { priorityCorrect: false, resumeCorrect: false, taskErrors: 0, interruptCorrect: false, resumeLatencyMs: 0, elapsedMs: 0 };
+  document.getElementById('roundTitle').textContent = mode === 'baseline' ? '前半：工夫なし' : `後半：${SUPPORTS[state.selectedSupport].name}`;
+  document.getElementById('roundSubtitle').textContent = mode === 'baseline' ? '急がず、普段どおりに取り組んでください。' : '選んだ工夫を使って、別の仕事場面を試します。';
+  document.getElementById('officeClock').textContent = currentScenario().clock;
+  supportAid.className = 'support-aid';
+  supportAid.innerHTML = '';
+  showScreen('roundScreen', mode === 'baseline' ? 22 : 64, mode === 'baseline' ? '前半の仕事' : '後半の仕事');
+  renderPriority();
+}
+
+function renderPriority() {
+  resetFeedback();
+  const scenario = currentScenario();
+  roundContent.innerHTML = `
+    <p class="eyebrow">仕事 1 / 2</p>
+    <h2>最初に取りかかる仕事を選ぶ</h2>
+    <p>締切と内容を見て、最初に取りかかる仕事を1つ選んでください。</p>
+    <div class="job-grid" id="jobGrid"></div>`;
+  const grid = document.getElementById('jobGrid');
+  scenario.jobs.forEach((job, index) => {
+    const button = document.createElement('button');
+    button.type = 'button'; button.className = 'job-card';
+    button.innerHTML = `<div class="job-top"><strong>${job.title}</strong><span class="deadline">${job.deadline}</span></div><p>${job.detail}</p>`;
+    button.addEventListener('click', () => {
+      [...grid.querySelectorAll('button')].forEach(btn => btn.disabled = true);
+      state.currentMetrics.priorityCorrect = job.correct;
+      if (!job.correct) state.currentMetrics.taskErrors++;
+      setFeedback(job.correct ? '締切が近い仕事を選びました。次へ進みます。' : '選択を記録しました。ここでは、より締切が近い仕事を優先する想定でした。', job.correct);
+      delayed(renderPlan, 850);
+    });
+    grid.appendChild(button);
+  });
+  safeFocus(grid.querySelector('button'));
+}
+
+function planMarkup(current = -1, showAll = true) {
+  const scenario = currentScenario();
+  const items = scenario.steps.map((step, index) => {
+    const classes = [];
+    if (index < current) classes.push('done');
+    if (index === current) classes.push('current');
+    const hiddenText = !showAll && index !== current ? '（この手順は今は非表示）' : step;
+    return `<li class="${classes.join(' ')}">${hiddenText}</li>`;
+  }).join('');
+  return `<div class="instruction-card"><strong>${scenario.taskTitle}</strong><ol>${items}</ol></div>`;
+}
+
+function renderPlan() {
+  resetFeedback();
+  const scenario = currentScenario();
+  roundContent.innerHTML = `
+    <p class="eyebrow">仕事 2 / 2</p>
+    <h2>${scenario.taskTitle}</h2>
+    <p>次の3つの手順で作業します。一度確認してから始めてください。</p>
+    ${planMarkup(-1, true)}
+    <div class="button-row"><button class="button primary" id="startTaskButton" type="button">手順を確認して始める</button></div>`;
+  const button = document.getElementById('startTaskButton');
+  button.addEventListener('click', () => { state.phase = 'step'; state.stepIndex = 0; renderStep(); });
+  safeFocus(button);
+}
+
+function renderStep() {
+  resetFeedback();
+  const scenario = currentScenario();
+  const question = scenario.questions[state.stepIndex];
+  const oneAtATime = state.roundMode === 'supported' && state.selectedSupport === 'one';
+  roundContent.innerHTML = `
+    <p class="eyebrow">手順 ${state.stepIndex + 1} / 3</p>
+    <h2>${scenario.taskTitle}</h2>
+    ${planMarkup(state.stepIndex, !oneAtATime)}
+    <h3>${question.prompt}</h3>
+    <div class="choice-grid" id="stepChoices"></div>`;
+  if (state.roundMode === 'supported') updateSupportAid('working');
+  const choices = document.getElementById('stepChoices');
+  question.choices.forEach((choice, index) => {
+    const button = document.createElement('button');
+    button.type = 'button'; button.className = 'choice-button'; button.textContent = choice;
+    button.addEventListener('click', () => {
+      [...choices.querySelectorAll('button')].forEach(btn => btn.disabled = true);
+      const correct = index === question.correct;
+      button.classList.add(correct ? 'correct' : 'incorrect');
+      if (!correct) state.currentMetrics.taskErrors++;
+      setFeedback(correct ? '確認できました。' : '選択を記録しました。想定していた内容とは異なりました。', correct);
+      if (state.stepIndex === 0) delayed(renderInterruption, 700);
+      else if (state.stepIndex < 2) delayed(() => { state.stepIndex++; renderStep(); }, 700);
+      else delayed(finishRound, 750);
+    });
+    choices.appendChild(button);
+  });
+  safeFocus(choices.querySelector('button'));
+}
+
+function updateSupportAid(stage) {
+  const support = SUPPORTS[state.selectedSupport];
+  const scenario = currentScenario();
+  supportAid.className = 'support-aid show';
+  const afterFirstStep = stage === 'returning' || stage === 'before-interrupt';
+  if (state.selectedSupport === 'marker') {
+    const next = afterFirstStep ? scenario.steps[1] : scenario.steps[Math.min(state.stepIndex, 2)];
+    supportAid.innerHTML = `<strong>${support.icon} ${support.name}</strong><div class="sticky-note">次は：${next}</div>`;
+  } else if (state.selectedSupport === 'one') {
+    const index = afterFirstStep ? 1 : Math.min(state.stepIndex, 2);
+    supportAid.innerHTML = `<strong>${support.icon} ${support.name}</strong><p>今すること：<br><b>${scenario.steps[index]}</b></p>`;
+  } else {
+    const nextIndex = afterFirstStep ? 1 : Math.min(state.stepIndex, 2);
+    supportAid.innerHTML = `<strong>${support.icon} ${support.name}</strong><p>☑ 完了：${nextIndex > 0 ? scenario.steps[0] : 'まだありません'}<br>□ 次：<b>${scenario.steps[nextIndex]}</b></p>`;
+  }
+}
+
+function renderInterruption() {
+  resetFeedback();
+  const scenario = currentScenario();
+  if (state.roundMode === 'supported') updateSupportAid('before-interrupt');
+  roundContent.innerHTML = `
+    <div class="interrupt-card">
+      <span class="interrupt-label">わりこみ</span>
+      <h2>${scenario.interrupt.title}</h2>
+      <p>${scenario.interrupt.body}</p>
+      <h3>どう対応しますか？</h3>
+      <div class="choice-grid" id="interruptChoices"></div>
+    </div>`;
+  const choices = document.getElementById('interruptChoices');
+  scenario.interrupt.choices.forEach((choice, index) => {
+    const button = document.createElement('button');
+    button.type = 'button'; button.className = 'choice-button'; button.textContent = choice;
+    button.addEventListener('click', () => {
+      [...choices.querySelectorAll('button')].forEach(btn => btn.disabled = true);
+      const correct = index === scenario.interrupt.correct;
+      state.currentMetrics.interruptCorrect = correct;
+      if (!correct) state.currentMetrics.taskErrors++;
+      setFeedback(correct ? '確認してから回答する方法を選びました。' : '選択を記録しました。ここでは、確認してから回答する想定でした。', correct);
+      delayed(renderResumeChoice, 800);
+    });
+    choices.appendChild(button);
+  });
+  beep('notice');
+  safeFocus(choices.querySelector('button'));
+}
+
+function renderResumeChoice() {
+  resetFeedback();
+  const scenario = currentScenario();
+  state.resumeShownAt = performance.now();
+  if (state.roundMode === 'supported') updateSupportAid('returning');
+  roundContent.innerHTML = `
+    <p class="eyebrow">仕事へ戻る</p>
+    <h2>どこから再開しますか？</h2>
+    <p>割り込み対応が終わりました。元の仕事の次の手順を選んでください。</p>
+    <div class="choice-grid" id="resumeChoices"></div>`;
+  const order = [1, 0, 2];
+  const choices = document.getElementById('resumeChoices');
+  order.forEach(stepIndex => {
+    const button = document.createElement('button');
+    button.type = 'button'; button.className = 'choice-button'; button.textContent = scenario.steps[stepIndex];
+    button.addEventListener('click', () => {
+      [...choices.querySelectorAll('button')].forEach(btn => btn.disabled = true);
+      const correct = stepIndex === 1;
+      state.currentMetrics.resumeCorrect = correct;
+      state.currentMetrics.resumeLatencyMs = Math.round(performance.now() - state.resumeShownAt);
+      if (!correct) state.currentMetrics.taskErrors++;
+      setFeedback(correct ? '手順2から再開しました。' : '選択を記録しました。手順1は完了しているため、手順2から再開する想定でした。', correct);
+      delayed(() => { state.stepIndex = 1; renderStep(); }, 850);
+    });
+    choices.appendChild(button);
+  });
+  safeFocus(choices.querySelector('button'));
+}
+
+function finishRound() {
+  state.currentMetrics.elapsedMs = Math.round(performance.now() - state.roundStartedAt);
+  state.results[state.roundMode] = { ...state.currentMetrics };
+  resetRoundRating();
+  document.getElementById('ratingEyebrow').textContent = state.roundMode === 'baseline' ? '前半終了' : '後半終了';
+  document.getElementById('roundRatingTitle').textContent = state.roundMode === 'baseline' ? '前半の感覚を教えてください' : '工夫を使った感覚を教えてください';
+  document.getElementById('ratingNextButton').textContent = state.roundMode === 'baseline' ? '工夫カードを選ぶ' : '振り返りを見る';
+  showScreen('roundRatingScreen', state.roundMode === 'baseline' ? 45 : 88, state.roundMode === 'baseline' ? '前半の振り返り' : '後半の振り返り');
+  safeFocus(document.querySelector('#roundRatingScale input'));
+}
+
+function renderSupportCards() {
+  const grid = document.getElementById('supportGrid');
+  grid.innerHTML = '';
+  Object.entries(SUPPORTS).forEach(([key, support]) => {
+    const button = document.createElement('button');
+    button.type = 'button'; button.className = 'support-card'; button.dataset.support = key;
+    button.setAttribute('aria-pressed', state.selectedSupport === key ? 'true' : 'false');
+    button.innerHTML = `<span class="selected-mark">選択中</span><span class="support-icon" aria-hidden="true">${support.icon}</span><strong>${support.name}</strong><p>${support.description}</p>`;
+    if (state.selectedSupport === key) button.classList.add('selected');
+    button.addEventListener('click', () => {
+      state.selectedSupport = key;
+      [...grid.children].forEach(card => {
+        const selected = card.dataset.support === key;
+        card.classList.toggle('selected', selected);
+        card.setAttribute('aria-pressed', selected ? 'true' : 'false');
+      });
+      document.getElementById('beginSupportedButton').disabled = false;
+      beep('ok');
+    });
+    grid.appendChild(button);
+  });
+}
+
+function ratingLabel(value) {
+  return `${value} / 5`;
+}
+
+function formatTime(ms) {
+  const seconds = Math.max(1, Math.round(ms / 1000));
+  const min = Math.floor(seconds / 60);
+  const sec = seconds % 60;
+  return min > 0 ? `${min}分${String(sec).padStart(2, '0')}秒` : `${sec}秒`;
+}
+
+function escapeText(text) {
+  return String(text).replace(/[&<>'"]/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;' }[char]));
+}
+
+function buildObservations() {
+  const a = state.results.baseline;
+  const b = state.results.supported;
+  const observations = [];
+  if (!a.resumeCorrect && b.resumeCorrect) observations.push('工夫を使った後半では、割り込み後に想定した手順へ戻れました。');
+  else if (a.resumeCorrect && b.resumeCorrect) observations.push('前半・後半とも、割り込み後に想定した手順へ戻れました。工夫の使いやすさも振り返ってみましょう。');
+  else if (!b.resumeCorrect) observations.push('今回は工夫を使っても再開位置に迷いがありました。別の工夫カードを試す余地があります。');
+  if (b.rating < a.rating) observations.push(`本人が感じた負担は ${a.rating} から ${b.rating} に下がりました。`);
+  else if (b.rating === a.rating) observations.push(`本人が感じた負担は前半・後半とも ${a.rating} でした。`);
+  else observations.push(`後半の負担は ${b.rating} で、前半の ${a.rating} より高く感じました。休憩や別の工夫も選択肢です。`);
+  if (b.taskErrors < a.taskErrors) observations.push('想定と異なる選択は後半で少なくなりました。');
+  else if (b.taskErrors === a.taskErrors) observations.push('想定と異なる選択の数は前半と後半で同じでした。');
+  else observations.push('後半では想定と異なる選択が増えました。速さより、説明量や休憩の取り方を調整してもよさそうです。');
+  return observations;
+}
+
+function renderReport(saved = null) {
+  const data = saved || {
+    version: 1,
+    createdAt: new Date().toISOString(),
+    selectedSupport: state.selectedSupport,
+    preCapacity: state.preCapacity,
+    results: state.results
+  };
+  if (saved) {
+    state.selectedSupport = data.selectedSupport;
+    state.preCapacity = data.preCapacity;
+    state.results = data.results;
+  }
+  const support = SUPPORTS[data.selectedSupport];
+  const a = data.results.baseline;
+  const b = data.results.supported;
+  const date = new Date(data.createdAt);
+  document.getElementById('reportDate').textContent = `作成：${date.toLocaleDateString('ja-JP')} ${date.toLocaleTimeString('ja-JP', { hour:'2-digit', minute:'2-digit' })}`;
+  document.getElementById('compareGrid').innerHTML = `
+    <div class="compare-card">
+      <h3><span>前半</span><small>工夫なし</small></h3>
+      <div class="metric-row"><span>割り込み後の再開</span><strong>${a.resumeCorrect ? '想定した手順へ戻れた' : '別の手順を選んだ'}</strong></div>
+      <div class="metric-row"><span>想定と異なる選択</span><strong>${a.taskErrors}回</strong></div>
+      <div class="metric-row"><span>本人の負担感</span><strong>${ratingLabel(a.rating)}</strong></div>
+      <div class="metric-row"><span>再開を選ぶまで</span><strong>${formatTime(a.resumeLatencyMs)}</strong></div>
+      <div class="metric-row"><span>取り組み時間</span><strong>${formatTime(a.elapsedMs)}</strong></div>
+    </div>
+    <div class="compare-card supported">
+      <h3><span>後半</span><small>${support.icon} ${escapeText(support.name)}</small></h3>
+      <div class="metric-row"><span>割り込み後の再開</span><strong>${b.resumeCorrect ? '想定した手順へ戻れた' : '別の手順を選んだ'}</strong></div>
+      <div class="metric-row"><span>想定と異なる選択</span><strong>${b.taskErrors}回</strong></div>
+      <div class="metric-row"><span>本人の負担感</span><strong>${ratingLabel(b.rating)}</strong></div>
+      <div class="metric-row"><span>再開を選ぶまで</span><strong>${formatTime(b.resumeLatencyMs)}</strong></div>
+      <div class="metric-row"><span>取り組み時間</span><strong>${formatTime(b.elapsedMs)}</strong></div>
+    </div>`;
+  document.getElementById('reportSupportTitle').textContent = `${support.icon} 今回試した工夫：${support.name}`;
+  document.getElementById('reportSupportText').textContent = support.description;
+  const observationList = document.getElementById('reportObservations');
+  observationList.innerHTML = '';
+  buildObservations().forEach(text => {
+    const li = document.createElement('li'); li.textContent = text; observationList.appendChild(li);
+  });
+  document.getElementById('sharePhrase').textContent = support.phrase;
+  document.getElementById('savedBanner').classList.toggle('show', Boolean(saved));
+  showScreen('reportScreen', 100, '完了');
+}
+
+function resetGame() {
+  window.clearTimeout(state.pendingTimer);
+  state.scenarioPair = null;
+  state.preCapacity = null;
+  state.roundMode = 'baseline';
+  state.phase = 'priority';
+  state.stepIndex = 0;
+  state.selectedSupport = null;
+  state.results = { baseline: null, supported: null };
+  state.currentMetrics = null;
+  state.roundRating = null;
+  document.getElementById('beginBaselineButton').disabled = true;
+  document.getElementById('beginSupportedButton').disabled = true;
+  document.querySelectorAll('input[type="radio"]').forEach(input => input.checked = false);
+  document.getElementById('savedBanner').classList.remove('show');
+  supportAid.className = 'support-aid'; supportAid.innerHTML = '';
+}
+
+function saveReport() {
+  const payload = {
+    version: 1,
+    createdAt: new Date().toISOString(),
+    selectedSupport: state.selectedSupport,
+    preCapacity: state.preCapacity,
+    results: state.results
+  };
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    document.getElementById('savedBanner').classList.add('show');
+    beep('ok');
+  } catch (_) {
+    alert('このブラウザでは端末保存を利用できませんでした。印刷・PDF保存をご利用ください。');
+  }
+}
+
+function loadSaved() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) { alert('この端末に保存された振り返りメモはありません。'); return; }
+    const data = JSON.parse(raw);
+    if (!data || data.version !== 1 || !SUPPORTS[data.selectedSupport] || !data.results?.baseline || !data.results?.supported) throw new Error('invalid');
+    renderReport(data);
+  } catch (_) {
+    localStorage.removeItem(STORAGE_KEY);
+    alert('保存記録を読み込めなかったため、破損した記録を削除しました。');
+  }
+}
+
+function clearSaved() {
+  if (!confirm('この端末に保存した「仕事の工夫メモ」を削除しますか？')) return;
+  localStorage.removeItem(STORAGE_KEY);
+  document.getElementById('savedBanner').classList.remove('show');
+  alert('端末の保存記録を削除しました。');
+}
+
+function openDialog(dialog) {
+  lastFocused = document.activeElement;
+  dialog.classList.add('show');
+  document.body.style.overflow = 'hidden';
+  safeFocus(dialog.querySelector('.dialog'));
+}
+
+function closeDialog(dialog) {
+  dialog.classList.remove('show');
+  document.body.style.overflow = '';
+  safeFocus(lastFocused);
+}
+
+document.getElementById('startButton').addEventListener('click', () => {
+  resetGame();
+  showScreen('prepScreen', 8, '準備');
+  safeFocus(document.querySelector('#preRatingScale input'));
+});
+
+document.querySelectorAll('[data-go]').forEach(button => button.addEventListener('click', () => showScreen(button.dataset.go, 0, 'はじめに')));
+
+document.getElementById('beginBaselineButton').addEventListener('click', () => {
+  choosePair();
+  startRound('baseline');
+});
+
+document.getElementById('ratingNextButton').addEventListener('click', () => {
+  state.results[state.roundMode].rating = state.roundRating;
+  if (state.roundMode === 'baseline') {
+    state.selectedSupport = null;
+    document.getElementById('beginSupportedButton').disabled = true;
+    renderSupportCards();
+    showScreen('supportScreen', 54, '工夫カードを選ぶ');
+    safeFocus(document.querySelector('.support-card'));
+  } else {
+    renderReport();
+  }
+});
+
+document.getElementById('beginSupportedButton').addEventListener('click', () => startRound('supported'));
+document.getElementById('showSavedButton').addEventListener('click', loadSaved);
+document.getElementById('saveButton').addEventListener('click', saveReport);
+document.getElementById('printButton').addEventListener('click', () => window.print());
+document.getElementById('clearButton').addEventListener('click', clearSaved);
+document.getElementById('restartButton').addEventListener('click', () => {
+  resetGame();
+  showScreen('prepScreen', 8, '準備');
+  safeFocus(document.querySelector('#preRatingScale input'));
+});
+
+soundButton.addEventListener('click', () => {
+  soundOn = !soundOn;
+  soundButton.textContent = soundOn ? '🔊' : '🔇';
+  soundButton.setAttribute('aria-pressed', soundOn ? 'true' : 'false');
+  soundButton.setAttribute('aria-label', soundOn ? '音をオフにする' : '音をオンにする');
+  beep('ok');
+});
+
+let textSizeLevel = 0;
+textSizeButton.addEventListener('click', () => {
+  textSizeLevel = (textSizeLevel + 1) % 3;
+  document.body.classList.toggle('text-large', textSizeLevel === 1);
+  document.body.classList.toggle('text-xlarge', textSizeLevel === 2);
+  const label = textSizeLevel === 0 ? '標準' : textSizeLevel === 1 ? '大' : '特大';
+  textSizeButton.textContent = `文字${label === '標準' ? '' : label}`;
+  textSizeButton.setAttribute('aria-label', `文字サイズ：${label}。押すと変更します`);
+});
+
+const helpDialog = document.getElementById('helpDialog');
+document.getElementById('helpButton').addEventListener('click', () => openDialog(helpDialog));
+document.getElementById('closeHelpButton').addEventListener('click', () => closeDialog(helpDialog));
+
+const pauseDialog = document.getElementById('pauseDialog');
+document.getElementById('pauseButton').addEventListener('click', () => openDialog(pauseDialog));
+document.getElementById('resumeButton').addEventListener('click', () => closeDialog(pauseDialog));
+document.getElementById('quitButton').addEventListener('click', () => {
+  closeDialog(pauseDialog);
+  resetGame();
+  showScreen('introScreen', 0, 'はじめに');
+});
+
+[helpDialog, pauseDialog].forEach(dialog => {
+  dialog.addEventListener('click', event => { if (event.target === dialog) closeDialog(dialog); });
+});
+
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape') {
+    if (helpDialog.classList.contains('show')) closeDialog(helpDialog);
+    else if (pauseDialog.classList.contains('show')) closeDialog(pauseDialog);
+  }
+});
+
+window.addEventListener('beforeunload', event => {
+  const inProgress = document.getElementById('roundScreen').classList.contains('active') || document.getElementById('supportScreen').classList.contains('active');
+  if (inProgress) { event.preventDefault(); event.returnValue = ''; }
+});
+</script>
+</body>
+</html>

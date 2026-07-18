@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#fff8e9">
+  <meta name="description" content="親子で約5分。待つ・切り替える・伝えるを、ねこの物語で楽しく練習するデモゲームです。">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="ja_JP">
+  <meta property="og:title" content="ねこといっしょ！できたミッション">
+  <meta property="og:description" content="親子で約5分。待つ・切り替える・伝えるを、ねこの物語で楽しく練習するデモゲームです。">
+  <meta property="og:url" content="https://yuya-1204.github.io/neko-game/neko-oyako-mission.html">
+  <meta property="og:image" content="https://yuya-1204.github.io/neko-game/neko-oyako-og.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <title>ねこといっしょ！できたミッション</title>
+  <style>
+    :root {
+      --ink:#2f3b3b;
+      --muted:#667675;
+      --paper:#fffaf0;
+      --cream:#fff3d6;
+      --white:#ffffff;
+      --orange:#f59a57;
+      --orange-deep:#d96d37;
+      --teal:#55ad9b;
+      --teal-deep:#287e73;
+      --blue:#70a9d8;
+      --yellow:#ffd766;
+      --red:#e96963;
+      --green:#63bd73;
+      --line:#e9ddc6;
+      --shadow:0 12px 30px rgba(70,72,52,.13);
+      --radius:24px;
+    }
+
+    * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+    html { scroll-behavior:smooth; }
+    body {
+      margin:0;
+      min-height:100vh;
+      color:var(--ink);
+      font-family:"Hiragino Maru Gothic ProN","Yu Gothic","Meiryo",system-ui,sans-serif;
+      background:
+        radial-gradient(circle at 12% 5%, rgba(255,215,102,.28), transparent 28%),
+        radial-gradient(circle at 92% 30%, rgba(85,173,155,.17), transparent 32%),
+        var(--paper);
+      line-height:1.65;
+    }
+    button { font:inherit; }
+    button:focus-visible, a:focus-visible, summary:focus-visible {
+      outline:4px solid rgba(112,169,216,.48);
+      outline-offset:3px;
+    }
+    [hidden] { display:none !important; }
+
+    .page-shell { width:min(100%, 640px); margin:0 auto; padding:12px 14px 40px; }
+    .topbar {
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+      min-height:50px;
+    }
+    .brand {
+      display:flex; align-items:center; gap:8px; font-weight:900; font-size:13px;
+      letter-spacing:.04em;
+    }
+    .brand-mark {
+      display:grid; place-items:center; width:34px; height:34px; border-radius:12px;
+      background:var(--orange); color:#fff; box-shadow:0 4px 0 var(--orange-deep);
+      font-size:20px;
+    }
+    .top-actions { display:flex; gap:7px; align-items:center; }
+    .mini-button, .day-count {
+      min-height:38px; border:1px solid var(--line); border-radius:999px;
+      background:rgba(255,255,255,.88); color:var(--ink); padding:7px 11px;
+      font-size:12px; font-weight:800;
+    }
+    .mini-button { cursor:pointer; }
+    .day-count strong { color:var(--teal-deep); }
+
+    .card {
+      background:rgba(255,255,255,.94); border:1px solid rgba(233,221,198,.9);
+      border-radius:var(--radius); box-shadow:var(--shadow);
+    }
+    .screen { animation:screen-in .28s ease-out; }
+    @keyframes screen-in { from { opacity:0; transform:translateY(7px); } }
+
+    .hero { overflow:hidden; padding:0 0 26px; }
+    .hero-scene {
+      position:relative; height:214px; overflow:hidden;
+      background:linear-gradient(#bfe5f5 0 58%, #9ed79f 58% 73%, #dfbc78 73%);
+      border-radius:calc(var(--radius) - 1px) calc(var(--radius) - 1px) 44% 44% / calc(var(--radius) - 1px) calc(var(--radius) - 1px) 18% 18%;
+    }
+    .sun { position:absolute; width:52px; height:52px; right:35px; top:25px; border-radius:50%; background:var(--yellow); box-shadow:0 0 0 10px rgba(255,215,102,.25); }
+    .cloud, .cloud::before, .cloud::after { position:absolute; border-radius:99px; background:rgba(255,255,255,.9); }
+    .cloud { width:74px; height:22px; left:30px; top:39px; }
+    .cloud::before { content:""; width:34px; height:34px; left:13px; bottom:0; }
+    .cloud::after { content:""; width:28px; height:28px; right:9px; bottom:0; }
+    .tree { position:absolute; bottom:45px; font-size:70px; filter:drop-shadow(0 7px 0 rgba(71,112,73,.12)); }
+    .tree.one { left:-4px; }
+    .tree.two { right:-8px; transform:scale(.82); }
+    .path { position:absolute; left:50%; bottom:-70px; transform:translateX(-50%); width:170px; height:180px; background:#f0d49b; clip-path:polygon(38% 0,62% 0,100% 100%,0 100%); }
+    .cat-hero {
+      position:absolute; left:50%; bottom:27px; transform:translateX(-50%);
+      font-size:84px; line-height:1; filter:drop-shadow(0 9px 0 rgba(95,65,40,.15));
+      animation:cat-bob 2.2s ease-in-out infinite;
+    }
+    .cat-bag { position:absolute; left:calc(50% + 35px); bottom:44px; font-size:32px; transform:rotate(8deg); }
+    @keyframes cat-bob { 50% { transform:translate(-50%,-7px) rotate(-2deg); } }
+
+    .hero-copy { padding:16px 20px 0; text-align:center; }
+    .eyebrow {
+      display:inline-flex; align-items:center; gap:5px; padding:4px 11px;
+      border-radius:999px; background:#e7f5f1; color:var(--teal-deep);
+      font-size:12px; font-weight:900; letter-spacing:.04em;
+    }
+    h1 { margin:10px 0 7px; font-size:clamp(27px,8.2vw,40px); line-height:1.22; letter-spacing:.02em; }
+    h1 .accent { color:var(--orange-deep); }
+    .lead { margin:0 auto; max-width:32em; color:var(--muted); font-size:15px; font-weight:650; }
+    .mission-chips { display:flex; justify-content:center; flex-wrap:wrap; gap:7px; margin:17px 0 0; }
+    .mission-chip { padding:7px 10px; border-radius:12px; background:var(--cream); font-size:12px; font-weight:850; }
+
+    .role-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:18px 0 15px; }
+    .role { text-align:left; padding:12px; border:1px solid var(--line); border-radius:16px; background:#fffdf7; }
+    .role b { display:block; font-size:13px; margin-bottom:2px; }
+    .role span { color:var(--muted); font-size:11px; line-height:1.45; display:block; }
+    .primary {
+      width:100%; min-height:58px; border:0; border-radius:17px; cursor:pointer;
+      color:#fff; background:linear-gradient(180deg, #f7a866, var(--orange));
+      box-shadow:0 6px 0 var(--orange-deep), 0 10px 22px rgba(217,109,55,.2);
+      font-size:18px; font-weight:950; letter-spacing:.03em;
+      transition:transform .08s, box-shadow .08s;
+    }
+    .primary:active { transform:translateY(4px); box-shadow:0 2px 0 var(--orange-deep); }
+    .primary.teal { background:linear-gradient(180deg,#67bfae,var(--teal)); box-shadow:0 6px 0 var(--teal-deep),0 10px 22px rgba(40,126,115,.18); }
+    .primary:disabled { background:#b9c0bd; box-shadow:0 5px 0 #8e9894; cursor:not-allowed; }
+    .microcopy { margin:13px 4px 0; color:var(--muted); font-size:11px; text-align:center; }
+
+    details.parent-info { margin-top:14px; padding:4px 16px; }
+    details.parent-info summary { cursor:pointer; padding:12px 2px; font-weight:900; font-size:13px; }
+    .parent-info-body { padding:0 0 13px; font-size:12px; color:var(--muted); }
+    .parent-info-body p { margin:4px 0 10px; }
+    .parent-info-body strong { color:var(--ink); }
+
+    .game-card { padding:14px; overflow:hidden; }
+    .game-head { display:grid; grid-template-columns:auto 1fr auto; gap:10px; align-items:center; margin-bottom:10px; }
+    .back-button { width:42px; height:42px; border-radius:14px; border:1px solid var(--line); background:#fff; cursor:pointer; font-weight:950; }
+    .progress-wrap { min-width:0; }
+    .progress-label { display:flex; justify-content:space-between; gap:8px; font-size:11px; font-weight:850; margin-bottom:5px; }
+    .progress-track { height:10px; border-radius:999px; background:#e9eee9; overflow:hidden; }
+    .progress-bar { height:100%; width:33%; border-radius:inherit; background:linear-gradient(90deg,var(--teal),#83d1a4); transition:width .35s ease; }
+    .timer { padding:6px 9px; border-radius:11px; background:var(--cream); font-size:12px; font-weight:950; white-space:nowrap; }
+    .mission-title { text-align:center; margin:3px 0 10px; }
+    .mission-title .num { color:var(--teal-deep); font-size:11px; font-weight:950; letter-spacing:.08em; }
+    .mission-title h2 { margin:1px 0; font-size:22px; line-height:1.35; }
+    .mission-title p { margin:0; color:var(--muted); font-size:12px; }
+    .stage {
+      min-height:330px; position:relative; overflow:hidden; border-radius:20px;
+      border:2px solid rgba(255,255,255,.9); background:#e9f7f6;
+    }
+
+    /* Mission 1 */
+    .road-scene { min-height:330px; background:linear-gradient(#bce5f4 0 40%,#a7db9f 40% 51%,#59646a 51%); position:relative; overflow:hidden; }
+    .road-scene::after { content:""; position:absolute; width:12px; height:250px; left:50%; top:55%; transform:translateX(-50%); background:repeating-linear-gradient(to bottom,#fff 0 28px,transparent 28px 50px); opacity:.75; }
+    .crosswalk { position:absolute; left:0; right:0; top:57%; height:62px; background:repeating-linear-gradient(90deg,#f8f7e9 0 28px,transparent 28px 42px); transform:skewY(-2deg); }
+    .signal { position:absolute; z-index:4; right:18px; top:20px; width:68px; padding:9px 10px; background:#354044; border-radius:18px; box-shadow:0 7px 0 #222c2f; }
+    .lamp { width:35px; height:35px; margin:3px auto; border-radius:50%; background:#172124; border:3px solid #101719; opacity:.24; }
+    .lamp.red.on { background:var(--red); opacity:1; box-shadow:0 0 22px rgba(233,105,99,.8); }
+    .lamp.green.on { background:var(--green); opacity:1; box-shadow:0 0 22px rgba(99,189,115,.8); }
+    .signal-word { color:#fff; text-align:center; font-size:10px; font-weight:950; margin-top:5px; }
+    .road-cat { position:absolute; z-index:5; left:30px; bottom:48px; font-size:66px; transition:left .35s cubic-bezier(.2,.8,.2,1); filter:drop-shadow(0 8px 0 rgba(0,0,0,.14)); }
+    .road-cat.step-1 { left:34%; }
+    .road-cat.step-2 { left:58%; }
+    .road-cat.step-3 { left:76%; }
+    .tap-zone { position:absolute; z-index:8; left:14px; right:14px; bottom:14px; display:flex; justify-content:center; }
+    .go-button {
+      width:min(100%,330px); min-height:62px; border:0; border-radius:19px; cursor:pointer;
+      background:var(--green); color:#fff; font-size:20px; font-weight:950;
+      box-shadow:0 6px 0 #3a9250,0 12px 22px rgba(21,60,35,.24);
+    }
+    .go-button.wait { background:#738188; box-shadow:0 6px 0 #4b575c; }
+    .feedback-bubble { position:absolute; z-index:9; left:14px; top:15px; max-width:210px; padding:10px 12px; border-radius:16px 16px 16px 4px; background:#fff; font-size:13px; font-weight:900; box-shadow:0 8px 20px rgba(0,0,0,.12); }
+
+    /* Mission 2 + 3 */
+    .story-scene { padding:17px; background:linear-gradient(#d9eff7 0 47%,#f5e2bd 47%); }
+    .story-picture { min-height:125px; display:grid; place-items:center; position:relative; font-size:77px; }
+    .rain { position:absolute; inset:0; background:repeating-linear-gradient(110deg,transparent 0 21px,rgba(68,146,193,.35) 22px 25px,transparent 26px 43px); animation:rain .7s linear infinite; opacity:.78; }
+    @keyframes rain { to { background-position:-30px 70px; } }
+    .story-box { position:relative; z-index:2; background:rgba(255,255,255,.94); border-radius:18px; padding:14px; box-shadow:0 8px 22px rgba(76,71,52,.13); }
+    .story-box h3 { margin:0 0 9px; text-align:center; font-size:16px; }
+    .choice-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+    .choice {
+      min-height:70px; border:2px solid #e7ddc8; border-radius:15px; background:#fffdf7;
+      color:var(--ink); cursor:pointer; padding:8px; font-size:12px; font-weight:900;
+      transition:transform .08s, border-color .12s, background .12s;
+    }
+    .choice:active { transform:scale(.97); }
+    .choice.selected { border-color:var(--teal); background:#e8f7f2; }
+    .choice .emoji { display:block; font-size:25px; margin-bottom:2px; }
+    .choice.wide { grid-column:1 / -1; }
+    .next-small {
+      width:100%; min-height:49px; margin-top:10px; border:0; border-radius:14px;
+      background:var(--teal); color:#fff; font-weight:950; cursor:pointer; box-shadow:0 4px 0 var(--teal-deep);
+    }
+    .next-small:disabled { background:#b9c0bd; box-shadow:0 4px 0 #8c9691; }
+    .indoor { background:linear-gradient(#f6dfbd 0 70%,#c99163 70%); }
+    .sound-waves { position:absolute; font-size:34px; right:24px; top:22px; animation:pulse 1s ease-in-out infinite; }
+    @keyframes pulse { 50% { transform:scale(1.14); } }
+
+    .coach-overlay {
+      position:fixed; z-index:50; inset:0; display:grid; place-items:center;
+      padding:18px; background:rgba(32,47,47,.58); backdrop-filter:blur(4px);
+    }
+    .coach-card { width:min(100%,480px); padding:22px; text-align:center; }
+    .coach-icon { font-size:52px; }
+    .coach-card .label { color:var(--teal-deep); font-size:11px; font-weight:950; letter-spacing:.1em; }
+    .coach-card h2 { margin:4px 0 8px; font-size:22px; }
+    .coach-card p { margin:0 0 12px; color:var(--muted); font-size:13px; }
+    .praise-sample { padding:11px; margin:10px 0 16px; background:var(--cream); border-radius:14px; font-weight:950; }
+
+    .finish { padding:20px; text-align:center; overflow:hidden; position:relative; }
+    .confetti { position:absolute; inset:0; pointer-events:none; opacity:.62; background-image:radial-gradient(circle,var(--yellow) 0 4px,transparent 5px),radial-gradient(circle,var(--teal) 0 3px,transparent 4px),radial-gradient(circle,var(--orange) 0 3px,transparent 4px); background-size:62px 69px,77px 71px,91px 83px; animation:confetti 9s linear infinite; }
+    @keyframes confetti { to { background-position:0 690px,0 710px,0 830px; } }
+    .finish > *:not(.confetti) { position:relative; }
+    .finish-cat { font-size:82px; line-height:1; }
+    .finish h2 { margin:7px 0 5px; font-size:27px; }
+    .finish-lead { margin:0 auto 15px; color:var(--muted); font-size:13px; }
+    .badges { display:grid; grid-template-columns:repeat(3,1fr); gap:7px; margin:14px 0; }
+    .badge { padding:10px 5px; border-radius:15px; background:#fff8e9; border:1px solid var(--line); font-size:11px; font-weight:900; }
+    .badge span { display:block; font-size:25px; }
+    .reflection { margin:13px 0; padding:14px; border-radius:17px; background:#eef8f5; text-align:left; }
+    .reflection h3 { font-size:14px; margin:0 0 8px; }
+    .reflection label { display:flex; gap:8px; align-items:flex-start; padding:6px 0; font-size:12px; font-weight:750; cursor:pointer; }
+    .reflection input { width:18px; height:18px; accent-color:var(--teal); }
+    .button-row { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px; }
+    .secondary { min-height:51px; border:2px solid var(--teal); border-radius:15px; background:#fff; color:var(--teal-deep); font-weight:950; cursor:pointer; }
+
+    dialog { width:min(calc(100% - 24px),520px); border:0; border-radius:24px; padding:0; box-shadow:0 24px 70px rgba(19,37,36,.3); }
+    dialog::backdrop { background:rgba(31,48,47,.58); backdrop-filter:blur(3px); }
+    .report { padding:20px; }
+    .report h2 { margin:0 0 4px; }
+    .report .date { color:var(--muted); font-size:12px; }
+    .report-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:15px 0; }
+    .report-item { padding:11px; background:#fff8e9; border-radius:14px; text-align:left; font-size:12px; }
+    .report-note { text-align:left; padding:12px; border-left:4px solid var(--teal); background:#eef8f5; font-size:12px; }
+
+    .site-note { margin:16px 3px 0; color:var(--muted); font-size:11px; text-align:center; }
+    .site-note a { color:var(--teal-deep); font-weight:800; }
+    .live { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); }
+
+    @media (max-width:390px) {
+      .page-shell { padding-inline:9px; }
+      .hero-copy { padding-inline:14px; }
+      .role-row { grid-template-columns:1fr; }
+      .hero-scene { height:190px; }
+      .cat-hero { font-size:73px; }
+      .game-card { padding:9px; }
+      .game-head { gap:6px; }
+      .timer { font-size:11px; padding-inline:7px; }
+      .stage, .road-scene { min-height:320px; }
+      .button-row { grid-template-columns:1fr; }
+    }
+    @media (prefers-reduced-motion:reduce) {
+      *, *::before, *::after { animation-duration:.01ms !important; animation-iteration-count:1 !important; scroll-behavior:auto !important; transition:none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark" aria-hidden="true">🐾</span><span>おやこミッション</span></div>
+      <div class="top-actions">
+        <div class="day-count" id="dayCount">きょう <strong>0/3</strong>回</div>
+        <button class="mini-button" id="soundButton" type="button" aria-pressed="true">🔊 音あり</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="screen" id="startScreen" aria-labelledby="mainTitle">
+        <div class="hero card">
+          <div class="hero-scene" aria-hidden="true">
+            <div class="sun"></div><div class="cloud"></div>
+            <div class="tree one">🌳</div><div class="tree two">🌲</div><div class="path"></div>
+            <div class="cat-hero">🐱</div><div class="cat-bag">🎒</div>
+          </div>
+          <div class="hero-copy">
+            <span class="eyebrow">⏱ 親子で約5分</span>
+            <h1 id="mainTitle">ねこといっしょ！<br><span class="accent">できたミッション</span></h1>
+            <p class="lead">「待つ・切り替える・伝える」を、親子でいっしょに楽しく練習しよう。</p>
+            <div class="mission-chips" aria-label="今日の3つのミッション">
+              <span class="mission-chip">🚦 まって進む</span>
+              <span class="mission-chip">☔ 予定を切り替える</span>
+              <span class="mission-chip">💬 お願いを伝える</span>
+            </div>
+            <div class="role-row">
+              <div class="role"><b>🎮 お子さん</b><span>画面を操作して、ねこのミッションに挑戦</span></div>
+              <div class="role"><b>👏 保護者の方</b><span>「できた瞬間」を見つけて、具体的にほめる</span></div>
+            </div>
+            <button class="primary" id="startButton" type="button">親子でスタート</button>
+            <p class="microcopy" id="limitNote">1日3回までを目安に、無理なく遊びます。</p>
+          </div>
+        </div>
+
+        <details class="parent-info card">
+          <summary>保護者の方へ：このデモの考え方</summary>
+          <div class="parent-info-body">
+            <p><strong>注意や衝動のコントロール、予定変更が苦手なお子さん</strong>を想定した試作です。成功した行動に気づき、短く具体的にほめる親子練習をゲームにしました。</p>
+            <p>診断・治療・発達評価を行うものではありません。心配なことがある場合は、医療・福祉・教育の専門家へご相談ください。記録はこの端末のブラウザ内だけに保存されます。</p>
+          </div>
+        </details>
+      </section>
+
+      <section class="screen card game-card" id="gameScreen" hidden aria-labelledby="missionHeading">
+        <div class="game-head">
+          <button class="back-button" id="quitButton" type="button" aria-label="最初の画面に戻る">←</button>
+          <div class="progress-wrap">
+            <div class="progress-label"><span id="progressText">ミッション 1/3</span><span>めやす5分</span></div>
+            <div class="progress-track" aria-hidden="true"><div class="progress-bar" id="progressBar"></div></div>
+          </div>
+          <div class="timer" id="timer">00:00</div>
+        </div>
+        <div class="mission-title">
+          <div class="num" id="missionNumber">MISSION 1</div>
+          <h2 id="missionHeading">まって、すすめ！</h2>
+          <p id="missionSub">「すすめ」になったら、ボタンをタップ</p>
+        </div>
+        <div class="stage" id="stage"></div>
+      </section>
+
+      <section class="screen card finish" id="finishScreen" hidden aria-labelledby="finishTitle">
+        <div class="confetti" aria-hidden="true"></div>
+        <div class="finish-cat" aria-hidden="true">😺🏅</div>
+        <h2 id="finishTitle">3つのミッション、できた！</h2>
+        <p class="finish-lead">点数ではなく、今日できた行動をいっしょに見つけます。</p>
+        <div class="badges">
+          <div class="badge"><span>🚦</span>合図を待てた</div>
+          <div class="badge"><span>☔</span>次の案を選べた</div>
+          <div class="badge"><span>💬</span>お願いを伝えた</div>
+        </div>
+        <div class="reflection">
+          <h3>🏠 今日、生活でやってみることを1つ選ぼう</h3>
+          <label><input type="radio" name="homeMission" value="合図を見てから動く" checked> 合図を見てから動く</label>
+          <label><input type="radio" name="homeMission" value="予定が変わったら次の案を選ぶ"> 予定が変わったら次の案を選ぶ</label>
+          <label><input type="radio" name="homeMission" value="困ったときに短くお願いを伝える"> 困ったときに短くお願いを伝える</label>
+        </div>
+        <button class="primary teal" id="completeButton" type="button">今日のできたを記録</button>
+        <div class="button-row" id="finishActions" hidden>
+          <button class="secondary" id="reportButton" type="button">📄 親子レポート</button>
+          <button class="secondary" id="againButton" type="button">↻ 最初に戻る</button>
+        </div>
+      </section>
+    </main>
+
+    <p class="site-note">本ページは親子練習ツールの試作版です。診断・治療を目的としません。<br><a href="https://yamayu-sangyoui-oyama.localinfo.jp/">山岸産業医事務所のホームページへ</a></p>
+    <div class="live" id="liveRegion" aria-live="polite"></div>
+  </div>
+
+  <div class="coach-overlay" id="coachOverlay" hidden>
+    <div class="coach-card card" role="dialog" aria-modal="true" aria-labelledby="coachTitle">
+      <div class="coach-icon" id="coachIcon" aria-hidden="true">👏</div>
+      <div class="label">ここは保護者の方の番</div>
+      <h2 id="coachTitle">できた瞬間をほめよう</h2>
+      <p id="coachText">結果ではなく、今できた行動を短く具体的に伝えます。</p>
+      <div class="praise-sample" id="praiseSample">「合図を見るまで待てたね！」</div>
+      <button class="primary teal" id="coachButton" type="button">伝えたよ！</button>
+    </div>
+  </div>
+
+  <dialog id="reportDialog">
+    <div class="report">
+      <h2>🐾 今日の親子レポート</h2>
+      <div class="date" id="reportDate"></div>
+      <div class="report-grid">
+        <div class="report-item"><strong>練習</strong><br>待つ・切り替える・伝える</div>
+        <div class="report-item"><strong>時間</strong><br><span id="reportTime">約0分</span></div>
+        <div class="report-item"><strong>親子回数</strong><br><span id="reportCount">今日1回目</span></div>
+        <div class="report-item"><strong>次の一歩</strong><br><span id="reportHome">合図を見てから動く</span></div>
+      </div>
+      <p class="report-note"><strong>保護者の観察メモ例：</strong><br>「できた／できない」だけでなく、どんな合図や声かけがあると取り組みやすかったかを、専門家との相談時に共有できます。</p>
+      <button class="primary teal" id="closeReportButton" type="button">閉じる</button>
+    </div>
+  </dialog>
+
+  <script>
+  (() => {
+    'use strict';
+
+    const STORAGE_KEY = 'nekoOyakoMissionV1';
+    const demoMode = new URLSearchParams(location.search).get('demo') === '1';
+    const startScreen = document.getElementById('startScreen');
+    const gameScreen = document.getElementById('gameScreen');
+    const finishScreen = document.getElementById('finishScreen');
+    const stage = document.getElementById('stage');
+    const coachOverlay = document.getElementById('coachOverlay');
+    const liveRegion = document.getElementById('liveRegion');
+    const startButton = document.getElementById('startButton');
+    const soundButton = document.getElementById('soundButton');
+    const dayCount = document.getElementById('dayCount');
+    const limitNote = document.getElementById('limitNote');
+    const progressBar = document.getElementById('progressBar');
+    const progressText = document.getElementById('progressText');
+    const missionNumber = document.getElementById('missionNumber');
+    const missionHeading = document.getElementById('missionHeading');
+    const missionSub = document.getElementById('missionSub');
+    const timerEl = document.getElementById('timer');
+
+    let soundOn = true;
+    let audioContext = null;
+    let mission = 1;
+    let startedAt = 0;
+    let timerId = 0;
+    let signalTimer = 0;
+    let signalGreen = false;
+    let stopSuccesses = 0;
+    let sessionSaved = false;
+    let selectedFeeling = '';
+    let selectedPlan = '';
+    let selectedPhrase = '';
+    let coachNext = null;
+
+    function localDateKey() {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    }
+
+    function loadData() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        const data = raw ? JSON.parse(raw) : {};
+        if (!data || typeof data !== 'object') return { date:localDateKey(), count:0, history:[] };
+        if (data.date !== localDateKey()) return { date:localDateKey(), count:0, history:Array.isArray(data.history) ? data.history.slice(-6) : [] };
+        return { date:data.date, count:Number(data.count)||0, history:Array.isArray(data.history) ? data.history : [] };
+      } catch (_) {
+        localStorage.removeItem(STORAGE_KEY);
+        return { date:localDateKey(), count:0, history:[] };
+      }
+    }
+
+    function saveData(data) {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch (_) { /* private mode: continue without storage */ }
+    }
+
+    function updateDayCount() {
+      const data = loadData();
+      if (demoMode) {
+        dayCount.innerHTML = '先生向け <strong>デモ</strong>';
+        limitNote.textContent = 'デモモードでは回数を記録しません。';
+        startButton.disabled = false;
+        return;
+      }
+      dayCount.innerHTML = `きょう <strong>${Math.min(data.count,3)}/3</strong>回`;
+      if (data.count >= 3) {
+        startButton.disabled = true;
+        startButton.textContent = '今日はここまで。また明日！';
+        limitNote.textContent = '遊びすぎを防ぐため、今日はおしまいです。';
+      } else {
+        startButton.disabled = false;
+        startButton.textContent = '親子でスタート';
+        limitNote.textContent = '1日3回までを目安に、無理なく遊びます。';
+      }
+    }
+
+    function announce(text) { liveRegion.textContent = ''; setTimeout(() => { liveRegion.textContent = text; }, 20); }
+
+    function tone(frequency=520, duration=.08, type='sine') {
+      if (!soundOn) return;
+      try {
+        audioContext = audioContext || new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+        osc.type = type; osc.frequency.value = frequency;
+        gain.gain.setValueAtTime(.05, audioContext.currentTime);
+        gain.gain.exponentialRampToValueAtTime(.001, audioContext.currentTime + duration);
+        osc.connect(gain); gain.connect(audioContext.destination);
+        osc.start(); osc.stop(audioContext.currentTime + duration);
+      } catch (_) { /* sound is optional */ }
+    }
+
+    function happySound() { tone(523,.08); setTimeout(()=>tone(659,.08),90); setTimeout(()=>tone(784,.13),180); }
+    function gentleSound() { tone(330,.09,'triangle'); setTimeout(()=>tone(392,.12,'triangle'),100); }
+
+    soundButton.addEventListener('click', () => {
+      soundOn = !soundOn;
+      soundButton.setAttribute('aria-pressed', String(soundOn));
+      soundButton.textContent = soundOn ? '🔊 音あり' : '🔇 音なし';
+      if (soundOn) tone(660,.08);
+    });
+
+    function showOnly(target) {
+      startScreen.hidden = target !== startScreen;
+      gameScreen.hidden = target !== gameScreen;
+      finishScreen.hidden = target !== finishScreen;
+      target.classList.remove('screen'); void target.offsetWidth; target.classList.add('screen');
+      window.scrollTo({ top:0, behavior:'smooth' });
+    }
+
+    function updateTimer() {
+      const seconds = Math.max(0, Math.floor((Date.now() - startedAt) / 1000));
+      timerEl.textContent = `${String(Math.floor(seconds/60)).padStart(2,'0')}:${String(seconds%60).padStart(2,'0')}`;
+    }
+
+    function startGame() {
+      if (!demoMode && loadData().count >= 3) return;
+      sessionSaved = false;
+      stopSuccesses = 0;
+      selectedFeeling = selectedPlan = selectedPhrase = '';
+      startedAt = Date.now();
+      clearInterval(timerId);
+      timerId = setInterval(updateTimer,1000);
+      updateTimer();
+      showOnly(gameScreen);
+      renderMission(1);
+      gentleSound();
+    }
+
+    function renderMission(number) {
+      mission = number;
+      clearTimeout(signalTimer);
+      progressBar.style.width = `${number * 100 / 3}%`;
+      progressText.textContent = `ミッション ${number}/3`;
+      missionNumber.textContent = `MISSION ${number}`;
+      if (number === 1) renderStopMission();
+      if (number === 2) renderSwitchMission();
+      if (number === 3) renderTellMission();
+    }
+
+    function renderStopMission() {
+      missionHeading.textContent = 'まって、すすめ！';
+      missionSub.textContent = '「すすめ」になったら、ボタンをタップ';
+      stage.innerHTML = `
+        <div class="road-scene">
+          <div class="feedback-bubble" id="stopFeedback">赤は待つ。緑になったら進もう！</div>
+          <div class="signal" aria-label="信号">
+            <div class="lamp red on" id="redLamp"></div><div class="lamp green" id="greenLamp"></div>
+            <div class="signal-word" id="signalWord">まって</div>
+          </div>
+          <div class="crosswalk"></div><div class="road-cat" id="roadCat">🐱</div>
+          <div class="tap-zone"><button class="go-button wait" id="goButton" type="button">✋ まって</button></div>
+        </div>`;
+      document.getElementById('goButton').addEventListener('click', handleGo);
+      scheduleGreen();
+      announce('ミッション1。赤のあいだは待ち、緑になったら進むボタンを押します。');
+    }
+
+    function scheduleGreen() {
+      signalGreen = false;
+      const button = document.getElementById('goButton');
+      if (!button) return;
+      button.classList.add('wait'); button.textContent = '✋ まって';
+      document.getElementById('redLamp').classList.add('on');
+      document.getElementById('greenLamp').classList.remove('on');
+      document.getElementById('signalWord').textContent = 'まって';
+      signalTimer = setTimeout(() => {
+        signalGreen = true;
+        const btn = document.getElementById('goButton'); if (!btn) return;
+        btn.classList.remove('wait'); btn.textContent = '🐾 すすめ！';
+        document.getElementById('redLamp').classList.remove('on');
+        document.getElementById('greenLamp').classList.add('on');
+        document.getElementById('signalWord').textContent = 'すすめ';
+        tone(700,.07); announce('緑になりました。進めます。');
+      }, 1200 + Math.random()*1300);
+    }
+
+    function handleGo() {
+      const feedback = document.getElementById('stopFeedback');
+      if (!signalGreen) {
+        clearTimeout(signalTimer);
+        feedback.textContent = 'だいじょうぶ。合図を見て、もう一度！';
+        gentleSound();
+        scheduleGreen();
+        return;
+      }
+      signalGreen = false; clearTimeout(signalTimer); stopSuccesses += 1;
+      const cat = document.getElementById('roadCat');
+      cat.className = `road-cat step-${stopSuccesses}`;
+      feedback.textContent = stopSuccesses < 3 ? '待てたね！ 次も合図を見よう。' : '3回待てた！ ミッションクリア！';
+      happySound();
+      if (navigator.vibrate) navigator.vibrate(35);
+      if (stopSuccesses >= 3) {
+        setTimeout(() => showCoach({ icon:'👏', title:'待てた瞬間をほめよう', text:'結果よりも、今見えた行動を短く伝えます。', sample:'「合図を見るまで待てたね！」', next:()=>renderMission(2) }),700);
+      } else {
+        setTimeout(scheduleGreen,650);
+      }
+    }
+
+    function renderSwitchMission() {
+      missionHeading.textContent = 'よていチェンジ！';
+      missionSub.textContent = '気持ちを選んで、次の案をいっしょに決めよう';
+      stage.innerHTML = `
+        <div class="story-scene">
+          <div class="story-picture"><div class="rain"></div><span style="position:relative">🐱☔</span></div>
+          <div class="story-box">
+            <h3 id="switchPrompt">公園の予定だったけれど、雨がふってきた！<br>ねこはどんな気持ち？</h3>
+            <div class="choice-grid" id="switchChoices">
+              <button class="choice" data-feeling="がっかり" type="button"><span class="emoji">😞</span>がっかり</button>
+              <button class="choice" data-feeling="おこった" type="button"><span class="emoji">😠</span>おこった</button>
+              <button class="choice" data-feeling="こまった" type="button"><span class="emoji">😟</span>こまった</button>
+              <button class="choice" data-feeling="だいじょうぶ" type="button"><span class="emoji">🙂</span>だいじょうぶ</button>
+            </div>
+            <button class="next-small" id="switchNext" type="button" disabled>次へ</button>
+          </div>
+        </div>`;
+      bindSingleChoice('[data-feeling]', value => { selectedFeeling=value; document.getElementById('switchNext').disabled=false; });
+      document.getElementById('switchNext').addEventListener('click', renderPlanChoices);
+      announce('ミッション2。予定が変わったときの気持ちを選びます。どの気持ちでも大丈夫です。');
+    }
+
+    function bindSingleChoice(selector, onPick) {
+      stage.querySelectorAll(selector).forEach(button => button.addEventListener('click', () => {
+        stage.querySelectorAll(selector).forEach(other => other.classList.remove('selected'));
+        button.classList.add('selected'); onPick(button.dataset.feeling || button.dataset.plan || button.dataset.phrase || ''); tone(520,.06);
+      }));
+    }
+
+    function renderPlanChoices() {
+      const prompt = document.getElementById('switchPrompt');
+      prompt.innerHTML = `「${selectedFeeling}」なんだね。<br>かわりに何をする？`;
+      const choices = document.getElementById('switchChoices');
+      choices.innerHTML = `
+        <button class="choice" data-plan="家で工作" type="button"><span class="emoji">✂️</span>家で工作</button>
+        <button class="choice" data-plan="図書館" type="button"><span class="emoji">📚</span>図書館</button>
+        <button class="choice" data-plan="おうち運動" type="button"><span class="emoji">🤸</span>おうち運動</button>
+        <button class="choice" data-plan="雨具で散歩" type="button"><span class="emoji">🥾</span>雨具で散歩</button>`;
+      const next = document.getElementById('switchNext'); next.disabled=true; next.textContent='この案にする';
+      bindSingleChoice('[data-plan]', value => { selectedPlan=value; next.disabled=false; });
+      next.onclick = () => {
+        happySound();
+        showCoach({ icon:'🌱', title:'切り替えた過程をほめよう', text:'気持ちを消そうとせず、次の案を選べたことに注目します。', sample:`「${selectedFeeling}って教えて、${selectedPlan}を選べたね！」`, next:()=>renderMission(3) });
+      };
+      announce('気持ちを選べました。次に、代わりの予定を親子で一つ選びます。');
+    }
+
+    function renderTellMission() {
+      missionHeading.textContent = 'おねがいを伝えよう！';
+      missionSub.textContent = '困ったときの短いひとことを選ぼう';
+      stage.innerHTML = `
+        <div class="story-scene indoor">
+          <div class="story-picture"><span>🙀🎵</span><div class="sound-waves">)))</div></div>
+          <div class="story-box">
+            <h3>音が大きくて、ねこが困っています。<br>どう伝える？</h3>
+            <div class="choice-grid">
+              <button class="choice wide" data-phrase="少し静かな場所へ行きたいです" type="button">💬 少し静かな場所へ行きたいです</button>
+              <button class="choice wide" data-phrase="音を少し小さくしてください" type="button">💬 音を少し小さくしてください</button>
+              <button class="choice wide" data-phrase="ちょっと休みたいです" type="button">💬 ちょっと休みたいです</button>
+            </div>
+            <button class="next-small" id="tellNext" type="button" disabled>この言葉を伝える</button>
+          </div>
+        </div>`;
+      bindSingleChoice('[data-phrase]', value => { selectedPhrase=value; document.getElementById('tellNext').disabled=false; });
+      document.getElementById('tellNext').addEventListener('click', () => {
+        happySound();
+        showCoach({ icon:'💬', title:'伝えられたことをほめよう', text:'言い方の完璧さより、困りごとを言葉にできたことを認めます。', sample:`「『${selectedPhrase}』って伝えられたね！」`, next:showFinish });
+      });
+      announce('ミッション3。音が大きくて困ったときのお願いを選びます。');
+    }
+
+    function showCoach({icon,title,text,sample,next}) {
+      coachNext = next;
+      document.getElementById('coachIcon').textContent=icon;
+      document.getElementById('coachTitle').textContent=title;
+      document.getElementById('coachText').textContent=text;
+      document.getElementById('praiseSample').textContent=sample;
+      coachOverlay.hidden=false;
+      setTimeout(()=>document.getElementById('coachButton').focus(),30);
+      announce('ここは保護者の方の番です。画面の言葉をお子さんに伝えてください。');
+    }
+
+    document.getElementById('coachButton').addEventListener('click', () => {
+      coachOverlay.hidden=true; tone(660,.07); const next=coachNext; coachNext=null; if (next) next();
+    });
+
+    function showFinish() {
+      clearInterval(timerId); clearTimeout(signalTimer);
+      showOnly(finishScreen); happySound();
+      announce('3つのミッションを達成しました。今日生活でやってみることを一つ選びます。');
+    }
+
+    function selectedHomeMission() {
+      const selected=document.querySelector('input[name="homeMission"]:checked');
+      return selected ? selected.value : '合図を見てから動く';
+    }
+
+    function completeSession() {
+      if (sessionSaved) return;
+      const elapsed=Math.max(1,Math.round((Date.now()-startedAt)/1000));
+      let count=1;
+      if (!demoMode) {
+        const data=loadData();
+        count=Math.min(3,data.count+1);
+        data.count=count;
+        data.history.push({ date:new Date().toISOString(), seconds:elapsed, home:selectedHomeMission() });
+        data.history=data.history.slice(-7); saveData(data);
+      }
+      sessionSaved=true;
+      document.getElementById('completeButton').textContent='✓ 記録しました';
+      document.getElementById('completeButton').disabled=true;
+      document.getElementById('finishActions').hidden=false;
+      fillReport(elapsed,count);
+      updateDayCount(); happySound(); announce('今日のできたを、この端末に記録しました。');
+    }
+
+    function fillReport(elapsed,count) {
+      const now=new Date();
+      document.getElementById('reportDate').textContent=new Intl.DateTimeFormat('ja-JP',{dateStyle:'long'}).format(now);
+      const minutes=Math.max(1,Math.ceil(elapsed/60));
+      document.getElementById('reportTime').textContent=`約${minutes}分`;
+      document.getElementById('reportCount').textContent=demoMode ? 'デモモード' : `今日${count}回目`;
+      document.getElementById('reportHome').textContent=selectedHomeMission();
+    }
+
+    function resetToStart() {
+      clearInterval(timerId); clearTimeout(signalTimer); coachOverlay.hidden=true;
+      document.getElementById('completeButton').textContent='今日のできたを記録';
+      document.getElementById('completeButton').disabled=false;
+      document.getElementById('finishActions').hidden=true;
+      showOnly(startScreen); updateDayCount(); startButton.focus();
+    }
+
+    startButton.addEventListener('click',startGame);
+    document.getElementById('quitButton').addEventListener('click',resetToStart);
+    document.getElementById('completeButton').addEventListener('click',completeSession);
+    document.getElementById('againButton').addEventListener('click',resetToStart);
+    document.getElementById('reportButton').addEventListener('click',()=>document.getElementById('reportDialog').showModal());
+    document.getElementById('closeReportButton').addEventListener('click',()=>document.getElementById('reportDialog').close());
+
+    updateDayCount();
+  })();
+  </script>
+</body>
+</html>

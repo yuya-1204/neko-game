@@ -107,6 +107,7 @@
     cursor: pointer;
   }
   .icon-button:hover { background: #435875; }
+  .sound-toggle { min-width: 70px; font-size: 13px; font-weight: 800; }
 
   .progress-wrap {
     margin: 0 2px 14px;
@@ -256,14 +257,34 @@
   .instruction-card li.done { color: var(--ok); text-decoration: line-through; text-decoration-thickness: 2px; }
   .instruction-card li.current { padding-left: 4px; color: var(--teal-dark); background: var(--teal-soft); border-radius: 6px; font-weight: 800; }
 
+  .brief-card { margin: 16px 0; padding: 18px; background: #fffdf7; border: 2px solid #e8d2a9; border-radius: 16px; }
+  .brief-card h3 { margin-bottom: 5px; color: var(--navy); }
+  .brief-card > p { margin: 0 0 14px; color: var(--muted); font-size: 14px; }
+  .brief-list { display: grid; gap: 10px; }
+  .brief-row { display: grid; grid-template-columns: minmax(105px, .8fr) minmax(0, 1.5fr); gap: 12px; align-items: center; padding: 12px 14px; background: #fff; border: 1px solid #eadcc4; border-radius: 12px; }
+  .brief-label { color: var(--muted); font-size: 13px; font-weight: 800; }
+  .brief-value { color: var(--navy); font-size: 17px; font-weight: 900; overflow-wrap: anywhere; }
+  .brief-progress { margin: 8px 0 12px; color: var(--teal-dark); font-size: 13px; font-weight: 800; }
+  .brief-single { min-height: 96px; display: grid; align-content: center; }
+  .brief-check-list { display: grid; gap: 10px; margin-top: 12px; }
+  .brief-check { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; background: #fff; border: 1px solid #c8ddd9; border-radius: 12px; cursor: pointer; }
+  .brief-check input { width: 20px; height: 20px; margin-top: 2px; accent-color: var(--teal); }
+  .brief-check span { min-width: 0; }
+  .brief-check strong { display: block; color: var(--navy); }
+  .support-prep { margin: 15px 0; padding: 15px; background: var(--teal-soft); border: 1px solid #a7d7d0; border-radius: 14px; }
+  .support-prep strong { color: var(--teal-dark); }
+  .choice-reminder { margin: 12px 0; padding: 10px 12px; color: #5d513f; background: #fff8e9; border-left: 4px solid #d8a24a; border-radius: 8px; font-size: 14px; }
+
   .choice-grid { margin-top: 15px; }
   .choice-button { min-height: 54px; }
+  .job-card.selected, .choice-button.selected { color: var(--navy); background: #eaf2f6; border-color: #7ea4b8; box-shadow: 0 0 0 3px rgba(89,132,154,.13); }
   .choice-button.correct { color: var(--ok); background: var(--ok-soft); border-color: #79bf9b; }
   .choice-button.incorrect { color: var(--bad); background: var(--bad-soft); border-color: #d99189; }
   .choice-button:disabled { cursor: default; }
 
   .feedback { min-height: 0; margin-top: 14px; padding: 0; border-radius: 12px; }
   .feedback.show { min-height: 48px; padding: 12px 14px; }
+  .feedback.neutral { color: var(--navy); background: #edf3f7; }
   .feedback.good { color: var(--ok); background: var(--ok-soft); }
   .feedback.try { color: var(--warn); background: var(--warn-soft); }
 
@@ -273,6 +294,8 @@
   .support-aid { display: none; color: #31585a; background: var(--teal-soft); border-color: #a7d7d0; }
   .support-aid.show { display: block; }
   .support-aid strong { display: block; color: var(--teal-dark); }
+  .inline-support-aid { display: none; margin-bottom: 14px; padding: 14px; color: #31585a; background: var(--teal-soft); border: 1px solid #a7d7d0; border-radius: 14px; }
+  .inline-support-aid strong { display: block; color: var(--teal-dark); }
   .sticky-note { margin-top: 8px; padding: 12px; color: #59471b; background: #fff2a9; border: 1px solid #ddca6b; border-radius: 5px 12px 12px 5px; transform: rotate(-1deg); box-shadow: 0 5px 10px rgba(89,71,27,.1); }
 
   .support-grid { grid-template-columns: repeat(3, minmax(0,1fr)); margin-top: 20px; }
@@ -315,6 +338,8 @@
     .hero-art { min-height: 210px; }
     .side-panel { position: static; grid-template-columns: repeat(2, minmax(0,1fr)); }
     .support-aid { grid-column: 1 / -1; }
+    #supportAid { display: none !important; }
+    .inline-support-aid { display: block; }
     .support-grid, .feature-list { grid-template-columns: 1fr; }
     .support-card { min-height: auto; }
     .check-grid { grid-template-columns: 1fr; }
@@ -334,6 +359,7 @@
     .round-banner span { text-align: left; }
     .side-panel { grid-template-columns: 1fr; }
     .compare-grid { grid-template-columns: 1fr; }
+    .brief-row { grid-template-columns: 1fr; gap: 4px; }
     .button-row .button { width: 100%; }
   }
 
@@ -365,7 +391,7 @@
     <div class="header-actions">
       <button class="icon-button" id="textSizeButton" type="button" aria-label="文字を大きくする" title="文字サイズ">文字</button>
       <button class="icon-button" id="helpButton" type="button" aria-label="使い方を開く" title="使い方">？</button>
-      <button class="icon-button" id="soundButton" type="button" aria-pressed="false" aria-label="音をオンにする" title="音のオン・オフ">🔇</button>
+      <button class="icon-button sound-toggle" id="soundButton" type="button" aria-pressed="false" aria-label="音をオンにする" title="音はOFFです。押すと確認音を再生します">音 OFF</button>
     </div>
   </header>
 
@@ -411,7 +437,7 @@
     <section class="screen" id="prepScreen" aria-labelledby="prepTitle">
       <p class="eyebrow">準備</p>
       <h2 id="prepTitle">始める前の確認</h2>
-      <p>正解数を競うゲームではありません。急がず、ご自身のペースで進めてください。</p>
+      <p>点数を競うゲームではありません。依頼メモを確認してから、急がずご自身のペースで進めてください。</p>
       <div class="check-grid">
         <div class="check-card"><strong>前半</strong>まず、工夫を使わずに短い仕事を体験します。</div>
         <div class="check-card"><strong>後半</strong>選んだ「工夫カード」を使って、同程度の別の仕事を体験します。</div>
@@ -440,7 +466,7 @@
         </div>
         <aside class="side-panel" aria-label="仕事の補助情報">
           <div class="office-clock"><span>オフィス時刻</span><strong id="officeClock">09:40</strong><small>時間制限はありません</small></div>
-          <div class="support-aid" id="supportAid"></div>
+          <div class="support-aid" id="supportAid" role="status" aria-live="polite"></div>
           <div class="privacy-mini">🔒 入力内容やプレイ結果は、外部へ自動送信されません。</div>
         </aside>
       </div>
@@ -498,7 +524,7 @@
     </section>
   </main>
 
-  <p class="footer-note">ネコオフィス：わりこみから戻ろう（試作版 v0.1）｜山岸産業医事務所</p>
+  <p class="footer-note">ネコオフィス：わりこみから戻ろう（試作版 v0.2）｜山岸産業医事務所</p>
 </div>
 
 <div class="dialog-backdrop" id="helpDialog" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
@@ -506,9 +532,10 @@
     <h2 id="helpTitle">使い方</h2>
     <ol>
       <li>前半で、工夫を使わずに短い仕事場面を体験します。</li>
+      <li>仕事の前に「依頼メモ」を確認します。回答を選ぶ画面ではメモを閉じます。</li>
       <li>割り込みが入ったら、内容を確認して対応します。</li>
       <li>割り込み後、どこから作業へ戻るかを選びます。</li>
-      <li>後半では「工夫カード」を1つ使って、別の同程度の場面を体験します。</li>
+      <li>後半では「工夫カード」を1つ選び、依頼内容の確認や再開前の操作として実際に使います。</li>
       <li>最後に、負担感と取り組み方を振り返ります。</li>
     </ol>
     <p>途中で中断しても問題ありません。キーボードのTab・Enter・Spaceでも操作できます。</p>
@@ -530,7 +557,8 @@
 <script>
 'use strict';
 
-const STORAGE_KEY = 'nekoOfficeRecoveryV1';
+const STORAGE_KEY = 'nekoOfficeRecoveryV2';
+const LEGACY_STORAGE_KEY = 'nekoOfficeRecoveryV1';
 
 const SUPPORTS = {
   marker: {
@@ -551,8 +579,8 @@ const SUPPORTS = {
     icon: '☑️',
     name: '再開前チェック',
     short: '終えた所と次の所を確認する',
-    description: '割り込みから戻るとき、完了済みと次の手順を短く確認します。',
-    phrase: '再開前に、終えた所と次にする所を確認する時間があると戻りやすそうです。'
+    description: '依頼内容を確認済みにし、割り込みの前後に完了済みと次の手順を短く確認します。',
+    phrase: '依頼内容を一つずつ確認し、再開前に終えた所と次にする所を確認できると戻りやすそうです。'
   }
 };
 
@@ -566,11 +594,10 @@ const SCENARIO_PAIRS = [
         { title: '議事録の書式を整える', deadline: '今日 16:00', detail: '内容確認は完了済み', correct: false }
       ],
       taskTitle: '会議資料を共有する',
-      steps: ['表紙の日付を確認する', '添付ファイル名を確認する', '送付先を確認する'],
-      questions: [
-        { prompt: '表紙に入れる日付はどれですか？', choices: ['7月21日', '7月22日', '7月23日'], correct: 1 },
-        { prompt: '指定されたファイル名はどれですか？', choices: ['定例会議_確定版.pdf', '定例会議_下書き.pdf', '会議メモ.pdf'], correct: 0 },
-        { prompt: '資料の送付先はどこですか？', choices: ['参加者全員', '直属の上司だけ', '総務部だけ'], correct: 0 }
+      taskItems: [
+        { step: '表紙の日付を確認する', memoLabel: '表紙の日付', prompt: '表紙に入れる日付はどれですか？', choices: ['7月21日', '7月22日', '7月23日'], correct: 1 },
+        { step: '添付ファイル名を確認する', memoLabel: '添付ファイル名', prompt: '指定されたファイル名はどれですか？', choices: ['定例会議_確定版.pdf', '定例会議_下書き.pdf', '会議メモ.pdf'], correct: 0 },
+        { step: '送付先を確認する', memoLabel: '資料の送付先', prompt: '資料の送付先はどこですか？', choices: ['参加者全員', '直属の上司だけ', '総務部だけ'], correct: 0 }
       ],
       interrupt: {
         title: '総務からチャットが届きました',
@@ -587,11 +614,10 @@ const SCENARIO_PAIRS = [
         { title: 'アンケート結果を整理', deadline: '今日 17:00', detail: '集計データは作成済み', correct: false }
       ],
       taskTitle: '面談予定を登録する',
-      steps: ['開始時刻を確認する', '会議室を確認する', '参加者へ共有する'],
-      questions: [
-        { prompt: '面談の開始時刻はどれですか？', choices: ['14:00', '14:30', '15:00'], correct: 1 },
-        { prompt: '使用する会議室はどこですか？', choices: ['A会議室', 'B会議室', 'オンラインのみ'], correct: 1 },
-        { prompt: '予定を共有する相手は誰ですか？', choices: ['参加者全員', '受付だけ', '自分だけ'], correct: 0 }
+      taskItems: [
+        { step: '開始時刻を確認する', memoLabel: '面談の開始時刻', prompt: '面談の開始時刻はどれですか？', choices: ['14:00', '14:30', '15:00'], correct: 1 },
+        { step: '会議室を確認する', memoLabel: '使用する会議室', prompt: '使用する会議室はどこですか？', choices: ['A会議室', 'B会議室', 'オンラインのみ'], correct: 1 },
+        { step: '共有先を確認する', memoLabel: '予定の共有先', prompt: '予定を共有する相手は誰ですか？', choices: ['参加者全員', '受付だけ', '自分だけ'], correct: 0 }
       ],
       interrupt: {
         title: '電話が入りました',
@@ -610,11 +636,10 @@ const SCENARIO_PAIRS = [
         { title: '研修資料を印刷', deadline: '今日 15:00', detail: '午後の研修で使用', correct: false }
       ],
       taskTitle: '見積書を提出する',
-      steps: ['金額を照合する', '宛名を確認する', 'PDFで保存する'],
-      questions: [
-        { prompt: '今回の合計金額はどれですか？', choices: ['88,000円', '98,000円', '108,000円'], correct: 1 },
-        { prompt: '見積書の宛名はどれですか？', choices: ['株式会社みどり 御中', 'みどり様', '営業部様'], correct: 0 },
-        { prompt: '提出形式はどれですか？', choices: ['PDF', '写真', 'テキストのみ'], correct: 0 }
+      taskItems: [
+        { step: '金額を照合する', memoLabel: '合計金額', prompt: '今回の合計金額はどれですか？', choices: ['88,000円', '98,000円', '108,000円'], correct: 1 },
+        { step: '宛名を確認する', memoLabel: '見積書の宛名', prompt: '見積書の宛名はどれですか？', choices: ['株式会社みどり 御中', 'みどり様', '営業部様'], correct: 0 },
+        { step: '提出形式を確認する', memoLabel: '提出形式', prompt: '提出形式はどれですか？', choices: ['PDF', '写真', 'テキストのみ'], correct: 0 }
       ],
       interrupt: {
         title: '同僚から声をかけられました',
@@ -631,11 +656,10 @@ const SCENARIO_PAIRS = [
         { title: '月報のグラフを調整', deadline: '今日 17:30', detail: '数値確認は完了済み', correct: false }
       ],
       taskTitle: '請求書を登録する',
-      steps: ['請求日を確認する', '取引先名を確認する', '保存先を選ぶ'],
-      questions: [
-        { prompt: '請求日はどれですか？', choices: ['7月18日', '7月19日', '7月20日'], correct: 1 },
-        { prompt: '取引先名はどれですか？', choices: ['青空商事', '青葉商事', '青海商事'], correct: 1 },
-        { prompt: '保存先はどこですか？', choices: ['今月分フォルダ', '個人メモ', 'ごみ箱'], correct: 0 }
+      taskItems: [
+        { step: '請求日を確認する', memoLabel: '請求日', prompt: '請求日はどれですか？', choices: ['7月18日', '7月19日', '7月20日'], correct: 1 },
+        { step: '取引先名を確認する', memoLabel: '取引先名', prompt: '取引先名はどれですか？', choices: ['青空商事', '青葉商事', '青海商事'], correct: 1 },
+        { step: '保存先を選ぶ', memoLabel: '保存先', prompt: '保存先はどこですか？', choices: ['今月分フォルダ', '個人メモ', 'ごみ箱'], correct: 0 }
       ],
       interrupt: {
         title: '別のメールが届きました',
@@ -654,11 +678,10 @@ const SCENARIO_PAIRS = [
         { title: '来月の会議候補日を集める', deadline: '今日 17:00', detail: '夕方までに回答', correct: false }
       ],
       taskTitle: '社内便を発送する',
-      steps: ['宛先部署を確認する', '同封物を確認する', '発送箱へ入れる'],
-      questions: [
-        { prompt: '宛先部署はどこですか？', choices: ['人事部', '経理部', '営業部'], correct: 1 },
-        { prompt: '同封するものはどれですか？', choices: ['申請書と控え', '申請書だけ', '控えだけ'], correct: 0 },
-        { prompt: 'どこへ入れますか？', choices: ['社内便の発送箱', '個人ロッカー', '廃棄箱'], correct: 0 }
+      taskItems: [
+        { step: '宛先部署を確認する', memoLabel: '宛先部署', prompt: '宛先部署はどこですか？', choices: ['人事部', '経理部', '営業部'], correct: 1 },
+        { step: '同封物を確認する', memoLabel: '同封物', prompt: '同封するものはどれですか？', choices: ['申請書と控え', '申請書だけ', '控えだけ'], correct: 0 },
+        { step: '入れる場所を確認する', memoLabel: '入れる場所', prompt: 'どこへ入れますか？', choices: ['社内便の発送箱', '個人ロッカー', '廃棄箱'], correct: 0 }
       ],
       interrupt: {
         title: '内線電話が鳴りました',
@@ -675,11 +698,10 @@ const SCENARIO_PAIRS = [
         { title: '来週の議題案を入力', deadline: '今日 18:00', detail: '終業前までに入力', correct: false }
       ],
       taskTitle: '郵送書類を準備する',
-      steps: ['送付先住所を確認する', '封入物を確認する', '郵便トレイへ置く'],
-      questions: [
-        { prompt: '送付先の市はどこですか？', choices: ['小山市', '宇都宮市', '栃木市'], correct: 0 },
-        { prompt: '封入するものはどれですか？', choices: ['案内状と返信用封筒', '案内状だけ', '返信用封筒だけ'], correct: 0 },
-        { prompt: '準備後はどこへ置きますか？', choices: ['郵便トレイ', '机の下', '資料棚'], correct: 0 }
+      taskItems: [
+        { step: '送付先住所を確認する', memoLabel: '送付先', prompt: '送付先の市はどこですか？', choices: ['小山市', '宇都宮市', '栃木市'], correct: 0 },
+        { step: '封入物を確認する', memoLabel: '封入物', prompt: '封入するものはどれですか？', choices: ['案内状と返信用封筒', '案内状だけ', '返信用封筒だけ'], correct: 0 },
+        { step: '準備後の置き場所を確認する', memoLabel: '準備後の置き場所', prompt: '準備後はどこへ置きますか？', choices: ['郵便トレイ', '机の下', '資料棚'], correct: 0 }
       ],
       interrupt: {
         title: 'チャット通知が届きました',
@@ -703,6 +725,7 @@ const textSizeButton = document.getElementById('textSizeButton');
 
 let audioContext = null;
 let soundOn = false;
+const activeOscillators = new Set();
 let lastFocused = null;
 
 const state = {
@@ -711,6 +734,7 @@ const state = {
   roundMode: 'baseline',
   phase: 'priority',
   stepIndex: 0,
+  briefIndex: 0,
   selectedSupport: null,
   roundStartedAt: 0,
   pendingTimer: null,
@@ -736,20 +760,47 @@ function showScreen(id, progress, label) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-function beep(kind = 'ok') {
-  if (!soundOn) return;
+function stopActiveSounds() {
+  activeOscillators.forEach(oscillator => {
+    try { oscillator.stop(); } catch (_) {}
+  });
+  activeOscillators.clear();
+}
+
+async function beep(kind = 'confirm') {
+  if (!soundOn) return false;
   try {
-    if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    if (audioContext.state === 'suspended') audioContext.resume();
-    const oscillator = audioContext.createOscillator();
-    const gain = audioContext.createGain();
-    oscillator.type = 'sine';
-    oscillator.frequency.value = kind === 'ok' ? 620 : kind === 'notice' ? 440 : 260;
-    gain.gain.setValueAtTime(.05, audioContext.currentTime);
-    gain.gain.exponentialRampToValueAtTime(.0001, audioContext.currentTime + .13);
-    oscillator.connect(gain); gain.connect(audioContext.destination);
-    oscillator.start(); oscillator.stop(audioContext.currentTime + .13);
-  } catch (_) {}
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return false;
+    if (!audioContext || audioContext.state === 'closed') audioContext = new AudioContextClass();
+    if (audioContext.state !== 'running') await audioContext.resume();
+    if (!soundOn || audioContext.state !== 'running') return false;
+
+    stopActiveSounds();
+    const notes = kind === 'test' ? [660, 820] : [kind === 'notice' ? 480 : 660];
+    const baseTime = audioContext.currentTime + .01;
+    notes.forEach((frequency, index) => {
+      const start = baseTime + index * .16;
+      const stop = start + .22;
+      const oscillator = audioContext.createOscillator();
+      const gain = audioContext.createGain();
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(frequency, start);
+      gain.gain.setValueAtTime(.0001, start);
+      gain.gain.linearRampToValueAtTime(.12, start + .018);
+      gain.gain.exponentialRampToValueAtTime(.0001, stop);
+      oscillator.connect(gain);
+      gain.connect(audioContext.destination);
+      activeOscillators.add(oscillator);
+      oscillator.addEventListener('ended', () => activeOscillators.delete(oscillator), { once: true });
+      oscillator.start(start);
+      oscillator.stop(stop);
+    });
+    return true;
+  } catch (error) {
+    console.warn('音声を再生できませんでした', error);
+    return false;
+  }
 }
 
 function makeRatingScale(container, name, onChange) {
@@ -793,15 +844,23 @@ function currentScenario() {
   return state.roundMode === 'baseline' ? state.scenarioPair.a : state.scenarioPair.b;
 }
 
+function scenarioSteps(scenario = currentScenario()) {
+  return scenario.taskItems.map(item => item.step);
+}
+
+function memoValue(item) {
+  return item.choices[item.correct];
+}
+
 function resetFeedback() {
   roundFeedback.className = 'feedback';
   roundFeedback.textContent = '';
 }
 
-function setFeedback(text, good = true) {
-  roundFeedback.className = `feedback show ${good ? 'good' : 'try'}`;
+function setFeedback(text) {
+  roundFeedback.className = 'feedback show neutral';
   roundFeedback.textContent = text;
-  beep(good ? 'ok' : 'low');
+  void beep('confirm');
 }
 
 function delayed(next, delay = 650) {
@@ -813,8 +872,18 @@ function startRound(mode) {
   state.roundMode = mode;
   state.phase = 'priority';
   state.stepIndex = 0;
+  state.briefIndex = 0;
   state.roundStartedAt = performance.now();
-  state.currentMetrics = { priorityCorrect: false, resumeCorrect: false, taskErrors: 0, interruptCorrect: false, resumeLatencyMs: 0, elapsedMs: 0 };
+  state.currentMetrics = {
+    priorityCorrect: null,
+    contentCorrectCount: 0,
+    contentTotal: currentScenario().taskItems.length,
+    resumeCorrect: null,
+    taskErrors: 0,
+    interruptCorrect: null,
+    resumeLatencyMs: 0,
+    elapsedMs: 0
+  };
   document.getElementById('roundTitle').textContent = mode === 'baseline' ? '前半：工夫なし' : `後半：${SUPPORTS[state.selectedSupport].name}`;
   document.getElementById('roundSubtitle').textContent = mode === 'baseline' ? '急がず、普段どおりに取り組んでください。' : '選んだ工夫を使って、別の仕事場面を試します。';
   document.getElementById('officeClock').textContent = currentScenario().clock;
@@ -841,8 +910,9 @@ function renderPriority() {
       [...grid.querySelectorAll('button')].forEach(btn => btn.disabled = true);
       state.currentMetrics.priorityCorrect = job.correct;
       if (!job.correct) state.currentMetrics.taskErrors++;
-      setFeedback(job.correct ? '締切が近い仕事を選びました。次へ進みます。' : '選択を記録しました。ここでは、より締切が近い仕事を優先する想定でした。', job.correct);
-      delayed(renderPlan, 850);
+      button.classList.add('selected');
+      setFeedback('選択を記録しました。次へ進みます。');
+      delayed(renderBriefing, 850);
     });
     grid.appendChild(button);
   });
@@ -851,7 +921,7 @@ function renderPriority() {
 
 function planMarkup(current = -1, showAll = true) {
   const scenario = currentScenario();
-  const items = scenario.steps.map((step, index) => {
+  const items = scenarioSteps(scenario).map((step, index) => {
     const classes = [];
     if (index < current) classes.push('done');
     if (index === current) classes.push('current');
@@ -861,29 +931,116 @@ function planMarkup(current = -1, showAll = true) {
   return `<div class="instruction-card"><strong>${scenario.taskTitle}</strong><ol>${items}</ol></div>`;
 }
 
-function renderPlan() {
+function briefRowsMarkup(items = currentScenario().taskItems) {
+  return `<div class="brief-list">${items.map(item => `
+    <div class="brief-row">
+      <span class="brief-label">${escapeText(item.memoLabel)}</span>
+      <strong class="brief-value">${escapeText(memoValue(item))}</strong>
+    </div>`).join('')}</div>`;
+}
+
+function fullBriefMarkup() {
+  return `<div class="brief-card" id="fullBriefCard" tabindex="-1">
+    <h3>依頼メモ</h3>
+    <p>次の画面ではこのメモを閉じます。3つの内容を一度確認してください。</p>
+    ${briefRowsMarkup()}
+  </div>`;
+}
+
+function beginTaskAfterBriefing() {
+  state.phase = 'step';
+  state.stepIndex = 0;
+  renderStep();
+}
+
+function renderOneAtATimeBriefing() {
+  const scenario = currentScenario();
+  const item = scenario.taskItems[state.briefIndex];
+  const workspace = document.getElementById('briefWorkspace');
+  const isLast = state.briefIndex === scenario.taskItems.length - 1;
+  workspace.innerHTML = `
+    <div class="support-prep"><strong>1️⃣ 一つずつ表示を使っています</strong><p>依頼内容を一項目ずつ確認します。前へ戻って見直すこともできます。</p></div>
+    <div class="brief-card brief-single" id="currentBriefCard" tabindex="-1" role="status" aria-live="polite" aria-atomic="true">
+      <div class="brief-progress">確認 ${state.briefIndex + 1} / ${scenario.taskItems.length}</div>
+      ${briefRowsMarkup([item])}
+    </div>
+    <div class="button-row">
+      ${state.briefIndex > 0 ? '<button class="button secondary" id="previousBriefButton" type="button">前の項目を見る</button>' : ''}
+      <button class="button primary" id="nextBriefButton" type="button">${isLast ? '依頼メモを閉じて始める' : '次の項目を見る'}</button>
+    </div>`;
+  const previous = document.getElementById('previousBriefButton');
+  if (previous) previous.addEventListener('click', () => { state.briefIndex--; renderOneAtATimeBriefing(); });
+  const next = document.getElementById('nextBriefButton');
+  next.addEventListener('click', () => {
+    if (isLast) beginTaskAfterBriefing();
+    else { state.briefIndex++; renderOneAtATimeBriefing(); }
+  });
+  safeFocus(document.getElementById('currentBriefCard'));
+}
+
+function renderCheckBriefing() {
+  const scenario = currentScenario();
+  const workspace = document.getElementById('briefWorkspace');
+  workspace.innerHTML = `
+    <div class="support-prep"><strong>☑️ 再開前チェックを使っています</strong><p>依頼内容を一項目ずつ確認し、確認済みにしてください。</p></div>
+    <div class="brief-card">
+      <h3>依頼メモ</h3>
+      <p>3項目すべてにチェックすると作業を始められます。</p>
+      <div class="brief-check-list">
+        ${scenario.taskItems.map((item, index) => `<label class="brief-check"><input type="checkbox" data-brief-check="${index}"><span><span class="brief-label">${escapeText(item.memoLabel)}</span><strong>${escapeText(memoValue(item))}</strong></span></label>`).join('')}
+      </div>
+    </div>
+    <div class="button-row"><button class="button primary" id="startCheckedTaskButton" type="button" disabled>依頼メモを閉じて始める</button></div>`;
+  const checks = [...workspace.querySelectorAll('[data-brief-check]')];
+  const button = document.getElementById('startCheckedTaskButton');
+  checks.forEach(check => check.addEventListener('change', () => {
+    button.disabled = !checks.every(item => item.checked);
+  }));
+  button.addEventListener('click', beginTaskAfterBriefing);
+  safeFocus(checks[0]);
+}
+
+function renderBriefing() {
   resetFeedback();
+  state.briefIndex = 0;
   const scenario = currentScenario();
   roundContent.innerHTML = `
     <p class="eyebrow">仕事 2 / 2</p>
-    <h2>${scenario.taskTitle}</h2>
-    <p>次の3つの手順で作業します。一度確認してから始めてください。</p>
+    <h2>依頼メモを確認する</h2>
+    <p><strong>${scenario.taskTitle}</strong>の手順と、覚えておく3つの内容を確認します。</p>
     ${planMarkup(-1, true)}
-    <div class="button-row"><button class="button primary" id="startTaskButton" type="button">手順を確認して始める</button></div>`;
+    <div id="briefWorkspace"></div>`;
+
+  if (state.roundMode === 'supported' && state.selectedSupport === 'one') {
+    renderOneAtATimeBriefing();
+    return;
+  }
+  if (state.roundMode === 'supported' && state.selectedSupport === 'check') {
+    renderCheckBriefing();
+    return;
+  }
+
+  const markerNote = state.roundMode === 'supported' && state.selectedSupport === 'marker'
+    ? '<div class="support-prep"><strong>🔖 再開マークを使います</strong><p>手順1を終えたところで、割り込み後に戻る位置へ自分でマークを残します。</p></div>'
+    : '';
+  document.getElementById('briefWorkspace').innerHTML = `${markerNote}${fullBriefMarkup()}
+    <div class="button-row"><button class="button primary" id="startTaskButton" type="button">依頼メモを閉じて始める</button></div>`;
   const button = document.getElementById('startTaskButton');
-  button.addEventListener('click', () => { state.phase = 'step'; state.stepIndex = 0; renderStep(); });
-  safeFocus(button);
+  button.addEventListener('click', beginTaskAfterBriefing);
+  safeFocus(document.getElementById('fullBriefCard'));
 }
 
 function renderStep() {
   resetFeedback();
   const scenario = currentScenario();
-  const question = scenario.questions[state.stepIndex];
+  const question = scenario.taskItems[state.stepIndex];
   const oneAtATime = state.roundMode === 'supported' && state.selectedSupport === 'one';
   roundContent.innerHTML = `
-    <p class="eyebrow">手順 ${state.stepIndex + 1} / 3</p>
+    <p class="eyebrow">手順 ${state.stepIndex + 1} / ${scenario.taskItems.length}</p>
     <h2>${scenario.taskTitle}</h2>
+    ${inlineSupportAidMarkup('working')}
     ${planMarkup(state.stepIndex, !oneAtATime)}
+    <p class="choice-reminder">依頼メモは閉じています。先ほど確認した内容を思い出して選んでください。</p>
     <h3>${question.prompt}</h3>
     <div class="choice-grid" id="stepChoices"></div>`;
   if (state.roundMode === 'supported') updateSupportAid('working');
@@ -894,11 +1051,15 @@ function renderStep() {
     button.addEventListener('click', () => {
       [...choices.querySelectorAll('button')].forEach(btn => btn.disabled = true);
       const correct = index === question.correct;
-      button.classList.add(correct ? 'correct' : 'incorrect');
-      if (!correct) state.currentMetrics.taskErrors++;
-      setFeedback(correct ? '確認できました。' : '選択を記録しました。想定していた内容とは異なりました。', correct);
-      if (state.stepIndex === 0) delayed(renderInterruption, 700);
-      else if (state.stepIndex < 2) delayed(() => { state.stepIndex++; renderStep(); }, 700);
+      button.classList.add('selected');
+      if (correct) state.currentMetrics.contentCorrectCount++;
+      else state.currentMetrics.taskErrors++;
+      setFeedback('選択を記録しました。次へ進みます。');
+      if (state.stepIndex === 0) delayed(() => {
+        if (state.roundMode === 'supported' && (state.selectedSupport === 'marker' || state.selectedSupport === 'check')) renderBeforeInterruptionSupport();
+        else renderInterruption();
+      }, 800);
+      else if (state.stepIndex < scenario.taskItems.length - 1) delayed(() => { state.stepIndex++; renderStep(); }, 700);
       else delayed(finishRound, 750);
     });
     choices.appendChild(button);
@@ -906,21 +1067,50 @@ function renderStep() {
   safeFocus(choices.querySelector('button'));
 }
 
-function updateSupportAid(stage) {
+function supportAidMarkup(stage) {
   const support = SUPPORTS[state.selectedSupport];
   const scenario = currentScenario();
-  supportAid.className = 'support-aid show';
+  const steps = scenarioSteps(scenario);
   const afterFirstStep = stage === 'returning' || stage === 'before-interrupt';
   if (state.selectedSupport === 'marker') {
-    const next = afterFirstStep ? scenario.steps[1] : scenario.steps[Math.min(state.stepIndex, 2)];
-    supportAid.innerHTML = `<strong>${support.icon} ${support.name}</strong><div class="sticky-note">次は：${next}</div>`;
-  } else if (state.selectedSupport === 'one') {
-    const index = afterFirstStep ? 1 : Math.min(state.stepIndex, 2);
-    supportAid.innerHTML = `<strong>${support.icon} ${support.name}</strong><p>今すること：<br><b>${scenario.steps[index]}</b></p>`;
-  } else {
-    const nextIndex = afterFirstStep ? 1 : Math.min(state.stepIndex, 2);
-    supportAid.innerHTML = `<strong>${support.icon} ${support.name}</strong><p>☑ 完了：${nextIndex > 0 ? scenario.steps[0] : 'まだありません'}<br>□ 次：<b>${scenario.steps[nextIndex]}</b></p>`;
+    const next = afterFirstStep ? steps[1] : steps[Math.min(state.stepIndex, 2)];
+    return `<strong>${support.icon} ${support.name}</strong><div class="sticky-note">次は：${next}</div>`;
   }
+  if (state.selectedSupport === 'one') {
+    const index = afterFirstStep ? 1 : Math.min(state.stepIndex, 2);
+    return `<strong>${support.icon} ${support.name}</strong><p>今すること：<br><b>${steps[index]}</b></p>`;
+  }
+  const nextIndex = afterFirstStep ? 1 : Math.min(state.stepIndex, 2);
+  const completed = nextIndex > 0 ? steps.slice(0, nextIndex).map(step => `☑ 完了：${step}`).join('<br>') : '☑ 完了：まだありません';
+  return `<strong>${support.icon} ${support.name}</strong><p>${completed}<br>□ 次：<b>${steps[nextIndex]}</b></p>`;
+}
+
+function updateSupportAid(stage) {
+  supportAid.className = 'support-aid show';
+  supportAid.innerHTML = supportAidMarkup(stage);
+}
+
+function inlineSupportAidMarkup(stage) {
+  if (state.roundMode !== 'supported') return '';
+  return `<div class="inline-support-aid" role="status" aria-live="polite">${supportAidMarkup(stage)}</div>`;
+}
+
+function renderBeforeInterruptionSupport() {
+  resetFeedback();
+  const scenario = currentScenario();
+  const steps = scenarioSteps(scenario);
+  updateSupportAid('before-interrupt');
+  const isMarker = state.selectedSupport === 'marker';
+  roundContent.innerHTML = `
+    <p class="eyebrow">工夫を使う</p>
+    <h2>${isMarker ? '再開マークを残す' : '割り込み前に確認する'}</h2>
+    <p>手順1「${steps[0]}」が終わりました。${isMarker ? '次に戻る場所へマークを残します。' : '終えた所と次にする所を確認します。'}</p>
+    ${planMarkup(1, true)}
+    <div class="support-prep"><strong>${isMarker ? '🔖 次は手順2' : '☑ 完了と次を確認'}</strong><p>完了：${steps[0]}<br>次：${steps[1]}</p></div>
+    <div class="button-row"><button class="button primary" id="continueInterruptButton" type="button">${isMarker ? '再開マークを置いて割り込みへ' : '確認して割り込みへ'}</button></div>`;
+  const button = document.getElementById('continueInterruptButton');
+  button.addEventListener('click', renderInterruption);
+  safeFocus(button);
 }
 
 function renderInterruption() {
@@ -928,6 +1118,7 @@ function renderInterruption() {
   const scenario = currentScenario();
   if (state.roundMode === 'supported') updateSupportAid('before-interrupt');
   roundContent.innerHTML = `
+    ${inlineSupportAidMarkup('before-interrupt')}
     <div class="interrupt-card">
       <span class="interrupt-label">わりこみ</span>
       <h2>${scenario.interrupt.title}</h2>
@@ -944,37 +1135,41 @@ function renderInterruption() {
       const correct = index === scenario.interrupt.correct;
       state.currentMetrics.interruptCorrect = correct;
       if (!correct) state.currentMetrics.taskErrors++;
-      setFeedback(correct ? '確認してから回答する方法を選びました。' : '選択を記録しました。ここでは、確認してから回答する想定でした。', correct);
+      button.classList.add('selected');
+      setFeedback('選択を記録しました。次へ進みます。');
       delayed(renderResumeChoice, 800);
     });
     choices.appendChild(button);
   });
-  beep('notice');
+  void beep('notice');
   safeFocus(choices.querySelector('button'));
 }
 
 function renderResumeChoice() {
   resetFeedback();
   const scenario = currentScenario();
+  const steps = scenarioSteps(scenario);
   state.resumeShownAt = performance.now();
   if (state.roundMode === 'supported') updateSupportAid('returning');
   roundContent.innerHTML = `
     <p class="eyebrow">仕事へ戻る</p>
     <h2>どこから再開しますか？</h2>
     <p>割り込み対応が終わりました。元の仕事の次の手順を選んでください。</p>
+    ${inlineSupportAidMarkup('returning')}
     <div class="choice-grid" id="resumeChoices"></div>`;
   const order = [1, 0, 2];
   const choices = document.getElementById('resumeChoices');
   order.forEach(stepIndex => {
     const button = document.createElement('button');
-    button.type = 'button'; button.className = 'choice-button'; button.textContent = scenario.steps[stepIndex];
+    button.type = 'button'; button.className = 'choice-button'; button.textContent = steps[stepIndex];
     button.addEventListener('click', () => {
       [...choices.querySelectorAll('button')].forEach(btn => btn.disabled = true);
       const correct = stepIndex === 1;
       state.currentMetrics.resumeCorrect = correct;
       state.currentMetrics.resumeLatencyMs = Math.round(performance.now() - state.resumeShownAt);
       if (!correct) state.currentMetrics.taskErrors++;
-      setFeedback(correct ? '手順2から再開しました。' : '選択を記録しました。手順1は完了しているため、手順2から再開する想定でした。', correct);
+      button.classList.add('selected');
+      setFeedback('選択を記録しました。次へ進みます。');
       delayed(() => { state.stepIndex = 1; renderStep(); }, 850);
     });
     choices.appendChild(button);
@@ -1010,7 +1205,7 @@ function renderSupportCards() {
         card.setAttribute('aria-pressed', selected ? 'true' : 'false');
       });
       document.getElementById('beginSupportedButton').disabled = false;
-      beep('ok');
+      void beep('confirm');
     });
     grid.appendChild(button);
   });
@@ -1031,6 +1226,18 @@ function escapeText(text) {
   return String(text).replace(/[&<>'"]/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;' }[char]));
 }
 
+function contentScoreLabel(result) {
+  return Number.isFinite(result.contentCorrectCount)
+    ? `${result.contentCorrectCount} / ${result.contentTotal || 3}項目`
+    : '旧版では内訳なし';
+}
+
+function booleanResultLabel(value, yes, no) {
+  if (value === true) return yes;
+  if (value === false) return no;
+  return '旧版では未記録';
+}
+
 function buildObservations() {
   const a = state.results.baseline;
   const b = state.results.supported;
@@ -1041,15 +1248,19 @@ function buildObservations() {
   if (b.rating < a.rating) observations.push(`本人が感じた負担は ${a.rating} から ${b.rating} に下がりました。`);
   else if (b.rating === a.rating) observations.push(`本人が感じた負担は前半・後半とも ${a.rating} でした。`);
   else observations.push(`後半の負担は ${b.rating} で、前半の ${a.rating} より高く感じました。休憩や別の工夫も選択肢です。`);
-  if (b.taskErrors < a.taskErrors) observations.push('想定と異なる選択は後半で少なくなりました。');
-  else if (b.taskErrors === a.taskErrors) observations.push('想定と異なる選択の数は前半と後半で同じでした。');
-  else observations.push('後半では想定と異なる選択が増えました。速さより、説明量や休憩の取り方を調整してもよさそうです。');
+  if (Number.isFinite(a.contentCorrectCount) && Number.isFinite(b.contentCorrectCount)) {
+    if (b.contentCorrectCount > a.contentCorrectCount) observations.push(`依頼内容と一致した選択は、前半 ${a.contentCorrectCount} 項目、後半 ${b.contentCorrectCount} 項目でした。`);
+    else if (b.contentCorrectCount === a.contentCorrectCount) observations.push(`依頼内容と一致した選択は、前半・後半とも ${a.contentCorrectCount} 項目でした。`);
+    else observations.push(`依頼内容と一致した選択は、前半 ${a.contentCorrectCount} 項目、後半 ${b.contentCorrectCount} 項目でした。説明量や確認方法も調整してみましょう。`);
+  } else {
+    observations.push('この保存結果は以前の試作版で作成されたため、依頼内容の確認数は表示できません。');
+  }
   return observations;
 }
 
 function renderReport(saved = null) {
   const data = saved || {
-    version: 1,
+    version: 2,
     createdAt: new Date().toISOString(),
     selectedSupport: state.selectedSupport,
     preCapacity: state.preCapacity,
@@ -1068,19 +1279,21 @@ function renderReport(saved = null) {
   document.getElementById('compareGrid').innerHTML = `
     <div class="compare-card">
       <h3><span>前半</span><small>工夫なし</small></h3>
-      <div class="metric-row"><span>割り込み後の再開</span><strong>${a.resumeCorrect ? '想定した手順へ戻れた' : '別の手順を選んだ'}</strong></div>
-      <div class="metric-row"><span>想定と異なる選択</span><strong>${a.taskErrors}回</strong></div>
+      <div class="metric-row"><span>依頼内容の確認</span><strong>${contentScoreLabel(a)}</strong></div>
+      <div class="metric-row"><span>割り込み後の再開</span><strong>${booleanResultLabel(a.resumeCorrect, '想定した手順へ戻れた', '別の手順を選んだ')}</strong></div>
+      <div class="metric-row"><span>仕事の優先順位</span><strong>${booleanResultLabel(a.priorityCorrect, '締切が近い仕事を選んだ', '別の仕事を選んだ')}</strong></div>
+      <div class="metric-row"><span>割り込みへの対応</span><strong>${booleanResultLabel(a.interruptCorrect, '確認してから回答', '確認せずに回答')}</strong></div>
       <div class="metric-row"><span>本人の負担感</span><strong>${ratingLabel(a.rating)}</strong></div>
       <div class="metric-row"><span>再開を選ぶまで</span><strong>${formatTime(a.resumeLatencyMs)}</strong></div>
-      <div class="metric-row"><span>取り組み時間</span><strong>${formatTime(a.elapsedMs)}</strong></div>
     </div>
     <div class="compare-card supported">
       <h3><span>後半</span><small>${support.icon} ${escapeText(support.name)}</small></h3>
-      <div class="metric-row"><span>割り込み後の再開</span><strong>${b.resumeCorrect ? '想定した手順へ戻れた' : '別の手順を選んだ'}</strong></div>
-      <div class="metric-row"><span>想定と異なる選択</span><strong>${b.taskErrors}回</strong></div>
+      <div class="metric-row"><span>依頼内容の確認</span><strong>${contentScoreLabel(b)}</strong></div>
+      <div class="metric-row"><span>割り込み後の再開</span><strong>${booleanResultLabel(b.resumeCorrect, '想定した手順へ戻れた', '別の手順を選んだ')}</strong></div>
+      <div class="metric-row"><span>仕事の優先順位</span><strong>${booleanResultLabel(b.priorityCorrect, '締切が近い仕事を選んだ', '別の仕事を選んだ')}</strong></div>
+      <div class="metric-row"><span>割り込みへの対応</span><strong>${booleanResultLabel(b.interruptCorrect, '確認してから回答', '確認せずに回答')}</strong></div>
       <div class="metric-row"><span>本人の負担感</span><strong>${ratingLabel(b.rating)}</strong></div>
       <div class="metric-row"><span>再開を選ぶまで</span><strong>${formatTime(b.resumeLatencyMs)}</strong></div>
-      <div class="metric-row"><span>取り組み時間</span><strong>${formatTime(b.elapsedMs)}</strong></div>
     </div>`;
   document.getElementById('reportSupportTitle').textContent = `${support.icon} 今回試した工夫：${support.name}`;
   document.getElementById('reportSupportText').textContent = support.description;
@@ -1114,7 +1327,7 @@ function resetGame() {
 
 function saveReport() {
   const payload = {
-    version: 1,
+    version: 2,
     createdAt: new Date().toISOString(),
     selectedSupport: state.selectedSupport,
     preCapacity: state.preCapacity,
@@ -1123,7 +1336,7 @@ function saveReport() {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
     document.getElementById('savedBanner').classList.add('show');
-    beep('ok');
+    void beep('confirm');
   } catch (_) {
     alert('このブラウザでは端末保存を利用できませんでした。印刷・PDF保存をご利用ください。');
   }
@@ -1131,20 +1344,30 @@ function saveReport() {
 
 function loadSaved() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) { alert('この端末に保存された振り返りメモはありません。'); return; }
-    const data = JSON.parse(raw);
-    if (!data || data.version !== 1 || !SUPPORTS[data.selectedSupport] || !data.results?.baseline || !data.results?.supported) throw new Error('invalid');
-    renderReport(data);
+    let invalidFound = false;
+    for (const key of [STORAGE_KEY, LEGACY_STORAGE_KEY]) {
+      const raw = localStorage.getItem(key);
+      if (!raw) continue;
+      try {
+        const data = JSON.parse(raw);
+        if (!data || ![1, 2].includes(data.version) || !SUPPORTS[data.selectedSupport] || !data.results?.baseline || !data.results?.supported) throw new Error('invalid');
+        renderReport(data);
+        return;
+      } catch (_) {
+        localStorage.removeItem(key);
+        invalidFound = true;
+      }
+    }
+    alert(invalidFound ? '読み込めない保存記録を削除しました。利用できる振り返りメモはありません。' : 'この端末に保存された振り返りメモはありません。');
   } catch (_) {
-    localStorage.removeItem(STORAGE_KEY);
-    alert('保存記録を読み込めなかったため、破損した記録を削除しました。');
+    alert('このブラウザでは端末の保存記録を読み込めませんでした。');
   }
 }
 
 function clearSaved() {
   if (!confirm('この端末に保存した「仕事の工夫メモ」を削除しますか？')) return;
   localStorage.removeItem(STORAGE_KEY);
+  localStorage.removeItem(LEGACY_STORAGE_KEY);
   document.getElementById('savedBanner').classList.remove('show');
   alert('端末の保存記録を削除しました。');
 }
@@ -1199,12 +1422,32 @@ document.getElementById('restartButton').addEventListener('click', () => {
   safeFocus(document.querySelector('#preRatingScale input'));
 });
 
-soundButton.addEventListener('click', () => {
-  soundOn = !soundOn;
-  soundButton.textContent = soundOn ? '🔊' : '🔇';
+function updateSoundButton(unavailable = false) {
+  soundButton.textContent = unavailable ? '音 ×' : soundOn ? '音 ON' : '音 OFF';
   soundButton.setAttribute('aria-pressed', soundOn ? 'true' : 'false');
-  soundButton.setAttribute('aria-label', soundOn ? '音をオフにする' : '音をオンにする');
-  beep('ok');
+  soundButton.setAttribute('aria-label', unavailable ? 'この端末では音を利用できません' : soundOn ? '音をオフにする。現在オンです' : '音をオンにする。現在オフです');
+  soundButton.title = unavailable ? 'この端末では音を再生できません' : soundOn ? '音はONです。押すとOFFになります' : '音はOFFです。押すと確認音を再生します';
+}
+
+soundButton.addEventListener('click', async () => {
+  soundButton.disabled = true;
+  if (soundOn) {
+    soundOn = false;
+    stopActiveSounds();
+    updateSoundButton();
+    soundButton.disabled = false;
+    return;
+  }
+
+  soundOn = true;
+  updateSoundButton();
+  const played = await beep('test');
+  if (!played) {
+    soundOn = false;
+    updateSoundButton(true);
+    alert('この端末では音を再生できませんでした。ゲームは音なしでも利用できます。');
+  }
+  soundButton.disabled = false;
 });
 
 let textSizeLevel = 0;

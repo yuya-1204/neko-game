@@ -1,0 +1,2106 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:; connect-src 'none'; font-src 'none'; media-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<title>ネコオフィス：ふわっと依頼をほどこう</title>
+<style>
+  :root {
+    --navy: #26344b;
+    --navy-2: #354761;
+    --teal: #2f817d;
+    --teal-dark: #246965;
+    --teal-soft: #dff1ee;
+    --orange: #d9793f;
+    --orange-soft: #fff0e4;
+    --cream: #fffaf1;
+    --paper: #ffffff;
+    --ink: #253248;
+    --muted: #667085;
+    --line: #d8e0e8;
+    --ok: #247a54;
+    --ok-soft: #e4f5ec;
+    --warn: #8a5419;
+    --warn-soft: #fff3d8;
+    --bad: #a53d3d;
+    --shadow: 0 12px 30px rgba(38, 52, 75, .12);
+    --radius: 20px;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    color: var(--ink);
+    background:
+      radial-gradient(circle at 10% 0%, rgba(47,129,125,.14), transparent 38%),
+      radial-gradient(circle at 100% 90%, rgba(217,121,63,.12), transparent 35%),
+      #f4f7f9;
+    font-family: "Hiragino Sans", "Yu Gothic UI", "Yu Gothic", Meiryo, system-ui, sans-serif;
+    line-height: 1.65;
+  }
+  body.text-large { font-size: 115%; }
+  body.text-xlarge { font-size: 130%; }
+
+  button, input { font: inherit; }
+  button { touch-action: manipulation; }
+  button:focus-visible,
+  input:focus-visible,
+  [tabindex]:focus-visible {
+    outline: 4px solid rgba(217,121,63,.42);
+    outline-offset: 3px;
+  }
+
+  .visually-hidden {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+  }
+
+  .skip-link {
+    position: fixed;
+    left: 12px;
+    top: -80px;
+    z-index: 100;
+    padding: 10px 16px;
+    color: #fff;
+    background: var(--navy);
+    border-radius: 0 0 10px 10px;
+  }
+  .skip-link:focus { top: 0; }
+
+  .page-shell {
+    width: min(960px, calc(100% - 24px));
+    margin: 0 auto;
+    padding: 18px 0 42px;
+  }
+
+  .site-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+    padding: 10px 14px;
+    color: #fff;
+    background: var(--navy);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+  .brand-cats {
+    flex: 0 0 auto;
+    padding-right: 8px;
+    font-size: 28px;
+    letter-spacing: -8px;
+    filter: drop-shadow(0 2px 0 rgba(255,255,255,.2));
+  }
+  .brand-text { min-width: 0; }
+  .brand-text strong {
+    display: block;
+    font-size: clamp(15px, 3.5vw, 18px);
+    line-height: 1.25;
+  }
+  .brand-text span {
+    display: block;
+    color: #d7e6ee;
+    font-size: 12px;
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 0 0 auto;
+  }
+  .icon-button {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 8px 10px;
+    color: #fff;
+    background: var(--navy-2);
+    border: 1px solid rgba(255,255,255,.3);
+    border-radius: 12px;
+    cursor: pointer;
+  }
+  .icon-button:hover { background: #435875; }
+
+  .progress-wrap {
+    margin: 0 2px 14px;
+    padding: 12px 16px;
+    background: rgba(255,255,255,.9);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+  }
+  .progress-labels {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .progress-labels strong { color: var(--teal-dark); }
+  .progress-track {
+    height: 9px;
+    margin-top: 7px;
+    overflow: hidden;
+    background: #e7edf1;
+    border-radius: 999px;
+  }
+  .progress-bar {
+    width: 0;
+    height: 100%;
+    background: linear-gradient(90deg, var(--teal), #63aaa0);
+    border-radius: inherit;
+    transition: width .25s ease;
+  }
+
+  main { min-height: 580px; }
+  .screen {
+    display: none;
+    padding: clamp(20px, 5vw, 38px);
+    background: rgba(255,255,255,.96);
+    border: 1px solid rgba(216,224,232,.95);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+  .screen.active {
+    display: block;
+    animation: fade-in .2s ease-out;
+  }
+  @keyframes fade-in {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: none; }
+  }
+
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 0 8px;
+    padding: 4px 10px;
+    color: var(--teal-dark);
+    background: var(--teal-soft);
+    border-radius: 999px;
+    font-weight: 800;
+    font-size: 13px;
+  }
+  h1, h2, h3 {
+    color: var(--navy);
+    line-height: 1.35;
+  }
+  h1 {
+    margin: 0 0 12px;
+    font-size: clamp(27px, 7vw, 44px);
+    letter-spacing: -.02em;
+  }
+  h2 {
+    margin: 0 0 14px;
+    font-size: clamp(23px, 5.4vw, 33px);
+  }
+  h3 {
+    margin: 0 0 9px;
+    font-size: 18px;
+  }
+  p { margin: 0 0 14px; }
+  .lead {
+    max-width: 720px;
+    color: #40516a;
+    font-size: clamp(16px, 3.7vw, 19px);
+  }
+  .small-note {
+    color: var(--muted);
+    font-size: 13px;
+  }
+
+  .hero-grid {
+    display: grid;
+    grid-template-columns: minmax(0,1.45fr) minmax(230px,.55fr);
+    gap: 24px;
+    align-items: center;
+  }
+  .hero-art {
+    min-height: 250px;
+    display: grid;
+    place-items: center;
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(145deg, #e7f5f2, #fff5e8);
+    border: 1px solid #d8e9e6;
+    border-radius: 24px;
+  }
+  .hero-art::before,
+  .hero-art::after {
+    content: "";
+    position: absolute;
+    border-radius: 50%;
+    opacity: .65;
+  }
+  .hero-art::before {
+    width: 160px;
+    height: 160px;
+    right: -60px;
+    top: -50px;
+    background: #f8c59e;
+  }
+  .hero-art::after {
+    width: 130px;
+    height: 130px;
+    left: -45px;
+    bottom: -52px;
+    background: #8fd0c7;
+  }
+  .desk-scene {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+  }
+  .desk-cats {
+    margin-right: 12px;
+    font-size: 64px;
+    letter-spacing: -12px;
+    filter: drop-shadow(0 5px 0 rgba(38,52,75,.12));
+  }
+  .desk {
+    width: 190px;
+    height: 18px;
+    margin: -3px auto 0;
+    background: #a76d42;
+    border-radius: 8px;
+    box-shadow: 0 55px 0 -6px #8b5936;
+  }
+  .monitor {
+    display: inline-grid;
+    place-items: center;
+    width: 90px;
+    height: 60px;
+    margin: 0 0 -8px;
+    color: var(--teal-dark);
+    background: #fff;
+    border: 6px solid var(--navy);
+    border-radius: 8px;
+    font-size: 25px;
+  }
+  .bubble {
+    margin: 46px 14px 0;
+    padding: 10px 13px;
+    color: var(--navy);
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: 0 6px 18px rgba(38,52,75,.13);
+    font-weight: 800;
+  }
+
+  .feature-list {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0,1fr));
+    gap: 10px;
+    margin: 20px 0;
+    padding: 0;
+    list-style: none;
+  }
+  .feature-list li {
+    padding: 13px;
+    background: var(--cream);
+    border: 1px solid #eee0c9;
+    border-radius: 14px;
+    text-align: center;
+    font-weight: 700;
+    font-size: 14px;
+  }
+  .feature-list span {
+    display: block;
+    font-size: 24px;
+  }
+
+  .notice {
+    margin: 18px 0;
+    padding: 14px 16px;
+    color: #344b58;
+    background: #eff8f6;
+    border-left: 5px solid var(--teal);
+    border-radius: 10px;
+  }
+  .notice.warning {
+    background: var(--orange-soft);
+    border-left-color: var(--orange);
+  }
+  .notice strong { color: var(--navy); }
+
+  .button-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    margin-top: 22px;
+  }
+  .button {
+    min-height: 48px;
+    padding: 11px 20px;
+    border: 2px solid transparent;
+    border-radius: 14px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: transform .06s ease, box-shadow .12s ease, background .12s ease;
+  }
+  .button:hover { transform: translateY(-1px); }
+  .button:active { transform: translateY(1px); }
+  .button.primary {
+    color: #fff;
+    background: var(--teal);
+    box-shadow: 0 4px 0 var(--teal-dark);
+  }
+  .button.primary:hover { background: #357f79; }
+  .button.secondary {
+    color: var(--navy);
+    background: #fff;
+    border-color: var(--line);
+  }
+  .button.secondary:hover { background: #f5f7f9; }
+  .button.danger {
+    color: var(--bad);
+    background: #fff;
+    border-color: #e7b7b2;
+  }
+  .button:disabled {
+    opacity: .45;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+
+  .work-layout {
+    display: grid;
+    grid-template-columns: minmax(0,1fr) 240px;
+    gap: 18px;
+    align-items: start;
+  }
+  .work-main {
+    min-width: 0;
+  }
+  .side-panel {
+    position: sticky;
+    top: 10px;
+    display: grid;
+    gap: 12px;
+  }
+  .side-card {
+    padding: 14px;
+    background: #f8fafb;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+  }
+  .side-card strong {
+    display: block;
+    color: var(--teal-dark);
+  }
+  .side-card small {
+    display: block;
+    color: var(--muted);
+  }
+
+  .context-card {
+    margin: 8px 0 14px;
+    padding: 16px;
+    color: #3d5068;
+    background: var(--cream);
+    border: 1px solid #eadcc4;
+    border-radius: 15px;
+  }
+  .context-card strong {
+    display: block;
+    margin-bottom: 4px;
+    color: var(--navy);
+  }
+
+  .request-card {
+    margin: 16px 0 20px;
+    padding: 18px;
+    background: linear-gradient(145deg, #fff5e8, #fff);
+    border: 2px solid #efbe92;
+    border-radius: 18px;
+    box-shadow: 0 10px 25px rgba(154,91,24,.10);
+  }
+  .request-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 10px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .request-meta span {
+    padding: 2px 9px;
+    background: #fff;
+    border: 1px solid #efd4bb;
+    border-radius: 999px;
+  }
+  .request-quote {
+    margin: 0;
+    color: var(--navy);
+    font-size: clamp(17px, 4vw, 21px);
+    font-weight: 800;
+  }
+
+  fieldset {
+    min-width: 0;
+  }
+  .question-panel,
+  .memo-fieldset,
+  .choice-fieldset {
+    margin: 22px 0 0;
+    padding: 18px;
+    background: #f8fafb;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+  }
+  .question-panel legend,
+  .memo-fieldset legend,
+  .choice-fieldset legend {
+    padding: 0 7px;
+    color: var(--navy);
+    font-weight: 900;
+  }
+  .question-grid,
+  .memo-options,
+  .action-grid,
+  .takeaway-grid {
+    display: grid;
+    gap: 11px;
+    margin-top: 14px;
+  }
+  .question-option,
+  .memo-option,
+  .takeaway-option {
+    position: relative;
+    display: grid;
+    grid-template-columns: auto minmax(0,1fr);
+    gap: 11px;
+    align-items: start;
+    width: 100%;
+    padding: 14px 15px;
+    color: var(--ink);
+    background: #fff;
+    border: 2px solid var(--line);
+    border-radius: 14px;
+    cursor: pointer;
+  }
+  .question-option:hover,
+  .memo-option:hover,
+  .takeaway-option:hover {
+    background: #f7fbfa;
+    border-color: #8ec3bd;
+  }
+  .question-option.selected,
+  .memo-option.selected,
+  .takeaway-option.selected {
+    background: #edf8f6;
+    border-color: var(--teal);
+    box-shadow: 0 0 0 3px rgba(47,129,125,.10);
+  }
+  .question-option.disabled,
+  .takeaway-option.disabled {
+    opacity: .55;
+    cursor: not-allowed;
+  }
+  .question-option input,
+  .memo-option input,
+  .takeaway-option input {
+    width: 20px;
+    height: 20px;
+    margin: 2px 0 0;
+    accent-color: var(--teal);
+  }
+  .option-copy strong {
+    display: block;
+    color: var(--navy);
+  }
+  .option-copy small {
+    display: block;
+    margin-top: 3px;
+    color: var(--muted);
+  }
+  .selection-status {
+    margin: 14px 0 0;
+    padding: 10px 12px;
+    color: var(--teal-dark);
+    background: var(--teal-soft);
+    border-radius: 10px;
+    font-weight: 800;
+  }
+
+  .answer-list {
+    display: grid;
+    gap: 12px;
+    margin: 18px 0;
+  }
+  .answer-card {
+    padding: 16px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 15px;
+  }
+  .answer-card .asked {
+    margin-bottom: 8px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .answer-card .answer {
+    margin: 0;
+    color: var(--navy);
+    font-weight: 800;
+  }
+  .dimension-tag {
+    display: inline-block;
+    margin-top: 10px;
+    padding: 2px 9px;
+    color: var(--teal-dark);
+    background: var(--teal-soft);
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 800;
+  }
+
+  .known-summary {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0,1fr));
+    gap: 10px;
+    margin: 18px 0;
+  }
+  .known-item {
+    padding: 13px;
+    background: #f8fafb;
+    border: 1px solid var(--line);
+    border-radius: 13px;
+  }
+  .known-item.known {
+    background: var(--ok-soft);
+    border-color: #a9d5bd;
+  }
+  .known-item.unknown {
+    background: var(--warn-soft);
+    border-color: #ead29a;
+  }
+  .known-item strong {
+    display: block;
+    color: var(--navy);
+  }
+  .known-item span {
+    color: #46566d;
+    font-size: 13px;
+  }
+
+  .memo-grid {
+    display: grid;
+    gap: 15px;
+  }
+  .memo-fieldset {
+    margin-top: 0;
+  }
+  .memo-current {
+    margin: 0;
+    color: #4d5f73;
+  }
+  .memo-current strong {
+    color: var(--teal-dark);
+  }
+  .memo-preview {
+    margin: 20px 0;
+    padding: 18px;
+    background: var(--cream);
+    border: 2px dashed #d9bc8f;
+    border-radius: 15px;
+  }
+  .memo-preview h3 { margin-bottom: 10px; }
+  .memo-preview pre,
+  .report-memo {
+    margin: 0;
+    color: var(--ink);
+    font: inherit;
+    font-weight: 700;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  .unknown-list {
+    margin: 16px 0;
+    padding: 0;
+    list-style: none;
+  }
+  .unknown-list li {
+    margin: 9px 0;
+    padding: 12px 14px;
+    background: var(--warn-soft);
+    border-left: 4px solid #d39a3a;
+    border-radius: 9px;
+  }
+
+  .action-button {
+    width: 100%;
+    padding: 15px 16px;
+    color: var(--ink);
+    background: #fff;
+    border: 2px solid var(--line);
+    border-radius: 14px;
+    text-align: left;
+    cursor: pointer;
+  }
+  .action-button:hover {
+    background: #f7fbfa;
+    border-color: #8ec3bd;
+  }
+  .action-button.selected {
+    background: #edf8f6;
+    border-color: var(--teal);
+    box-shadow: 0 0 0 3px rgba(47,129,125,.10);
+  }
+  .action-button strong {
+    display: block;
+    color: var(--navy);
+  }
+  .action-button small {
+    display: block;
+    margin-top: 4px;
+    color: var(--muted);
+  }
+
+  .report-section {
+    margin: 18px 0;
+    padding: 18px;
+    background: #f8fafb;
+    border: 1px solid var(--line);
+    border-radius: 15px;
+  }
+  .report-section.highlight {
+    background: linear-gradient(145deg, #e8f6f3, #fffaf1);
+    border: 2px solid #add7d0;
+  }
+  .report-section h3 { color: var(--teal-dark); }
+  .report-list {
+    margin: 8px 0 0;
+    padding-left: 24px;
+  }
+  .report-list li { margin: 6px 0; }
+  .share-phrase {
+    padding: 16px;
+    background: #fff;
+    border: 2px dashed #9ecbc5;
+    border-radius: 13px;
+    font-weight: 700;
+  }
+  .saved-banner {
+    display: none;
+    margin-top: 12px;
+    padding: 10px 13px;
+    color: var(--ok);
+    background: var(--ok-soft);
+    border-radius: 10px;
+  }
+  .saved-banner.show { display: block; }
+
+  .dialog-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 80;
+    place-items: center;
+    padding: 18px;
+    background: rgba(27,38,55,.62);
+  }
+  .dialog-backdrop.show { display: grid; }
+  .dialog {
+    width: min(580px, 100%);
+    max-height: min(82vh, 700px);
+    overflow: auto;
+    padding: 24px;
+    background: #fff;
+    border-radius: 20px;
+    box-shadow: 0 22px 60px rgba(0,0,0,.25);
+  }
+  .dialog h2 { font-size: 24px; }
+
+  .footer-note {
+    margin: 18px 4px 0;
+    color: var(--muted);
+    text-align: center;
+    font-size: 12px;
+  }
+  .noscript {
+    margin: 20px auto;
+    padding: 18px;
+    background: #fff;
+    border: 2px solid var(--bad);
+    border-radius: 14px;
+  }
+
+  @media (max-width: 760px) {
+    .hero-grid,
+    .work-layout {
+      grid-template-columns: 1fr;
+    }
+    .hero-art { min-height: 210px; }
+    .side-panel {
+      position: static;
+      grid-template-columns: repeat(2, minmax(0,1fr));
+    }
+    .feature-list { grid-template-columns: 1fr; }
+  }
+
+  @media (max-width: 560px) {
+    .known-summary { grid-template-columns: 1fr; }
+  }
+
+  @media (max-width: 480px) {
+    .page-shell {
+      width: min(100% - 14px, 960px);
+      padding-top: 7px;
+    }
+    .site-header {
+      padding: 8px 10px;
+      border-radius: 12px;
+    }
+    .brand-cats { font-size: 23px; }
+    .brand-text span { display: none; }
+    .screen {
+      padding: 20px 16px;
+      border-radius: 16px;
+    }
+    .progress-wrap { margin-bottom: 8px; }
+    .side-panel { grid-template-columns: 1fr; }
+    .button-row .button { width: 100%; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: .01ms !important;
+      animation-iteration-count: 1 !important;
+      scroll-behavior: auto !important;
+      transition-duration: .01ms !important;
+    }
+  }
+
+  @media print {
+    body { background: #fff; }
+    .site-header,
+    .progress-wrap,
+    .screen:not(#reportScreen),
+    .button-row,
+    .footer-note,
+    .saved-banner {
+      display: none !important;
+    }
+    .page-shell {
+      width: 100%;
+      padding: 0;
+    }
+    #reportScreen {
+      display: block !important;
+      padding: 0;
+      border: 0;
+      box-shadow: none;
+    }
+    #reportScreen::before {
+      content: "ネコオフィス 確認メモ";
+      display: block;
+      margin-bottom: 14px;
+      color: var(--navy);
+      font-size: 24px;
+      font-weight: 900;
+    }
+    .report-section,
+    .notice {
+      break-inside: avoid;
+    }
+  }
+</style>
+</head>
+<body>
+<a class="skip-link" href="#mainContent">ゲーム本文へ移動</a>
+<div class="page-shell">
+  <header class="site-header">
+    <div class="brand">
+      <div class="brand-cats" aria-hidden="true">🐈🐈‍⬛🐈</div>
+      <div class="brand-text">
+        <strong>ネコオフィス</strong>
+        <span>仕事の工夫を見つけるミニゲーム</span>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="icon-button" id="textSizeButton" type="button" aria-label="文字を大きくする" title="文字サイズ">文字</button>
+      <button class="icon-button" id="helpButton" type="button" aria-label="使い方を開く" title="使い方">？</button>
+      <button class="icon-button" id="pauseButton" type="button" aria-label="いったん中断する" title="中断">休む</button>
+      <button class="icon-button" id="soundButton" type="button" aria-pressed="false" aria-label="音をオンにする" title="音のオン・オフ">🔇</button>
+    </div>
+  </header>
+
+  <div class="progress-wrap" aria-label="ゲームの進み具合">
+    <div class="progress-labels">
+      <span id="progressName">はじめに</span>
+      <strong id="progressPercent">0%</strong>
+    </div>
+    <div class="progress-track" id="progressTrack" role="progressbar" aria-label="進み具合" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+      <div class="progress-bar" id="progressBar"></div>
+    </div>
+  </div>
+
+  <noscript>
+    <div class="noscript">このゲームにはJavaScriptが必要です。ブラウザの設定でJavaScriptを有効にしてください。</div>
+  </noscript>
+
+  <div class="visually-hidden" id="liveRegion" role="status" aria-live="polite" aria-atomic="true"></div>
+
+  <main id="mainContent" tabindex="-1">
+    <section class="screen active" id="introScreen" aria-labelledby="gameTitle">
+      <div class="hero-grid">
+        <div>
+          <p class="eyebrow">成人向け・試作版</p>
+          <h1 id="gameTitle">ふわっと依頼を<br>ほどこう</h1>
+          <p class="lead">曖昧な仕事の依頼に、確認質問を選びます。わかったことと未確認のことを分け、短い確認メモを組み立てます。</p>
+          <ul class="feature-list" aria-label="ゲームの特徴">
+            <li><span aria-hidden="true">⏱️</span>約3〜5分</li>
+            <li><span aria-hidden="true">📱</span>スマホ対応</li>
+            <li><span aria-hidden="true">🔒</span>通信なし</li>
+          </ul>
+          <div class="notice warning">
+            <strong>大切なお知らせ</strong><br>
+            このゲームは、疾病の診断・治療、能力評価、復職可否の判定を行いません。速さや敬語を採点するものでもありません。負担を感じたら、いつでも中断してください。
+          </div>
+          <div class="button-row">
+            <button class="button primary" id="startButton" type="button">ゲームを始める</button>
+            <button class="button secondary" id="showSavedButton" type="button">端末に保存したメモを見る</button>
+          </div>
+          <p class="small-note">氏名・診断名・会社名の入力はありません。入力内容や結果を外部へ送る機能はありません。</p>
+        </div>
+        <div class="hero-art" aria-hidden="true">
+          <div class="desk-scene">
+            <div><span class="desk-cats">🐈🐈‍⬛🐈</span><span class="monitor">？→✓</span></div>
+            <div class="desk"></div>
+            <div class="bubble">「どこまで？」「いつまで？」</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen" id="requestScreen" aria-labelledby="requestTitle">
+      <div class="work-layout">
+        <div class="work-main">
+          <p class="eyebrow">依頼を受け取る</p>
+          <h2 id="requestTitle">仕事場面</h2>
+          <div class="context-card">
+            <strong>今の状況</strong>
+            <span id="scenarioContext"></span>
+          </div>
+          <article class="request-card" aria-labelledby="requestSender">
+            <div class="request-meta">
+              <span id="requestSender"></span>
+              <span id="requestChannel"></span>
+            </div>
+            <p class="request-quote" id="requestQuote"></p>
+          </article>
+
+          <fieldset class="question-panel">
+            <legend>確認してみたい質問を2〜3個選んでください</legend>
+            <p class="small-note">質問にはそれぞれ役割があります。一つだけの正解はありません。選ばなかった質問があっても失敗ではありません。</p>
+            <div class="question-grid" id="questionGrid"></div>
+            <p class="selection-status" id="selectionStatus" aria-live="polite">0個選択中。あと2個以上選べます。</p>
+          </fieldset>
+
+          <div class="button-row">
+            <button class="button primary" id="questionContinueButton" type="button" disabled>選んだ質問をしてみる</button>
+          </div>
+        </div>
+        <aside class="side-panel" aria-label="補助情報">
+          <div class="side-card">
+            <span>オフィス時刻</span>
+            <strong id="officeClock">10:00</strong>
+            <small>時間制限はありません</small>
+          </div>
+          <div class="side-card">
+            <strong>確認の4つの窓</strong>
+            <small>目的・期限・完成形・優先順位。全部を一度に聞かなくても構いません。</small>
+          </div>
+          <div class="side-card">
+            <strong>🔒 この画面内だけ</strong>
+            <small>選択内容は外部へ自動送信されません。</small>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="screen" id="answersScreen" aria-labelledby="answersTitle">
+      <p class="eyebrow">返答を確認する</p>
+      <h2 id="answersTitle">質問すると、こう返ってきました</h2>
+      <p>返答からわかったことを確認します。質問しなかった項目は、このあと「未確認」として扱えます。</p>
+      <div class="answer-list" id="answerList"></div>
+      <div class="known-summary" id="knownSummary"></div>
+      <div class="notice">
+        <strong>ポイント：</strong>
+        すべてを聞き切ることより、「わかったこと」と「まだわからないこと」を混ぜないことが大切です。
+      </div>
+      <div class="button-row">
+        <button class="button primary" id="answersContinueButton" type="button">確認メモを組み立てる</button>
+        <button class="button secondary" id="answersBackButton" type="button">質問を選び直す</button>
+      </div>
+    </section>
+
+    <section class="screen" id="memoScreen" aria-labelledby="memoTitle">
+      <p class="eyebrow">確認メモを作る</p>
+      <h2 id="memoTitle">確認済みと未確認を分ける</h2>
+      <p>各項目について、今回のメモにどう残すかを選んでください。表現の違いに点数はありません。</p>
+      <div class="memo-grid" id="memoGrid"></div>
+      <section class="memo-preview" aria-labelledby="memoPreviewTitle">
+        <h3 id="memoPreviewTitle">確認メモのプレビュー</h3>
+        <pre id="memoPreview" aria-live="polite"></pre>
+      </section>
+      <div class="button-row">
+        <button class="button primary" id="memoContinueButton" type="button" disabled>残る仮定を確認する</button>
+        <button class="button secondary" id="memoBackButton" type="button">返答へ戻る</button>
+      </div>
+    </section>
+
+    <section class="screen" id="assumptionScreen" aria-labelledby="assumptionTitle">
+      <p class="eyebrow">仮定を見える化</p>
+      <h2 id="assumptionTitle">まだ決まっていないこと</h2>
+      <p>未確認の項目を隠さず、次にどう扱うかを選びます。仕事の影響や職場のルールによって、複数の対応が考えられます。</p>
+      <ul class="unknown-list" id="unknownList"></ul>
+      <fieldset class="choice-fieldset">
+        <legend>次の一手として、今の場面で試したいものを1つ選んでください</legend>
+        <div class="action-grid" id="actionGrid"></div>
+      </fieldset>
+      <div class="button-row">
+        <button class="button primary" id="assumptionContinueButton" type="button" disabled>持ち帰る工夫を選ぶ</button>
+        <button class="button secondary" id="assumptionBackButton" type="button">メモへ戻る</button>
+      </div>
+    </section>
+
+    <section class="screen" id="reflectionScreen" aria-labelledby="reflectionTitle">
+      <p class="eyebrow">振り返り</p>
+      <h2 id="reflectionTitle">次に使ってみたい工夫</h2>
+      <p>今回の体験から、持ち帰りたいものを1〜2個選んでください。場面ごとに使い分けて構いません。</p>
+      <fieldset class="choice-fieldset">
+        <legend>持ち帰る工夫</legend>
+        <div class="takeaway-grid" id="takeawayGrid"></div>
+        <p class="selection-status" id="takeawayStatus" aria-live="polite">0個選択中。1〜2個選べます。</p>
+      </fieldset>
+      <div class="memo-preview">
+        <h3>今回作った確認メモ</h3>
+        <pre id="reflectionMemo"></pre>
+      </div>
+      <div class="button-row">
+        <button class="button primary" id="reportButton" type="button" disabled>振り返りメモを見る</button>
+        <button class="button secondary" id="reflectionBackButton" type="button">仮定の確認へ戻る</button>
+      </div>
+    </section>
+
+    <section class="screen" id="reportScreen" aria-labelledby="reportTitle">
+      <p class="eyebrow">振り返り</p>
+      <h2 id="reportTitle">あなたの「確認の工夫メモ」</h2>
+      <p class="small-note" id="reportDate"></p>
+
+      <section class="report-section" aria-labelledby="reportRequestTitle">
+        <h3 id="reportRequestTitle">今回の依頼</h3>
+        <p id="reportRequest"></p>
+      </section>
+
+      <section class="report-section" aria-labelledby="reportQuestionsTitle">
+        <h3 id="reportQuestionsTitle">選んだ確認質問</h3>
+        <ul class="report-list" id="reportQuestions"></ul>
+      </section>
+
+      <section class="report-section" aria-labelledby="reportKnownTitle">
+        <h3 id="reportKnownTitle">返答からわかったこと</h3>
+        <ul class="report-list" id="reportKnown"></ul>
+      </section>
+
+      <section class="report-section highlight" aria-labelledby="reportMemoTitle">
+        <h3 id="reportMemoTitle">組み立てた確認メモ</h3>
+        <pre class="report-memo" id="reportMemo"></pre>
+      </section>
+
+      <section class="report-section" aria-labelledby="reportUnknownTitle">
+        <h3 id="reportUnknownTitle">残る未確認・仮定</h3>
+        <ul class="report-list" id="reportUnknown"></ul>
+        <h3>選んだ次の一手</h3>
+        <p id="reportAction"></p>
+      </section>
+
+      <section class="report-section highlight" aria-labelledby="reportTakeawayTitle">
+        <h3 id="reportTakeawayTitle">持ち帰る工夫</h3>
+        <ul class="report-list" id="reportTakeaways"></ul>
+        <p class="share-phrase" id="sharePhrase"></p>
+      </section>
+
+      <div class="notice warning">
+        <strong>この結果の見方</strong><br>
+        これは標準化された検査ではありません。質問の選び方や文章の丁寧さを採点しておらず、能力、疾病の状態、復職可否を示すものではありません。実際の対応は、仕事内容、影響の大きさ、職場のルール、相談相手との関係に合わせて調整してください。
+      </div>
+
+      <div class="button-row">
+        <button class="button primary" id="printButton" type="button">印刷・PDF保存</button>
+        <button class="button secondary" id="saveButton" type="button">この端末に保存</button>
+        <button class="button secondary" id="anotherButton" type="button">別の場面を試す</button>
+        <button class="button secondary" id="homeButton" type="button">最初の画面へ</button>
+        <button class="button danger" id="clearButton" type="button">端末の記録を消す</button>
+      </div>
+      <div class="saved-banner" id="savedBanner" role="status" aria-live="polite"></div>
+    </section>
+  </main>
+
+  <p class="footer-note">ネコオフィス：ふわっと依頼をほどこう（試作版 v0.1）｜山岸産業医事務所</p>
+</div>
+
+<div class="dialog-backdrop" id="helpDialog" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+  <div class="dialog" tabindex="-1">
+    <h2 id="helpTitle">使い方</h2>
+    <ol>
+      <li>曖昧な仕事の依頼を1つ読みます。</li>
+      <li>確認してみたい質問を2〜3個選びます。</li>
+      <li>返答から、目的・期限・完成形・優先順位のうち、わかったことを確認します。</li>
+      <li>確認済みと未確認を分けた短いメモを組み立てます。</li>
+      <li>残る仮定の扱い方と、持ち帰る工夫を選びます。</li>
+    </ol>
+    <p>一つだけの正解や、速さ・敬語の点数はありません。Tab・Shift＋Tabで移動し、Enter・Spaceで選択できます。途中で「休む」を押して中断できます。</p>
+    <div class="notice">
+      音は初期状態でオフです。文字ボタンは、標準・大・特大の順に切り替わります。
+    </div>
+    <div class="button-row">
+      <button class="button primary" id="closeHelpButton" type="button">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<div class="dialog-backdrop" id="pauseDialog" role="dialog" aria-modal="true" aria-labelledby="pauseTitle">
+  <div class="dialog" tabindex="-1">
+    <h2 id="pauseTitle">いったん休みますか？</h2>
+    <p>この画面を開いたままなら、少し休んでから続きへ戻れます。最初の画面へ戻ると、保存していない途中の選択は消えます。</p>
+    <div class="button-row">
+      <button class="button primary" id="resumeButton" type="button">続きを再開</button>
+      <button class="button secondary" id="quitButton" type="button">最初の画面へ戻る</button>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+var STORAGE_KEY = 'nekoOfficeClarifyV1';
+
+var DIMENSIONS = {
+  purpose: { label: '目的', icon: '🎯' },
+  deadline: { label: '期限', icon: '🗓️' },
+  format: { label: '完成形', icon: '📄' },
+  priority: { label: '優先順位', icon: '↕️' }
+};
+
+var DIMENSION_KEYS = Object.keys(DIMENSIONS);
+
+var SCENARIOS = [
+  {
+    id: 'meeting',
+    title: '午後の会議資料',
+    clock: '10:10',
+    sender: '上司ネコ',
+    channel: 'チャット',
+    context: 'あなたは、明日提出する在庫表を作成しています。そこへ新しい依頼が届きました。',
+    request: '午後の会議に使う資料、前のをもとに、いい感じにまとめておいて。',
+    questions: [
+      { id: 'meeting-purpose', dimension: 'purpose', text: 'この資料で、参加者に何をわかってもらいたいですか？', answer: '新しく参加する人が、現在の進捗と次の判断点を3分ほどで把握できるようにしたいです。' },
+      { id: 'meeting-audience', dimension: 'purpose', text: '主に誰が見る資料ですか？', answer: '部長と、今回初めて参加するメンバーが見ます。' },
+      { id: 'meeting-deadline', dimension: 'deadline', text: '何時までに確認できる状態にすればよいですか？', answer: '会議は14時からなので、13時30分までに一度見せてください。' },
+      { id: 'meeting-format', dimension: 'format', text: '枚数やファイル形式の希望はありますか？', answer: '前回のPowerPointを使い、6枚以内にして、確認用PDFも付けてください。' },
+      { id: 'meeting-example', dimension: 'format', text: '完成形に近い見本はありますか？', answer: '共有フォルダの「先月_進捗会議_確定版」が近いです。グラフはその形式を使えます。' },
+      { id: 'meeting-priority', dimension: 'priority', text: '今作っている在庫表と、どちらを先に進めますか？', answer: 'まず会議資料を進めてください。在庫表は今日の終業までで大丈夫です。' }
+    ]
+  },
+  {
+    id: 'customer-list',
+    title: '顧客一覧の整理',
+    clock: '11:25',
+    sender: '営業担当ネコ',
+    channel: '口頭',
+    context: 'あなたは、午前中に届いた問い合わせへの返信案を作っています。営業担当から声をかけられました。',
+    request: 'この顧客一覧、見やすくして、早めに共有してもらえますか。',
+    questions: [
+      { id: 'customer-purpose', dimension: 'purpose', text: 'この一覧は、何を決めるために使いますか？', answer: '今週中に連絡する顧客を、営業チームで決めるために使います。' },
+      { id: 'customer-audience', dimension: 'purpose', text: '誰が、どんな場面で見る予定ですか？', answer: '明日の朝会で、営業チームの5人が画面共有して見ます。' },
+      { id: 'customer-deadline', dimension: 'deadline', text: '「早め」は、いつまでを想定していますか？', answer: '明日の朝会前、10時までに共有してください。今日中に仮版があると助かります。' },
+      { id: 'customer-format', dimension: 'format', text: 'どの情報が見えれば、完成と考えますか？', answer: '会社名、最終連絡日、担当者、次の連絡予定を1つの表で見られる状態です。' },
+      { id: 'customer-example', dimension: 'format', text: '並び順や色分けに希望はありますか？', answer: '次の連絡予定が近い順にし、今週対応する行だけ薄い黄色にしてください。' },
+      { id: 'customer-priority', dimension: 'priority', text: '今の問い合わせ返信と、どちらを先にしますか？', answer: '問い合わせ返信を先に終え、その後に一覧を進めてください。16時に途中経過を確認します。' }
+    ]
+  },
+  {
+    id: 'procedure',
+    title: '新人向け手順メモ',
+    clock: '15:05',
+    sender: '先輩ネコ',
+    channel: 'メール',
+    context: 'あなたは、今日の請求書登録を進めています。先輩から資料と一緒にメールが届きました。',
+    request: '新人向けに、この手順を簡単にしておいてください。',
+    questions: [
+      { id: 'procedure-purpose', dimension: 'purpose', text: '新人の方が、この手順だけで何ができればよいですか？', answer: '一人で備品申請を入力し、提出前の確認までできることを目指しています。' },
+      { id: 'procedure-audience', dimension: 'purpose', text: '使う人は、この仕事をどのくらい知っていますか？', answer: '入社1週目で、社内システムにはまだ慣れていない人です。' },
+      { id: 'procedure-deadline', dimension: 'deadline', text: 'いつ使い始める予定ですか？', answer: '来週月曜の研修で使います。金曜12時までに確認用をください。' },
+      { id: 'procedure-format', dimension: 'format', text: '「簡単に」は、どのような形を想定していますか？', answer: 'A4で2ページ以内、画面の画像と番号付きの手順にしてください。' },
+      { id: 'procedure-example', dimension: 'format', text: '残す内容と、省いてよい内容の基準はありますか？', answer: '毎回必要な操作は残し、管理者だけが行う設定と制度説明は別紙への案内で構いません。' },
+      { id: 'procedure-priority', dimension: 'priority', text: '今日の請求書登録との順番はどうしますか？', answer: '請求書登録を終えてからで構いません。今日は構成だけ作り、明日画像を入れてください。' }
+    ]
+  },
+  {
+    id: 'event',
+    title: '説明会の予定表',
+    clock: '09:35',
+    sender: '企画担当ネコ',
+    channel: 'チャット',
+    context: 'あなたは、今日10時までの取引先メールを確認しています。企画担当から依頼が届きました。',
+    request: '来月の説明会の予定、ざっくり作っておいてもらえますか。',
+    questions: [
+      { id: 'event-purpose', dimension: 'purpose', text: 'この予定表で、次に何を決めたいですか？', answer: '候補日と担当の空きを確認し、明日の打合せで開催日を絞りたいです。' },
+      { id: 'event-audience', dimension: 'purpose', text: '誰に共有するための予定ですか？', answer: 'まず企画チーム内だけで共有し、まだ参加者には送りません。' },
+      { id: 'event-deadline', dimension: 'deadline', text: 'いつまでに「ざっくり版」が必要ですか？', answer: '今日16時までです。14時に候補日だけ見られると助かります。' },
+      { id: 'event-format', dimension: 'format', text: '予定表に入れる項目を教えてください。', answer: '候補日、時間帯、会場候補、担当、未決定事項を表にしてください。' },
+      { id: 'event-example', dimension: 'format', text: '決まっていることと未決定を、どう区別しますか？', answer: '確定は緑、候補は白、未確認は「確認中」と文字で書いてください。' },
+      { id: 'event-priority', dimension: 'priority', text: '今確認している取引先メールより先ですか？', answer: '取引先メールを先に送ってください。その後、14時の候補日確認に間に合うよう進めます。' }
+    ]
+  }
+];
+
+var ACTIONS = [
+  {
+    id: 'ask',
+    title: '未確認を明記したメモを送り、返答を待つ',
+    note: '相手が答えやすくなります。期限への影響がありそうなら、その点も一緒に伝えます。'
+  },
+  {
+    id: 'draft',
+    title: 'わかっている範囲で仮版を作る',
+    note: '仮定した箇所に「仮」「未確認」と表示し、確定版と混ざらないようにします。'
+  },
+  {
+    id: 'source',
+    title: '過去資料や予定表など、確認できる情報源を探す',
+    note: '情報源と確認した日を残し、古い情報の可能性があれば相手にも確認します。'
+  },
+  {
+    id: 'hold',
+    title: '影響が大きい項目は進めず、別の作業に移る',
+    note: '返答待ちであることと、期限への影響を見えるようにしておきます。'
+  }
+];
+
+var TAKEAWAYS = [
+  { id: 'purpose', text: '「何のために使うか」を最初に確認する' },
+  { id: 'deadline', text: '「早め」「あとで」を具体的な時刻や日付にする' },
+  { id: 'format', text: '完成形の見本・項目・範囲を確認する' },
+  { id: 'priority', text: '今の仕事と新しい依頼の優先順位を確認する' },
+  { id: 'assumption', text: '未確認や仮定を一行で見えるように残す' },
+  { id: 'alternative', text: '相手が不在なら、仮版・情報源確認・保留を使い分ける' }
+];
+
+var screens = Array.prototype.slice.call(document.querySelectorAll('.screen'));
+var progressBar = document.getElementById('progressBar');
+var progressPercent = document.getElementById('progressPercent');
+var progressName = document.getElementById('progressName');
+var progressTrack = document.getElementById('progressTrack');
+var liveRegion = document.getElementById('liveRegion');
+var soundButton = document.getElementById('soundButton');
+var textSizeButton = document.getElementById('textSizeButton');
+var motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+var audioContext = null;
+var soundOn = false;
+var textSizeLevel = 0;
+var lastFocused = null;
+var currentReportData = null;
+
+var state = {
+  scenarioId: null,
+  lastScenarioId: null,
+  questionOrder: [],
+  selectedQuestionIds: [],
+  memoSelections: {},
+  memoOptionOrders: {},
+  actionOrder: [],
+  actionId: null,
+  takeawayOrder: [],
+  takeawayIds: []
+};
+
+function getScenario(id) {
+  return SCENARIOS.find(function (scenario) { return scenario.id === id; }) || null;
+}
+
+function getQuestion(scenario, id) {
+  return scenario.questions.find(function (question) { return question.id === id; }) || null;
+}
+
+function getAction(id) {
+  return ACTIONS.find(function (action) { return action.id === id; }) || null;
+}
+
+function getTakeaway(id) {
+  return TAKEAWAYS.find(function (item) { return item.id === id; }) || null;
+}
+
+function shuffle(items) {
+  var copy = items.slice();
+  for (var index = copy.length - 1; index > 0; index -= 1) {
+    var other = Math.floor(Math.random() * (index + 1));
+    var temp = copy[index];
+    copy[index] = copy[other];
+    copy[other] = temp;
+  }
+  return copy;
+}
+
+function safeFocus(element) {
+  window.setTimeout(function () {
+    if (element && typeof element.focus === 'function') element.focus();
+  }, 30);
+}
+
+function announce(message) {
+  liveRegion.textContent = '';
+  window.setTimeout(function () { liveRegion.textContent = message; }, 20);
+}
+
+function showScreen(id, progress, label) {
+  screens.forEach(function (screen) {
+    screen.classList.toggle('active', screen.id === id);
+  });
+  progressBar.style.width = String(progress) + '%';
+  progressPercent.textContent = String(progress) + '%';
+  progressName.textContent = label;
+  progressTrack.setAttribute('aria-valuenow', String(progress));
+  document.getElementById('mainContent').focus({ preventScroll: true });
+  window.scrollTo({ top: 0, behavior: motionQuery.matches ? 'auto' : 'smooth' });
+  announce(label + 'の画面です。進み具合は' + String(progress) + 'パーセントです。');
+}
+
+function beep(kind) {
+  if (!soundOn) return;
+  try {
+    if (!audioContext) {
+      audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioContext.state === 'suspended') audioContext.resume();
+    var oscillator = audioContext.createOscillator();
+    var gain = audioContext.createGain();
+    oscillator.type = 'sine';
+    oscillator.frequency.value = kind === 'step' ? 520 : 650;
+    gain.gain.setValueAtTime(.045, audioContext.currentTime);
+    gain.gain.exponentialRampToValueAtTime(.0001, audioContext.currentTime + .12);
+    oscillator.connect(gain);
+    gain.connect(audioContext.destination);
+    oscillator.start();
+    oscillator.stop(audioContext.currentTime + .12);
+  } catch (_) {}
+}
+
+function clearChildren(element) {
+  while (element.firstChild) element.removeChild(element.firstChild);
+}
+
+function appendListItems(element, texts) {
+  clearChildren(element);
+  texts.forEach(function (text) {
+    var item = document.createElement('li');
+    item.textContent = text;
+    element.appendChild(item);
+  });
+}
+
+function buildKnowledge(scenario, questionIds) {
+  var knowledge = {};
+  DIMENSION_KEYS.forEach(function (key) { knowledge[key] = []; });
+  questionIds.forEach(function (id) {
+    var question = getQuestion(scenario, id);
+    if (question && knowledge[question.dimension].indexOf(question.answer) === -1) {
+      knowledge[question.dimension].push(question.answer);
+    }
+  });
+  return knowledge;
+}
+
+function resetWorkingState() {
+  state.scenarioId = null;
+  state.questionOrder = [];
+  state.selectedQuestionIds = [];
+  state.memoSelections = {};
+  state.memoOptionOrders = {};
+  state.actionOrder = [];
+  state.actionId = null;
+  state.takeawayOrder = [];
+  state.takeawayIds = [];
+  currentReportData = null;
+  document.getElementById('savedBanner').classList.remove('show');
+  document.getElementById('savedBanner').textContent = '';
+}
+
+function chooseScenario(excludeId) {
+  var choices = SCENARIOS.filter(function (scenario) { return scenario.id !== excludeId; });
+  if (!choices.length) choices = SCENARIOS.slice();
+  return choices[Math.floor(Math.random() * choices.length)];
+}
+
+function startGame(useAnother) {
+  var previous = useAnother ? state.scenarioId : null;
+  resetWorkingState();
+  var scenario = chooseScenario(previous);
+  state.scenarioId = scenario.id;
+  state.lastScenarioId = scenario.id;
+  state.questionOrder = shuffle(scenario.questions.map(function (question) { return question.id; }));
+  renderRequest();
+  showScreen('requestScreen', 15, '確認質問を選ぶ');
+  safeFocus(document.querySelector('#questionGrid input'));
+}
+
+function renderRequest() {
+  var scenario = getScenario(state.scenarioId);
+  document.getElementById('requestTitle').textContent = scenario.title;
+  document.getElementById('scenarioContext').textContent = scenario.context;
+  document.getElementById('requestSender').textContent = '依頼者：' + scenario.sender;
+  document.getElementById('requestChannel').textContent = scenario.channel;
+  document.getElementById('requestQuote').textContent = '「' + scenario.request + '」';
+  document.getElementById('officeClock').textContent = scenario.clock;
+
+  var grid = document.getElementById('questionGrid');
+  clearChildren(grid);
+
+  state.questionOrder.forEach(function (questionId) {
+    var question = getQuestion(scenario, questionId);
+    var label = document.createElement('label');
+    label.className = 'question-option';
+
+    var input = document.createElement('input');
+    input.type = 'checkbox';
+    input.value = question.id;
+    input.checked = state.selectedQuestionIds.indexOf(question.id) !== -1;
+    input.addEventListener('change', function () {
+      if (input.checked && state.selectedQuestionIds.length >= 3) {
+        input.checked = false;
+        announce('質問は3個まで選べます。別の質問に変える場合は、選択済みの質問を1個外してください。');
+        return;
+      }
+      if (input.checked) {
+        state.selectedQuestionIds.push(question.id);
+      } else {
+        state.selectedQuestionIds = state.selectedQuestionIds.filter(function (id) { return id !== question.id; });
+      }
+      updateQuestionSelection();
+      beep('select');
+    });
+
+    var copy = document.createElement('span');
+    copy.className = 'option-copy';
+    var strong = document.createElement('strong');
+    strong.textContent = question.text;
+    var small = document.createElement('small');
+    small.textContent = 'この質問を確認メモの材料にします';
+    copy.appendChild(strong);
+    copy.appendChild(small);
+    label.appendChild(input);
+    label.appendChild(copy);
+    grid.appendChild(label);
+  });
+
+  updateQuestionSelection();
+}
+
+function updateQuestionSelection() {
+  var count = state.selectedQuestionIds.length;
+  var status = document.getElementById('selectionStatus');
+  if (count < 2) {
+    status.textContent = String(count) + '個選択中。あと' + String(2 - count) + '個以上選べます。';
+  } else if (count === 2) {
+    status.textContent = '2個選択中。このまま進むか、あと1個選べます。';
+  } else {
+    status.textContent = '3個選択中。質問を変更する場合は、1個外してください。';
+  }
+  document.getElementById('questionContinueButton').disabled = count < 2 || count > 3;
+
+  Array.prototype.slice.call(document.querySelectorAll('#questionGrid .question-option')).forEach(function (label) {
+    var input = label.querySelector('input');
+    var selected = input.checked;
+    var disabled = count >= 3 && !selected;
+    input.disabled = disabled;
+    label.classList.toggle('selected', selected);
+    label.classList.toggle('disabled', disabled);
+  });
+}
+
+function renderAnswers() {
+  var scenario = getScenario(state.scenarioId);
+  var answerList = document.getElementById('answerList');
+  clearChildren(answerList);
+
+  state.questionOrder.filter(function (id) {
+    return state.selectedQuestionIds.indexOf(id) !== -1;
+  }).forEach(function (id) {
+    var question = getQuestion(scenario, id);
+    var card = document.createElement('article');
+    card.className = 'answer-card';
+
+    var asked = document.createElement('p');
+    asked.className = 'asked';
+    asked.textContent = 'あなた：「' + question.text + '」';
+
+    var answer = document.createElement('p');
+    answer.className = 'answer';
+    answer.textContent = scenario.sender + '：「' + question.answer + '」';
+
+    var tag = document.createElement('span');
+    tag.className = 'dimension-tag';
+    tag.textContent = DIMENSIONS[question.dimension].icon + ' ' + DIMENSIONS[question.dimension].label + 'の手がかり';
+
+    card.appendChild(asked);
+    card.appendChild(answer);
+    card.appendChild(tag);
+    answerList.appendChild(card);
+  });
+
+  renderKnownSummary();
+}
+
+function renderKnownSummary() {
+  var scenario = getScenario(state.scenarioId);
+  var knowledge = buildKnowledge(scenario, state.selectedQuestionIds);
+  var summary = document.getElementById('knownSummary');
+  clearChildren(summary);
+
+  DIMENSION_KEYS.forEach(function (key) {
+    var item = document.createElement('div');
+    var known = knowledge[key].length > 0;
+    item.className = 'known-item ' + (known ? 'known' : 'unknown');
+
+    var strong = document.createElement('strong');
+    strong.textContent = DIMENSIONS[key].icon + ' ' + DIMENSIONS[key].label;
+    var span = document.createElement('span');
+    span.textContent = known ? '返答あり' : 'まだ未確認';
+    item.appendChild(strong);
+    item.appendChild(span);
+    summary.appendChild(item);
+  });
+}
+
+function knownMemoOptions() {
+  return [
+    { id: 'direct', label: '返答の内容をそのまま短く書く', note: '確認できた内容としてメモに入れます。' },
+    { id: 'confirmed', label: '「確認済み」と付けて書く', note: '確認した情報だとわかる形にします。' },
+    { id: 'next', label: '内容と「この条件で進める」を書く', note: '次の作業とのつながりを明確にします。' }
+  ];
+}
+
+function unknownMemoOptions() {
+  return [
+    { id: 'mark', label: '「未確認」と書いて残す', note: '空欄にせず、まだ決まっていないと示します。' },
+    { id: 'draft', label: '「仮定を明記して仮版」と書く', note: '作業を進める場合も、確定情報と混ぜません。' },
+    { id: 'hold', label: '「確認待ち」と書く', note: '影響が大きい項目を保留にします。' }
+  ];
+}
+
+function renderMemo() {
+  var scenario = getScenario(state.scenarioId);
+  var knowledge = buildKnowledge(scenario, state.selectedQuestionIds);
+  var grid = document.getElementById('memoGrid');
+  clearChildren(grid);
+
+  DIMENSION_KEYS.forEach(function (key) {
+    var known = knowledge[key].length > 0;
+    var fieldset = document.createElement('fieldset');
+    fieldset.className = 'memo-fieldset';
+
+    var legend = document.createElement('legend');
+    legend.textContent = DIMENSIONS[key].icon + ' ' + DIMENSIONS[key].label;
+    fieldset.appendChild(legend);
+
+    var current = document.createElement('p');
+    current.className = 'memo-current';
+    var currentStrong = document.createElement('strong');
+    currentStrong.textContent = known ? '確認できた内容：' : '現在の状態：';
+    current.appendChild(currentStrong);
+    current.appendChild(document.createTextNode(known ? knowledge[key].join('／') : 'まだ確認していません'));
+    fieldset.appendChild(current);
+
+    var optionsWrap = document.createElement('div');
+    optionsWrap.className = 'memo-options';
+    var choices = known ? knownMemoOptions() : unknownMemoOptions();
+    if (!state.memoOptionOrders[key]) {
+      state.memoOptionOrders[key] = shuffle(choices.map(function (option) { return option.id; }));
+    }
+
+    state.memoOptionOrders[key].forEach(function (optionId) {
+      var option = choices.find(function (item) { return item.id === optionId; });
+      if (!option) return;
+
+      var label = document.createElement('label');
+      label.className = 'memo-option';
+      var input = document.createElement('input');
+      input.type = 'radio';
+      input.name = 'memo-' + key;
+      input.value = option.id;
+      input.checked = state.memoSelections[key] === option.id;
+      input.addEventListener('change', function () {
+        state.memoSelections[key] = option.id;
+        updateMemoSelectionStyles();
+        updateMemoPreview();
+        beep('select');
+      });
+
+      var copy = document.createElement('span');
+      copy.className = 'option-copy';
+      var strong = document.createElement('strong');
+      strong.textContent = option.label;
+      var small = document.createElement('small');
+      small.textContent = option.note;
+      copy.appendChild(strong);
+      copy.appendChild(small);
+
+      label.appendChild(input);
+      label.appendChild(copy);
+      optionsWrap.appendChild(label);
+    });
+
+    fieldset.appendChild(optionsWrap);
+    grid.appendChild(fieldset);
+  });
+
+  updateMemoSelectionStyles();
+  updateMemoPreview();
+}
+
+function updateMemoSelectionStyles() {
+  Array.prototype.slice.call(document.querySelectorAll('#memoGrid .memo-option')).forEach(function (label) {
+    label.classList.toggle('selected', label.querySelector('input').checked);
+  });
+}
+
+function memoLineFor(key, selection, knowledge) {
+  var label = DIMENSIONS[key].label;
+  var known = knowledge[key].length > 0;
+  var info = knowledge[key].join('／');
+
+  if (!selection) return '【' + label + '】（選択してください）';
+  if (known) {
+    if (selection === 'confirmed') return '【' + label + '】確認済み：' + info;
+    if (selection === 'next') return '【' + label + '】' + info + '（この条件で進める）';
+    return '【' + label + '】' + info;
+  }
+  if (selection === 'draft') return '【' + label + '】未確認。仮定を明記して仮版を作る';
+  if (selection === 'hold') return '【' + label + '】確認待ち';
+  return '【' + label + '】未確認';
+}
+
+function buildMemoLines(scenario, questionIds, memoSelections) {
+  var knowledge = buildKnowledge(scenario, questionIds);
+  return DIMENSION_KEYS.map(function (key) {
+    return memoLineFor(key, memoSelections[key], knowledge);
+  });
+}
+
+function updateMemoPreview() {
+  var scenario = getScenario(state.scenarioId);
+  var lines = buildMemoLines(scenario, state.selectedQuestionIds, state.memoSelections);
+  document.getElementById('memoPreview').textContent = lines.join('\n');
+  document.getElementById('memoContinueButton').disabled = !DIMENSION_KEYS.every(function (key) {
+    return Boolean(state.memoSelections[key]);
+  });
+}
+
+function assumptionLines(scenario, questionIds, memoSelections) {
+  var knowledge = buildKnowledge(scenario, questionIds);
+  var lines = [];
+  DIMENSION_KEYS.forEach(function (key) {
+    if (knowledge[key].length) return;
+    var label = DIMENSIONS[key].label;
+    var selection = memoSelections[key];
+    if (selection === 'draft') {
+      lines.push(label + 'は未確認です。仮版で置く内容は「仮定」と表示します。');
+    } else if (selection === 'hold') {
+      lines.push(label + 'は未確認です。確認が取れるまで、この項目は保留します。');
+    } else {
+      lines.push(label + 'は未確認としてメモに残しています。');
+    }
+  });
+  if (!lines.length) lines.push('主要4項目は確認できました。作業中に新しい未確認事項が出たら、同じように区別して残します。');
+  return lines;
+}
+
+function renderAssumptions() {
+  var scenario = getScenario(state.scenarioId);
+  appendListItems(document.getElementById('unknownList'), assumptionLines(scenario, state.selectedQuestionIds, state.memoSelections));
+
+  if (!state.actionOrder.length) {
+    state.actionOrder = shuffle(ACTIONS.map(function (action) { return action.id; }));
+  }
+
+  var grid = document.getElementById('actionGrid');
+  clearChildren(grid);
+  state.actionOrder.forEach(function (id) {
+    var action = getAction(id);
+    var button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'action-button';
+    button.setAttribute('aria-pressed', state.actionId === id ? 'true' : 'false');
+
+    var strong = document.createElement('strong');
+    strong.textContent = action.title;
+    var small = document.createElement('small');
+    small.textContent = action.note;
+    button.appendChild(strong);
+    button.appendChild(small);
+
+    button.addEventListener('click', function () {
+      state.actionId = id;
+      updateActionSelection();
+      beep('select');
+    });
+    grid.appendChild(button);
+  });
+  updateActionSelection();
+}
+
+function updateActionSelection() {
+  Array.prototype.slice.call(document.querySelectorAll('#actionGrid .action-button')).forEach(function (button, index) {
+    var id = state.actionOrder[index];
+    var selected = state.actionId === id;
+    button.classList.toggle('selected', selected);
+    button.setAttribute('aria-pressed', selected ? 'true' : 'false');
+  });
+  document.getElementById('assumptionContinueButton').disabled = !state.actionId;
+}
+
+function renderReflection() {
+  var scenario = getScenario(state.scenarioId);
+  document.getElementById('reflectionMemo').textContent = buildMemoLines(scenario, state.selectedQuestionIds, state.memoSelections).join('\n');
+
+  if (!state.takeawayOrder.length) {
+    state.takeawayOrder = shuffle(TAKEAWAYS.map(function (item) { return item.id; }));
+  }
+
+  var grid = document.getElementById('takeawayGrid');
+  clearChildren(grid);
+  state.takeawayOrder.forEach(function (id) {
+    var item = getTakeaway(id);
+    var label = document.createElement('label');
+    label.className = 'takeaway-option';
+
+    var input = document.createElement('input');
+    input.type = 'checkbox';
+    input.value = id;
+    input.checked = state.takeawayIds.indexOf(id) !== -1;
+    input.addEventListener('change', function () {
+      if (input.checked && state.takeawayIds.length >= 2) {
+        input.checked = false;
+        announce('持ち帰る工夫は2個まで選べます。変更する場合は、選択済みの工夫を1個外してください。');
+        return;
+      }
+      if (input.checked) {
+        state.takeawayIds.push(id);
+      } else {
+        state.takeawayIds = state.takeawayIds.filter(function (value) { return value !== id; });
+      }
+      updateTakeawaySelection();
+      beep('select');
+    });
+
+    var copy = document.createElement('span');
+    copy.className = 'option-copy';
+    var strong = document.createElement('strong');
+    strong.textContent = item.text;
+    copy.appendChild(strong);
+    label.appendChild(input);
+    label.appendChild(copy);
+    grid.appendChild(label);
+  });
+  updateTakeawaySelection();
+}
+
+function updateTakeawaySelection() {
+  var count = state.takeawayIds.length;
+  var status = document.getElementById('takeawayStatus');
+  if (count === 0) status.textContent = '0個選択中。1〜2個選べます。';
+  else if (count === 1) status.textContent = '1個選択中。このまま進むか、あと1個選べます。';
+  else status.textContent = '2個選択中。変更する場合は、1個外してください。';
+
+  document.getElementById('reportButton').disabled = count < 1 || count > 2;
+  Array.prototype.slice.call(document.querySelectorAll('#takeawayGrid .takeaway-option')).forEach(function (label) {
+    var input = label.querySelector('input');
+    var selected = input.checked;
+    var disabled = count >= 2 && !selected;
+    input.disabled = disabled;
+    label.classList.toggle('selected', selected);
+    label.classList.toggle('disabled', disabled);
+  });
+}
+
+function createReportData() {
+  return {
+    version: 1,
+    createdAt: new Date().toISOString(),
+    scenarioId: state.scenarioId,
+    selectedQuestionIds: state.selectedQuestionIds.slice(),
+    memoSelections: Object.assign({}, state.memoSelections),
+    actionId: state.actionId,
+    takeawayIds: state.takeawayIds.slice()
+  };
+}
+
+function formatDate(iso) {
+  var date = new Date(iso);
+  return new Intl.DateTimeFormat('ja-JP', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(date);
+}
+
+function renderReport(data, loadedFromStorage) {
+  var report = data || createReportData();
+  var scenario = getScenario(report.scenarioId);
+  currentReportData = report;
+
+  document.getElementById('reportDate').textContent = formatDate(report.createdAt);
+  document.getElementById('reportRequest').textContent = scenario.sender + 'から：「' + scenario.request + '」';
+
+  var questions = report.selectedQuestionIds.map(function (id) {
+    var question = getQuestion(scenario, id);
+    return question.text;
+  });
+  appendListItems(document.getElementById('reportQuestions'), questions);
+
+  var knowledge = buildKnowledge(scenario, report.selectedQuestionIds);
+  var knownLines = [];
+  DIMENSION_KEYS.forEach(function (key) {
+    if (knowledge[key].length) {
+      knownLines.push(DIMENSIONS[key].label + '：' + knowledge[key].join('／'));
+    } else {
+      knownLines.push(DIMENSIONS[key].label + '：未確認');
+    }
+  });
+  appendListItems(document.getElementById('reportKnown'), knownLines);
+
+  document.getElementById('reportMemo').textContent = buildMemoLines(scenario, report.selectedQuestionIds, report.memoSelections).join('\n');
+  appendListItems(document.getElementById('reportUnknown'), assumptionLines(scenario, report.selectedQuestionIds, report.memoSelections));
+
+  var action = getAction(report.actionId);
+  document.getElementById('reportAction').textContent = action.title + '。' + action.note;
+
+  var takeawayTexts = report.takeawayIds.map(function (id) { return getTakeaway(id).text; });
+  appendListItems(document.getElementById('reportTakeaways'), takeawayTexts);
+  document.getElementById('sharePhrase').textContent = '依頼が曖昧なときは、' + takeawayTexts.join('。また、') + 'ことを試してみます。';
+
+  var banner = document.getElementById('savedBanner');
+  if (loadedFromStorage) {
+    banner.textContent = 'この端末に保存されていたメモを表示しています。';
+    banner.classList.add('show');
+  } else {
+    banner.textContent = '';
+    banner.classList.remove('show');
+  }
+
+  showScreen('reportScreen', 100, '振り返り完了');
+  safeFocus(document.getElementById('reportTitle'));
+}
+
+function validateStoredReport(data) {
+  if (!data || data.version !== 1 || typeof data.createdAt !== 'string' || Number.isNaN(Date.parse(data.createdAt))) return false;
+  var scenario = getScenario(data.scenarioId);
+  if (!scenario) return false;
+  if (!Array.isArray(data.selectedQuestionIds) || data.selectedQuestionIds.length < 2 || data.selectedQuestionIds.length > 3) return false;
+  var uniqueQuestions = Array.from(new Set(data.selectedQuestionIds));
+  if (uniqueQuestions.length !== data.selectedQuestionIds.length) return false;
+  if (!data.selectedQuestionIds.every(function (id) { return Boolean(getQuestion(scenario, id)); })) return false;
+  if (!data.memoSelections || typeof data.memoSelections !== 'object') return false;
+
+  var knowledge = buildKnowledge(scenario, data.selectedQuestionIds);
+  var validKnown = ['direct', 'confirmed', 'next'];
+  var validUnknown = ['mark', 'draft', 'hold'];
+  if (!DIMENSION_KEYS.every(function (key) {
+    var allowed = knowledge[key].length ? validKnown : validUnknown;
+    return allowed.indexOf(data.memoSelections[key]) !== -1;
+  })) return false;
+
+  if (!getAction(data.actionId)) return false;
+  if (!Array.isArray(data.takeawayIds) || data.takeawayIds.length < 1 || data.takeawayIds.length > 2) return false;
+  var uniqueTakeaways = Array.from(new Set(data.takeawayIds));
+  if (uniqueTakeaways.length !== data.takeawayIds.length) return false;
+  if (!data.takeawayIds.every(function (id) { return Boolean(getTakeaway(id)); })) return false;
+  return true;
+}
+
+function saveReport() {
+  if (!currentReportData) return;
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(currentReportData));
+    var banner = document.getElementById('savedBanner');
+    banner.textContent = 'この端末に保存しました。氏名などの個人情報は含まれていません。';
+    banner.classList.add('show');
+    announce('この端末に保存しました。');
+    beep('step');
+  } catch (_) {
+    alert('このブラウザでは端末保存を利用できませんでした。印刷・PDF保存をご利用ください。');
+  }
+}
+
+function loadSavedReport() {
+  try {
+    var raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) {
+      alert('この端末に保存された確認メモはありません。');
+      return;
+    }
+    var data = JSON.parse(raw);
+    if (!validateStoredReport(data)) throw new Error('invalid');
+    renderReport(data, true);
+  } catch (_) {
+    try { localStorage.removeItem(STORAGE_KEY); } catch (_) {}
+    alert('保存記録を読み込めなかったため、破損した記録を削除しました。');
+  }
+}
+
+function clearSavedReport() {
+  if (!confirm('この端末に保存した「確認の工夫メモ」を削除しますか？')) return;
+  var banner = document.getElementById('savedBanner');
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+    banner.textContent = '端末の保存記録を削除しました。';
+    banner.classList.add('show');
+    announce('端末の保存記録を削除しました。');
+  } catch (_) {
+    banner.textContent = 'このブラウザでは保存記録を削除できませんでした。';
+    banner.classList.add('show');
+    announce('保存記録を削除できませんでした。');
+  }
+}
+
+function openDialog(dialog) {
+  lastFocused = document.activeElement;
+  dialog.classList.add('show');
+  document.body.style.overflow = 'hidden';
+  safeFocus(dialog.querySelector('.dialog'));
+}
+
+function closeDialog(dialog) {
+  dialog.classList.remove('show');
+  document.body.style.overflow = '';
+  safeFocus(lastFocused);
+}
+
+function visibleDialog() {
+  return document.querySelector('.dialog-backdrop.show');
+}
+
+function trapDialogFocus(event, dialog) {
+  if (event.key !== 'Tab') return;
+  var focusable = Array.prototype.slice.call(dialog.querySelectorAll('button:not([disabled]), [href], input:not([disabled]), [tabindex]:not([tabindex="-1"])'));
+  if (!focusable.length) return;
+  var first = focusable[0];
+  var last = focusable[focusable.length - 1];
+  if (event.shiftKey && document.activeElement === first) {
+    event.preventDefault();
+    last.focus();
+  } else if (!event.shiftKey && document.activeElement === last) {
+    event.preventDefault();
+    first.focus();
+  }
+}
+
+function runInternalChecks() {
+  if (SCENARIOS.length < 3) throw new Error('Three or more scenarios are required.');
+  var scenarioIds = SCENARIOS.map(function (scenario) { return scenario.id; });
+  if (new Set(scenarioIds).size !== scenarioIds.length) throw new Error('Scenario IDs must be unique.');
+
+  SCENARIOS.forEach(function (scenario) {
+    if (!scenario.request || scenario.questions.length < 4) throw new Error('Scenario content is incomplete: ' + scenario.id);
+    var questionIds = scenario.questions.map(function (question) { return question.id; });
+    if (new Set(questionIds).size !== questionIds.length) throw new Error('Question IDs must be unique: ' + scenario.id);
+    if (!scenario.questions.every(function (question) {
+      return Boolean(DIMENSIONS[question.dimension]) && Boolean(question.text) && Boolean(question.answer);
+    })) throw new Error('Question content is invalid: ' + scenario.id);
+    if (!DIMENSION_KEYS.every(function (key) {
+      return scenario.questions.some(function (question) { return question.dimension === key; });
+    })) throw new Error('A core dimension is missing: ' + scenario.id);
+
+    var sampleQuestionIds = [];
+    DIMENSION_KEYS.slice(0, 3).forEach(function (key) {
+      sampleQuestionIds.push(scenario.questions.find(function (question) { return question.dimension === key; }).id);
+    });
+    var knowledge = buildKnowledge(scenario, sampleQuestionIds);
+    var sampleSelections = {};
+    DIMENSION_KEYS.forEach(function (key) {
+      sampleSelections[key] = knowledge[key].length ? 'direct' : 'mark';
+    });
+    var sampleReport = {
+      version: 1,
+      createdAt: new Date().toISOString(),
+      scenarioId: scenario.id,
+      selectedQuestionIds: sampleQuestionIds,
+      memoSelections: sampleSelections,
+      actionId: 'ask',
+      takeawayIds: ['assumption']
+    };
+    if (buildMemoLines(scenario, sampleQuestionIds, sampleSelections).length !== DIMENSION_KEYS.length) {
+      throw new Error('Memo generation failed: ' + scenario.id);
+    }
+    if (!validateStoredReport(sampleReport)) throw new Error('Report validation failed: ' + scenario.id);
+  });
+  document.documentElement.setAttribute('data-self-check', 'passed');
+}
+
+runInternalChecks();
+document.documentElement.setAttribute('data-js-ready', 'true');
+
+document.getElementById('startButton').addEventListener('click', function () { startGame(false); });
+document.getElementById('showSavedButton').addEventListener('click', loadSavedReport);
+
+document.getElementById('questionContinueButton').addEventListener('click', function () {
+  renderAnswers();
+  beep('step');
+  showScreen('answersScreen', 35, '返答を確認する');
+  safeFocus(document.getElementById('answersTitle'));
+});
+
+document.getElementById('answersBackButton').addEventListener('click', function () {
+  renderRequest();
+  showScreen('requestScreen', 15, '確認質問を選ぶ');
+  safeFocus(document.querySelector('#questionGrid input:not([disabled])'));
+});
+
+document.getElementById('answersContinueButton').addEventListener('click', function () {
+  state.memoSelections = {};
+  state.memoOptionOrders = {};
+  state.actionOrder = [];
+  state.actionId = null;
+  state.takeawayOrder = [];
+  state.takeawayIds = [];
+  renderMemo();
+  beep('step');
+  showScreen('memoScreen', 55, '確認メモを作る');
+  safeFocus(document.querySelector('#memoGrid input'));
+});
+
+document.getElementById('memoBackButton').addEventListener('click', function () {
+  renderAnswers();
+  showScreen('answersScreen', 35, '返答を確認する');
+  safeFocus(document.getElementById('answersTitle'));
+});
+
+document.getElementById('memoContinueButton').addEventListener('click', function () {
+  renderAssumptions();
+  beep('step');
+  showScreen('assumptionScreen', 72, '残る仮定を確認する');
+  safeFocus(document.querySelector('#actionGrid button'));
+});
+
+document.getElementById('assumptionBackButton').addEventListener('click', function () {
+  renderMemo();
+  showScreen('memoScreen', 55, '確認メモを作る');
+  safeFocus(document.querySelector('#memoGrid input:checked') || document.querySelector('#memoGrid input'));
+});
+
+document.getElementById('assumptionContinueButton').addEventListener('click', function () {
+  renderReflection();
+  beep('step');
+  showScreen('reflectionScreen', 88, '持ち帰る工夫を選ぶ');
+  safeFocus(document.querySelector('#takeawayGrid input'));
+});
+
+document.getElementById('reflectionBackButton').addEventListener('click', function () {
+  renderAssumptions();
+  showScreen('assumptionScreen', 72, '残る仮定を確認する');
+  safeFocus(document.querySelector('#actionGrid .selected') || document.querySelector('#actionGrid button'));
+});
+
+document.getElementById('reportButton').addEventListener('click', function () {
+  renderReport(createReportData(), false);
+  beep('step');
+});
+
+document.getElementById('printButton').addEventListener('click', function () { window.print(); });
+document.getElementById('saveButton').addEventListener('click', saveReport);
+document.getElementById('clearButton').addEventListener('click', clearSavedReport);
+document.getElementById('anotherButton').addEventListener('click', function () { startGame(true); });
+document.getElementById('homeButton').addEventListener('click', function () {
+  resetWorkingState();
+  showScreen('introScreen', 0, 'はじめに');
+  safeFocus(document.getElementById('startButton'));
+});
+
+soundButton.addEventListener('click', function () {
+  soundOn = !soundOn;
+  soundButton.textContent = soundOn ? '🔊' : '🔇';
+  soundButton.setAttribute('aria-pressed', soundOn ? 'true' : 'false');
+  soundButton.setAttribute('aria-label', soundOn ? '音をオフにする' : '音をオンにする');
+  if (soundOn) beep('step');
+});
+
+textSizeButton.addEventListener('click', function () {
+  textSizeLevel = (textSizeLevel + 1) % 3;
+  document.body.classList.toggle('text-large', textSizeLevel === 1);
+  document.body.classList.toggle('text-xlarge', textSizeLevel === 2);
+  var label = textSizeLevel === 0 ? '標準' : textSizeLevel === 1 ? '大' : '特大';
+  textSizeButton.textContent = label === '標準' ? '文字' : '文字' + label;
+  textSizeButton.setAttribute('aria-label', '文字サイズ：' + label + '。押すと変更します');
+  announce('文字サイズを' + label + 'にしました。');
+});
+
+var helpDialog = document.getElementById('helpDialog');
+var pauseDialog = document.getElementById('pauseDialog');
+
+document.getElementById('helpButton').addEventListener('click', function () { openDialog(helpDialog); });
+document.getElementById('closeHelpButton').addEventListener('click', function () { closeDialog(helpDialog); });
+document.getElementById('pauseButton').addEventListener('click', function () { openDialog(pauseDialog); });
+document.getElementById('resumeButton').addEventListener('click', function () { closeDialog(pauseDialog); });
+document.getElementById('quitButton').addEventListener('click', function () {
+  closeDialog(pauseDialog);
+  resetWorkingState();
+  showScreen('introScreen', 0, 'はじめに');
+  safeFocus(document.getElementById('startButton'));
+});
+
+[helpDialog, pauseDialog].forEach(function (dialog) {
+  dialog.addEventListener('click', function (event) {
+    if (event.target === dialog) closeDialog(dialog);
+  });
+});
+
+document.addEventListener('keydown', function (event) {
+  var dialog = visibleDialog();
+  if (event.key === 'Escape' && dialog) {
+    closeDialog(dialog);
+    return;
+  }
+  if (dialog) trapDialogFocus(event, dialog);
+});
+
+window.addEventListener('beforeunload', function (event) {
+  var activeId = document.querySelector('.screen.active').id;
+  var inProgress = ['requestScreen', 'answersScreen', 'memoScreen', 'assumptionScreen', 'reflectionScreen'].indexOf(activeId) !== -1;
+  if (inProgress) {
+    event.preventDefault();
+    event.returnValue = '';
+  }
+});
+</script>
+</body>
+</html>

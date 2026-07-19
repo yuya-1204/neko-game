@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#fff8ea">
+  <meta name="application-name" content="ねこといっしょ！つながる3つのあそび">
+  <meta name="description" content="子どもが選び、親はまねる・返す・実況する。親子で短く遊べる、3つの子ども主導ミニゲームです。">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="ja_JP">
+  <meta property="og:title" content="ねこといっしょ！つながる3つのあそび">
+  <meta property="og:description" content="まねっこパレード・へんてこおはなし・ねこカフェ。子どもが隊長の親子あそび。">
+  <meta property="og:url" content="https://yuya-1204.github.io/neko-game/neko-kimiga-taicho-2.html">
+  <meta name="twitter:card" content="summary">
+  <title>ねこといっしょ！つながる3つのあそび</title>
+  <style>
+    :root {
+      --ink:#283c3b; --muted:#607270; --paper:#fff9ed; --white:#fff;
+      --cream:#fff0cf; --line:#eadfc7; --orange:#b94d1f; --orange-dark:#863215;
+      --teal:#2d8278; --teal-dark:#216f68; --blue:#5e99c8; --blue-soft:#e9f5fb;
+      --green:#69aa75; --yellow:#ffd768; --rose:#e87975;
+      --shadow:0 14px 34px rgba(63,72,61,.13); --radius:25px;
+      color-scheme:light;
+    }
+    * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+    html { scroll-behavior:auto; }
+    body {
+      margin:0; min-height:100vh; color:var(--ink); line-height:1.62;
+      font-family:"Hiragino Maru Gothic ProN","Yu Gothic","Meiryo",system-ui,sans-serif;
+      background:
+        radial-gradient(circle at 8% 2%,rgba(255,215,104,.34),transparent 27rem),
+        radial-gradient(circle at 96% 22%,rgba(63,158,145,.17),transparent 28rem),var(--paper);
+    }
+    button,input { font:inherit; }
+    button { touch-action:manipulation; }
+    button:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visible {
+      outline:4px solid rgba(94,153,200,.48); outline-offset:3px;
+    }
+    [hidden] { display:none !important; }
+    .skip-link {
+      position:fixed; z-index:999; left:12px; top:8px; padding:10px 14px; border-radius:12px;
+      background:#fff; color:var(--teal-dark); font-weight:900; transform:translateY(-150%); box-shadow:var(--shadow);
+    }
+    .skip-link:focus { transform:none; }
+    .shell { width:min(100%,720px); margin:0 auto; padding:calc(10px + env(safe-area-inset-top)) calc(14px + env(safe-area-inset-right)) calc(44px + env(safe-area-inset-bottom)) calc(14px + env(safe-area-inset-left)); }
+    .topbar { min-height:52px; display:flex; align-items:center; justify-content:space-between; gap:8px; }
+    .brand { display:flex; align-items:center; gap:8px; min-width:0; font-size:12px; font-weight:950; }
+    .brand-mark { display:grid; place-items:center; flex:0 0 38px; width:38px; height:38px; border-radius:14px; background:var(--orange); color:#fff; font-size:22px; box-shadow:0 4px 0 var(--orange-dark); }
+    .settings { display:flex; gap:6px; }
+    .pill-button { min-width:48px; min-height:44px; padding:7px 9px; border:1px solid var(--line); border-radius:999px; background:rgba(255,255,255,.95); color:var(--ink); cursor:pointer; font-size:11px; font-weight:900; }
+    .pill-button[aria-pressed="true"] { background:#e4f5f1; border-color:#88c8bd; color:var(--teal-dark); }
+    .screen { animation:screen-in .28s ease-out; }
+    @keyframes screen-in { from { opacity:0; transform:translateY(7px); } }
+    .card { background:rgba(255,255,255,.97); border:1px solid rgba(234,223,199,.95); border-radius:var(--radius); box-shadow:var(--shadow); }
+    .hero { overflow:hidden; }
+    .hero-scene { position:relative; min-height:180px; overflow:hidden; background:linear-gradient(#bce5f5 0 59%,#a7daa4 59% 76%,#e6c889 76%); }
+    .sun { position:absolute; width:48px; height:48px; right:34px; top:24px; border-radius:50%; background:var(--yellow); box-shadow:0 0 0 10px rgba(255,215,104,.25); }
+    .cloud,.cloud::before,.cloud::after { position:absolute; border-radius:999px; background:rgba(255,255,255,.9); }
+    .cloud { width:75px; height:23px; left:27px; top:37px; }
+    .cloud::before { content:""; width:34px; height:34px; left:12px; bottom:0; }
+    .cloud::after { content:""; width:28px; height:28px; right:8px; bottom:0; }
+    .hero-cats { position:absolute; left:50%; bottom:18px; transform:translateX(-50%); display:flex; align-items:end; gap:4px; filter:drop-shadow(0 8px 0 rgba(70,60,42,.12)); }
+    .hero-cats span { display:block; font-size:62px; line-height:1; animation:cat-bob 2.4s ease-in-out infinite; }
+    .hero-cats span:nth-child(2) { font-size:82px; animation-delay:.25s; }
+    .hero-cats span:nth-child(3) { animation-delay:.5s; }
+    @keyframes cat-bob { 50% { transform:translateY(-6px) rotate(-2deg); } }
+    .hero-copy { padding:20px; text-align:center; }
+    .eyebrow { display:inline-flex; padding:5px 11px; border-radius:999px; background:#e5f5f1; color:var(--teal-dark); font-size:12px; font-weight:950; }
+    h1 { margin:9px 0 7px; font-size:clamp(27px,8vw,42px); line-height:1.2; letter-spacing:.015em; }
+    h1 .accent { color:var(--orange-dark); }
+    .lead { margin:0 auto; max-width:38em; color:var(--muted); font-size:14px; font-weight:700; }
+    .promise { display:grid; grid-template-columns:repeat(3,1fr); gap:7px; margin:17px 0 0; }
+    .promise-item { padding:9px 4px; border-radius:15px; background:#fffaf0; border:1px solid var(--line); font-size:10px; font-weight:900; }
+    .promise-item span { display:block; font-size:24px; line-height:1.2; }
+    .section-card { margin-top:14px; padding:18px; }
+    .section-title { margin:0 0 4px; font-size:19px; }
+    .section-lead { margin:0 0 13px; color:var(--muted); font-size:12px; }
+    .game-grid { display:grid; gap:12px; }
+    .game-choice { display:grid; grid-template-columns:66px 1fr; gap:12px; width:100%; min-height:108px; padding:13px; border:2px solid var(--line); border-radius:20px; background:#fffdf7; color:var(--ink); text-align:left; cursor:pointer; }
+    .game-choice:nth-child(2) { background:#f1fbf8; }
+    .game-choice:nth-child(3) { background:#eef7fc; }
+    .game-choice:active { transform:translateY(2px); }
+    .choice-icon { display:grid; place-items:center; width:66px; height:66px; align-self:center; border-radius:20px; background:var(--cream); font-size:42px; }
+    .game-choice:nth-child(2) .choice-icon { background:#dff3ed; }
+    .game-choice:nth-child(3) .choice-icon { background:#dfeef8; }
+    .choice-copy { align-self:center; min-width:0; }
+    .choice-copy strong { display:block; font-size:16px; line-height:1.35; }
+    .choice-copy small { display:block; margin-top:4px; color:var(--muted); font-size:11px; font-weight:700; }
+    .choice-tag { display:inline-block; margin-top:6px; padding:2px 8px; border-radius:999px; background:#fff; color:var(--teal-dark); font-size:10px; font-weight:900; }
+    .original-link { display:flex; align-items:center; justify-content:center; min-height:50px; margin-top:13px; border:2px solid var(--teal); border-radius:16px; background:#fff; color:var(--teal-dark); text-decoration:none; font-size:13px; font-weight:950; }
+    details.info { margin-top:14px; padding:2px 16px; }
+    details.info summary { min-height:48px; display:flex; align-items:center; cursor:pointer; font-size:13px; font-weight:950; }
+    .info-body { padding:0 0 15px; color:var(--muted); font-size:12px; }
+    .info-body p { margin:4px 0 10px; }
+    .info-body strong { color:var(--ink); }
+    .info-body a { display:inline-flex; align-items:center; justify-content:center; min-width:44px; min-height:44px; color:var(--teal-dark); font-weight:900; }
+    .history-list { margin:9px 0 0; padding:0; list-style:none; }
+    .history-item { display:grid; grid-template-columns:auto 1fr; gap:9px; padding:10px 0; border-top:1px solid var(--line); font-size:11px; }
+    .history-icon { font-size:25px; }
+    .history-item strong { display:block; }
+    .history-empty { margin:8px 0 0; color:var(--muted); font-size:12px; }
+    .delete-button { width:100%; min-height:48px; margin-top:11px; border:1px solid #d8a2a0; border-radius:15px; background:#fff; color:#9a4744; cursor:pointer; font-size:12px; font-weight:900; }
+
+    .play-card { padding:13px; }
+    .play-heading { margin:2px 0 10px; font-size:22px; line-height:1.3; }
+    .game-head { display:grid; grid-template-columns:1fr auto; gap:9px; align-items:center; }
+    .timer-line { display:flex; justify-content:space-between; gap:8px; margin-bottom:6px; font-size:11px; font-weight:900; }
+    .timer { padding:3px 8px; border-radius:9px; background:var(--cream); font-variant-numeric:tabular-nums; }
+    .progress-track { height:10px; overflow:hidden; border-radius:999px; background:#edf0ec; }
+    .progress-bar { height:100%; width:0; border-radius:inherit; background:linear-gradient(90deg,var(--teal),#8fcea0); transition:width .5s linear; }
+    .pause-button { min-width:72px; min-height:48px; border:1px solid var(--line); border-radius:15px; background:#fff; color:var(--ink); cursor:pointer; font-size:12px; font-weight:950; }
+    .top-actions { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px; }
+    .small-action { min-height:46px; border:1px solid var(--line); border-radius:14px; background:#fffdf7; color:var(--ink); cursor:pointer; font-size:11px; font-weight:900; }
+    .now-banner { display:flex; gap:8px; align-items:center; margin:11px 0 9px; padding:8px 11px; border-radius:14px; background:#e9f6f3; color:var(--teal-dark); font-size:12px; font-weight:900; }
+    .game-panel { min-height:330px; padding:13px; border-radius:22px; border:1px solid var(--line); background:#fffaf0; }
+    .panel-title { margin:0 0 3px; font-size:18px; }
+    .panel-help { margin:0 0 11px; color:var(--muted); font-size:11px; font-weight:700; }
+    .choice-row { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+    .play-option { min-height:70px; padding:7px 4px; border:2px solid var(--line); border-radius:16px; background:#fff; color:var(--ink); cursor:pointer; font-size:12px; font-weight:900; }
+    .play-option span { display:block; font-size:28px; line-height:1.2; }
+    .play-option[aria-pressed="true"] { border-color:var(--teal); background:#e7f6f2; color:var(--teal-dark); }
+    .play-option:disabled { opacity:.48; cursor:not-allowed; }
+    .tool-row { display:grid; grid-template-columns:1fr 1.4fr; gap:8px; margin-top:10px; }
+    .tool-button { min-height:50px; border:1px solid var(--line); border-radius:15px; background:#fff; color:var(--ink); cursor:pointer; font-size:12px; font-weight:900; }
+    .go-button { min-height:52px; border:0; border-radius:16px; background:linear-gradient(180deg,#c04f21,#a8421d); color:#fff; box-shadow:0 5px 0 var(--orange-dark); cursor:pointer; font-size:14px; font-weight:950; }
+    .go-button:disabled { opacity:.45; box-shadow:none; cursor:not-allowed; }
+
+    .parade-stage { position:relative; display:grid; place-items:center; min-height:145px; margin-bottom:11px; overflow:hidden; border-radius:20px; background:linear-gradient(#c8eafa 0 62%,#a8d8a1 62% 78%,#e2c189 78%); }
+    .parade-cat { display:block; font-size:78px; line-height:1; filter:drop-shadow(0 8px 0 rgba(70,58,42,.13)); transform-origin:50% 85%; }
+    .parade-cat.perform-spin { animation:move-spin .62s ease-in-out; }
+    .parade-cat.perform-stretch { animation:move-stretch .62s ease-in-out; }
+    .parade-cat.perform-tap { animation:move-tap .52s ease-in-out; }
+    .parade-cat.perform-sway { animation:move-sway .7s ease-in-out; }
+    .parade-cat.perform-meow { animation:move-meow .56s ease-in-out; }
+    .parade-cat.perform-pose { animation:move-pose .7s ease-in-out; }
+    @keyframes move-spin { to { transform:rotate(360deg); } }
+    @keyframes move-stretch { 50% { transform:scaleY(1.28) scaleX(.84) translateY(-8px); } }
+    @keyframes move-tap { 25%,75% { transform:translateY(-9px); } }
+    @keyframes move-sway { 30% { transform:rotate(-13deg); } 70% { transform:rotate(13deg); } }
+    @keyframes move-meow { 50% { transform:scale(1.18); } }
+    @keyframes move-pose { 50%,100% { transform:translateY(-6px) rotate(-9deg); } }
+    .speech-pop { position:absolute; right:18px; top:15px; padding:4px 9px; border-radius:12px 12px 3px 12px; background:#fff; color:var(--orange-dark); font-size:12px; font-weight:950; opacity:0; visibility:hidden; }
+    .speech-pop.show { visibility:visible; animation:speech-show .7s ease-out; }
+    @keyframes speech-show { 35%,80% { opacity:1; transform:scale(1.08); } }
+    .sequence { display:grid; grid-template-columns:repeat(3,1fr); gap:7px; margin-bottom:10px; }
+    .sequence-slot { display:grid; place-items:center; min-height:52px; border:2px dashed #d7c9aa; border-radius:15px; background:#fffdf7; color:var(--muted); font-size:11px; font-weight:900; }
+    .sequence-slot.filled { border-style:solid; border-color:#8cc9bd; background:#e9f7f3; color:var(--teal-dark); font-size:24px; }
+
+    .story-preview { display:grid; place-items:center; min-height:118px; margin-bottom:10px; padding:13px; border-radius:20px; background:linear-gradient(145deg,#dff1fb,#fff0cf); text-align:center; }
+    .story-emoji { font-size:42px; line-height:1.3; }
+    .story-sentence { margin:3px 0 0; font-size:14px; font-weight:950; }
+    .story-step { margin:9px 0 0; padding:10px; border:1px solid var(--line); border-radius:17px; background:#fff; }
+    .story-step legend { padding:0 5px; font-size:12px; font-weight:950; }
+    .story-step[disabled] { opacity:.55; }
+    .story-options { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; }
+    .story-option { min-height:61px; padding:5px 2px; border:2px solid var(--line); border-radius:13px; background:#fffdf7; color:var(--ink); cursor:pointer; font-size:11px; font-weight:900; }
+    .story-option span { display:block; font-size:25px; }
+    .story-option[aria-pressed="true"] { border-color:var(--teal); background:#e7f6f2; color:var(--teal-dark); }
+    .story-reveal { margin-top:10px; padding:13px; border-radius:18px; background:#fff4cd; text-align:center; animation:story-in .45s ease-out; }
+    @keyframes story-in { from { opacity:0; transform:scale(.9) rotate(-1deg); } }
+    .story-actions { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:9px; }
+
+    .cafe-stage { display:grid; grid-template-columns:1fr auto; align-items:center; gap:8px; min-height:140px; margin-bottom:10px; padding:13px; border-radius:20px; background:linear-gradient(#f8e8c7 0 70%,#bd835e 70%); }
+    .dish-preview { display:grid; place-items:center; min-height:105px; font-size:65px; transform-origin:center; }
+    .dish-preview.mixing { animation:dish-mix .55s ease-in-out; }
+    .dish-preview.large { transform:scale(1.17); }
+    @keyframes dish-mix { to { transform:rotate(360deg); } }
+    .cafe-cat { font-size:58px; filter:drop-shadow(0 7px 0 rgba(60,48,35,.12)); }
+    .cafe-group { margin-top:9px; }
+    .cafe-label { margin:0 0 6px; color:var(--muted); font-size:11px; font-weight:900; }
+    .cafe-controls { display:grid; grid-template-columns:repeat(3,1fr); gap:7px; }
+    .ingredient-controls { grid-template-columns:repeat(4,1fr); }
+    .cafe-option { min-height:59px; padding:5px 2px; border:2px solid var(--line); border-radius:14px; background:#fff; color:var(--ink); cursor:pointer; font-size:11px; font-weight:900; }
+    .cafe-option span { display:block; font-size:26px; }
+    .cafe-option[aria-pressed="true"] { border-color:var(--teal); background:#e7f6f2; color:var(--teal-dark); }
+    .cafe-delivery { margin-top:10px; padding:13px; border-radius:18px; background:#e7f6f2; text-align:center; }
+
+    .coach-card { margin-top:12px; padding:14px; border-radius:20px; background:#eef8f5; border:2px solid #b6ddd4; }
+    .coach-top { display:grid; grid-template-columns:46px 1fr; gap:10px; align-items:center; }
+    .skill-letter { display:grid; place-items:center; width:46px; height:46px; border-radius:15px; background:var(--teal); color:#fff; font-size:24px; font-weight:950; box-shadow:0 4px 0 var(--teal-dark); }
+    .coach-label { color:var(--teal-dark); font-size:10px; font-weight:950; }
+    .coach-title { margin:0; font-size:17px; line-height:1.3; }
+    .coach-instruction { margin:10px 0 4px; font-size:12px; font-weight:800; }
+    .coach-example { margin:0; padding:9px; border-radius:12px; background:#fff; color:var(--muted); font-size:11px; }
+    .coach-actions { display:grid; grid-template-columns:1.25fr 1fr; gap:8px; margin-top:9px; }
+    .try-button,.next-card { min-height:49px; border-radius:15px; cursor:pointer; font-size:12px; font-weight:950; }
+    .try-button { border:0; background:var(--teal); color:#fff; box-shadow:0 4px 0 var(--teal-dark); }
+    .next-card { border:1px solid #91c8bd; background:#fff; color:var(--teal-dark); }
+    .communication { margin-top:12px; padding:13px; border-radius:20px; background:#fff; border:1px solid var(--line); }
+    .communication h2 { margin:0; font-size:15px; }
+    .communication p { margin:2px 0 8px; color:var(--muted); font-size:10px; }
+    .comm-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:5px; }
+    .comm-button { min-height:58px; padding:5px 1px; border:1px solid var(--line); border-radius:13px; background:#fffaf0; color:var(--ink); cursor:pointer; font-size:11px; font-weight:900; }
+    .comm-button span { display:block; font-size:22px; line-height:1.2; }
+
+    .finish-card { position:relative; overflow:hidden; padding:23px 18px; text-align:center; }
+    .finish-cat { font-size:76px; line-height:1; animation:cat-bob 2.4s ease-in-out infinite; }
+    .finish-card h1 { margin:7px 0 4px; font-size:28px; }
+    .finish-lead { margin:0 auto 14px; color:var(--muted); font-size:13px; }
+    .result-box { padding:13px; border-radius:18px; background:#fff5d7; border:1px solid #f0d996; }
+    .result-box strong { display:block; color:#76521d; font-size:16px; }
+    .skill-results { display:grid; grid-template-columns:repeat(5,1fr); gap:5px; margin-top:11px; }
+    .skill-result { padding:7px 2px; border-radius:13px; background:#edf7f4; color:var(--teal-dark); font-size:9px; font-weight:900; }
+    .skill-result strong { display:block; font-size:17px; }
+    .finish-note { margin:12px 0 0; padding:12px; border-radius:16px; background:#eef6fb; color:#38596d; text-align:left; font-size:11px; }
+    .finish-actions { display:grid; gap:9px; margin-top:13px; }
+    .primary { width:100%; min-height:58px; border:0; border-radius:17px; background:linear-gradient(180deg,#c04f21,#a8421d); color:#fff; box-shadow:0 6px 0 var(--orange-dark); cursor:pointer; font-size:16px; font-weight:950; }
+    .secondary { display:flex; align-items:center; justify-content:center; width:100%; min-height:51px; border:2px solid var(--teal); border-radius:16px; background:#fff; color:var(--teal-dark); text-decoration:none; cursor:pointer; font-size:13px; font-weight:950; }
+    footer { margin-top:15px; padding:0 8px; color:var(--muted); text-align:center; font-size:10px; }
+
+    dialog { width:min(calc(100% - 28px),500px); max-height:calc(100dvh - 24px); padding:0; overflow:auto; border:0; border-radius:24px; color:var(--ink); box-shadow:0 24px 70px rgba(33,46,43,.3); }
+    dialog::backdrop { background:rgba(31,48,46,.58); backdrop-filter:blur(2px); }
+    .dialog-body { padding:21px; text-align:center; }
+    .dialog-icon { display:block; font-size:52px; line-height:1.2; }
+    .dialog-body h2 { margin:7px 0 5px; font-size:22px; }
+    .dialog-body p { margin:0 0 11px; color:var(--muted); font-size:13px; }
+    .dialog-quote { padding:10px; border-radius:14px; background:#eef8f5; color:var(--teal-dark); font-weight:900; }
+    .dialog-actions { display:grid; gap:8px; margin-top:12px; }
+    .dialog-button { min-height:50px; border:1px solid var(--line); border-radius:15px; background:#fff; color:var(--ink); cursor:pointer; font-weight:950; }
+    .dialog-button.confirm { border:0; background:var(--teal); color:#fff; }
+    .live-region { position:absolute!important; width:1px!important; height:1px!important; padding:0!important; margin:-1px!important; overflow:hidden!important; clip:rect(0,0,0,0)!important; white-space:nowrap!important; border:0!important; }
+
+    body.reduce-motion *,body.reduce-motion *::before,body.reduce-motion *::after { animation-duration:.001ms!important; animation-iteration-count:1!important; transition-duration:.001ms!important; }
+    @media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation-duration:.001ms!important; animation-iteration-count:1!important; transition-duration:.001ms!important; } }
+    @media (max-width:390px) {
+      .shell { padding-left:calc(10px + env(safe-area-inset-left)); padding-right:calc(10px + env(safe-area-inset-right)); }
+      .brand { font-size:10px; }
+      .brand-mark { width:35px; height:35px; flex-basis:35px; }
+      .hero-copy,.section-card { padding-left:14px; padding-right:14px; }
+      .game-choice { grid-template-columns:56px 1fr; padding:11px; }
+      .choice-icon { width:56px; height:56px; font-size:36px; }
+      .comm-button { min-height:61px; }
+    }
+    @media (max-width:340px) {
+      .brand-text { display:none; }
+      .choice-row { grid-template-columns:repeat(2,1fr); }
+      .story-options,.ingredient-controls { grid-template-columns:repeat(2,1fr); }
+      .comm-grid { grid-template-columns:repeat(3,1fr); }
+      .skill-results { grid-template-columns:repeat(3,1fr); }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main">本文へ</a>
+  <div class="shell">
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark" aria-hidden="true">🐾</span><span class="brand-text">きみが隊長 2</span></div>
+      <div class="settings" aria-label="表示と音の設定">
+        <button id="soundToggle" class="pill-button" type="button" aria-pressed="false">🔇 音OFF</button>
+        <button id="motionToggle" class="pill-button" type="button" aria-pressed="false">動き：通常</button>
+      </div>
+    </header>
+
+    <main id="main" tabindex="-1">
+      <section id="homeScreen" class="screen" aria-labelledby="homeTitle">
+        <div class="card hero">
+          <div class="hero-scene" aria-hidden="true">
+            <span class="sun"></span><span class="cloud"></span>
+            <div class="hero-cats"><span>🐱</span><span>🐈</span><span>😺</span></div>
+          </div>
+          <div class="hero-copy">
+            <span class="eyebrow">親子で1回約3分・好きな遊びを一つ</span>
+            <h1 id="homeTitle">ねこといっしょ！<br><span class="accent">つながる3つのあそび</span></h1>
+            <p class="lead">子どもが選んでつくる。親は、まねる・返す・実況する。子どもを比べたり採点したりしません。</p>
+            <div class="promise" aria-label="三つの約束">
+              <div class="promise-item"><span>🧒</span>子どもが決める</div>
+              <div class="promise-item"><span>👂</span>親はついていく</div>
+              <div class="promise-item"><span>🚪</span>いつでも休める</div>
+            </div>
+          </div>
+        </div>
+
+        <section class="card section-card" aria-labelledby="chooseTitle">
+          <h2 id="chooseTitle" class="section-title">きょうは、どれで遊ぶ？</h2>
+          <p class="section-lead">同じ遊びを何度選んでも大丈夫。途中で終えても失敗ではありません。</p>
+          <div class="game-grid">
+            <button class="game-choice" type="button" data-start-game="parade">
+              <span class="choice-icon" aria-hidden="true">🎺</span>
+              <span class="choice-copy"><strong>まねっこ！にゃんこパレード</strong><small>動きを3つ選んで、親子でいっしょにまねっこ。</small><span class="choice-tag">選ぶ・まねる</span></span>
+            </button>
+            <button class="game-choice" type="button" data-start-game="story">
+              <span class="choice-icon" aria-hidden="true">📖</span>
+              <span class="choice-copy"><strong>ねこのへんてこおはなし工房</strong><small>だれ・どこ・なにをした？ どの組み合わせもすてきなお話。</small><span class="choice-tag">選ぶ・返す</span></span>
+            </button>
+            <button class="game-choice" type="button" data-start-game="cafe">
+              <span class="choice-icon" aria-hidden="true">🍳</span>
+              <span class="choice-copy"><strong>ねこカフェ・きょうのスペシャル</strong><small>好きな器と材料で、世界に一つのメニューをつくろう。</small><span class="choice-tag">つくる・実況する</span></span>
+            </button>
+          </div>
+          <a class="original-link" href="neko-kimiga-taicho.html">← 最初の「きみが隊長」で遊ぶ</a>
+        </section>
+
+        <details class="card info">
+          <summary>大人の方へ：遊び方と位置づけ</summary>
+          <div class="info-body">
+            <p><strong>子どもが隊長です。</strong>安全に必要なこと以外は、質問・指示・訂正を少し休み、子どもの選択や繰り返しについていきます。親向けカードは、できるものだけ試してください。</p>
+            <p>画面の「たすけて」「休憩」「ちがう」「もう1回」「おしまい」は、言葉以外でも意思を伝えられるカードです。カードを指す、画面から離れるなども大切な伝え方として扱います。</p>
+            <p>この試作は、<a href="https://pcit-japan.com/?page_id=171" target="_blank" rel="noopener noreferrer">PCIT</a>のCDI・PRIDEの考え方の一部を参考にした家庭での親子遊びです。PCITそのものや、診断・治療を提供するものではありません。</p>
+          </div>
+        </details>
+
+        <section class="card section-card" aria-labelledby="historyTitle">
+          <h2 id="historyTitle" class="section-title">この端末の遊びメモ</h2>
+          <p class="section-lead">名前・診断名・子どもの選択・伝えるカードは保存しません。遊びの種類と、親が試した関わりだけを最近7回分、端末内に残します。</p>
+          <p id="historyEmpty" class="history-empty">まだ記録はありません。</p>
+          <ul id="historyList" class="history-list"></ul>
+          <button id="deleteHistory" class="delete-button" type="button" hidden>この端末の記録を消す</button>
+        </section>
+      </section>
+
+      <section id="playScreen" class="screen card play-card" aria-labelledby="playTitle" hidden tabindex="-1">
+        <h1 id="playTitle" class="play-heading">ミニゲーム</h1>
+        <div class="game-head">
+          <div>
+            <div class="timer-line"><span>ゆっくり遊ぶ目安</span><span id="timerText" class="timer" aria-hidden="true">3:00</span></div>
+            <div id="progressTrack" class="progress-track" role="progressbar" aria-label="遊び時間の進み具合" aria-valuemin="0" aria-valuemax="180" aria-valuenow="0"><div id="progressBar" class="progress-bar"></div></div>
+          </div>
+          <button id="pauseButton" class="pause-button" type="button" aria-pressed="false">⏸ 休憩</button>
+        </div>
+        <div class="top-actions">
+          <button id="hubButton" class="small-action" type="button">← 3つの遊びへ</button>
+          <button id="finishButton" class="small-action" type="button">ここでおしまい</button>
+        </div>
+        <div class="now-banner"><span aria-hidden="true">🧒</span><span id="nowBannerText">子どもが選び、親はその遊びについていきます</span></div>
+
+        <section id="paradeGame" class="game-panel" aria-labelledby="paradeTitle" hidden>
+          <h2 id="paradeTitle" class="panel-title">🎺 まねっこ！にゃんこパレード</h2>
+          <p class="panel-help">好きな動きを3つ選ぼう。同じ動きを何度選んでもOKです。</p>
+          <div class="parade-stage" aria-live="polite"><span id="paradeCat" class="parade-cat" aria-hidden="true">🐈</span><span id="paradeSpeech" class="speech-pop" aria-hidden="true">にゃー！</span></div>
+          <div id="paradeSequence" class="sequence" aria-label="選んだ動き"></div>
+          <div id="moveChoices" class="choice-row">
+            <button class="play-option" type="button" data-move="spin"><span>🌀</span>くるっ</button>
+            <button class="play-option" type="button" data-move="stretch"><span>🙆</span>のびーる</button>
+            <button class="play-option" type="button" data-move="tap"><span>🐾</span>トントン</button>
+            <button class="play-option" type="button" data-move="sway"><span>🎵</span>ゆらゆら</button>
+            <button class="play-option" type="button" data-move="meow"><span>😺</span>にゃー</button>
+            <button class="play-option" type="button" data-move="pose"><span>✨</span>きめポーズ</button>
+          </div>
+          <div class="tool-row"><button id="paradeUndo" class="tool-button" type="button">↩ 1つ戻す</button><button id="paradePlay" class="go-button" type="button" disabled>3つ選んでパレード！</button></div>
+        </section>
+
+        <section id="storyGame" class="game-panel" aria-labelledby="storyTitle" hidden>
+          <h2 id="storyTitle" class="panel-title">📖 ねこのへんてこおはなし工房</h2>
+          <p class="panel-help">一つずつ選ぶと、お話ができます。へんてこな組み合わせも大歓迎。</p>
+          <div class="story-preview"><div><div id="storyPreviewEmoji" class="story-emoji" aria-hidden="true">❓ ＋ ❓ ＋ ❓</div><p id="storyPreviewText" class="story-sentence">どんなお話になるかな？</p></div></div>
+          <fieldset id="storyWho" class="story-step"><legend>① だれが？</legend><div class="story-options">
+            <button class="story-option" type="button" data-story-part="who" data-value="cat"><span>🐱</span>ねこが</button>
+            <button class="story-option" type="button" data-story-part="who" data-value="lion"><span>🦁</span>ライオンが</button>
+            <button class="story-option" type="button" data-story-part="who" data-value="robot"><span>🤖</span>ロボットが</button>
+            <button class="story-option" type="button" data-story-part="who" data-value="penguin"><span>🐧</span>ペンギンが</button>
+          </div></fieldset>
+          <fieldset id="storyWhere" class="story-step" disabled><legend>② どこで？</legend><div class="story-options">
+            <button class="story-option" type="button" data-story-part="where" data-value="moon"><span>🌙</span>お月さまで</button>
+            <button class="story-option" type="button" data-story-part="where" data-value="bath"><span>🛁</span>おふろで</button>
+            <button class="story-option" type="button" data-story-part="where" data-value="forest"><span>🌳</span>森で</button>
+            <button class="story-option" type="button" data-story-part="where" data-value="train"><span>🚂</span>電車で</button>
+          </div></fieldset>
+          <fieldset id="storyAction" class="story-step" disabled><legend>③ なにをした？</legend><div class="story-options">
+            <button class="story-option" type="button" data-story-part="action" data-value="dance"><span>💃</span>おどった</button>
+            <button class="story-option" type="button" data-story-part="action" data-value="cook"><span>🥞</span>料理した</button>
+            <button class="story-option" type="button" data-story-part="action" data-value="sleep"><span>💤</span>お昼寝した</button>
+            <button class="story-option" type="button" data-story-part="action" data-value="sing"><span>🎤</span>歌った</button>
+          </div></fieldset>
+          <div class="tool-row"><button id="storyUndo" class="tool-button" type="button">↩ 1つ戻す</button><button id="storyShow" class="go-button" type="button" disabled>おはなしを見る</button></div>
+          <div id="storyReveal" class="story-reveal" hidden>
+            <div id="storyRevealEmoji" class="story-emoji" aria-hidden="true"></div><p id="storyRevealText" class="story-sentence"></p>
+            <div class="story-actions"><button id="storyNext" class="tool-button" type="button">もう一場面つくる</button><button id="storyDone" class="go-button" type="button">できあがり！</button></div>
+          </div>
+        </section>
+
+        <section id="cafeGame" class="game-panel" aria-labelledby="cafeTitle" hidden>
+          <h2 id="cafeTitle" class="panel-title">🍳 ねこカフェ・きょうのスペシャル</h2>
+          <p class="panel-help">器と材料をタップして、好きなメニューをつくろう。入れ方は自由です。</p>
+          <div class="cafe-stage"><div id="dishPreview" class="dish-preview" aria-live="polite">✨</div><div class="cafe-cat" aria-hidden="true">😸</div></div>
+          <div class="cafe-group"><p class="cafe-label">① どの器にする？</p><div class="cafe-controls">
+            <button class="cafe-option" type="button" data-base="plate"><span>🍽️</span>おさら</button>
+            <button class="cafe-option" type="button" data-base="cup"><span>☕</span>カップ</button>
+            <button class="cafe-option" type="button" data-base="bowl"><span>🥣</span>ボウル</button>
+          </div></div>
+          <div class="cafe-group"><p class="cafe-label">② 好きな材料を入れよう（同じものもOK）</p><div class="cafe-controls ingredient-controls">
+            <button class="cafe-option" type="button" data-ingredient="strawberry"><span>🍓</span>いちご</button>
+            <button class="cafe-option" type="button" data-ingredient="cheese"><span>🧀</span>チーズ</button>
+            <button class="cafe-option" type="button" data-ingredient="leaf"><span>🌿</span>はっぱ</button>
+            <button class="cafe-option" type="button" data-ingredient="star"><span>⭐</span>おほし</button>
+            <button class="cafe-option" type="button" data-ingredient="fish"><span>🐟</span>おさかな</button>
+            <button class="cafe-option" type="button" data-ingredient="banana"><span>🍌</span>バナナ</button>
+            <button class="cafe-option" type="button" data-ingredient="ice"><span>🧊</span>こおり</button>
+            <button class="cafe-option" type="button" data-ingredient="flower"><span>🌼</span>おはな</button>
+          </div></div>
+          <div class="tool-row"><button id="cafeUndo" class="tool-button" type="button">↩ 1つ戻す</button><button id="cafeMix" class="tool-button" type="button">🌀 まぜる</button></div>
+          <div class="tool-row"><button id="cafeBig" class="tool-button" type="button" aria-pressed="false">↔ 大きくする</button><button id="cafeDeliver" class="go-button" type="button" disabled>できた！ とどける</button></div>
+          <div id="cafeDelivery" class="cafe-delivery" hidden><strong>ねこ店長「わあ、すてき！」</strong><div class="story-actions"><button id="cafeNext" class="tool-button" type="button">もう1品つくる</button><button id="cafeDone" class="go-button" type="button">できあがり！</button></div></div>
+        </section>
+
+        <section class="coach-card" aria-labelledby="coachTitle">
+          <div class="coach-top"><div id="skillLetter" class="skill-letter" aria-hidden="true">P</div><div><div class="coach-label">親のポケットコーチ</div><h2 id="coachTitle" class="coach-title">具体的にほめる</h2></div></div>
+          <p id="coachInstruction" class="coach-instruction"></p><p id="coachExample" class="coach-example"></p>
+          <div class="coach-actions"><button id="trySkill" class="try-button" type="button">やってみた ✓</button><button id="nextSkill" class="next-card" type="button">次のヒント →</button></div>
+        </section>
+
+        <section class="communication" aria-labelledby="commTitle">
+          <h2 id="commTitle">伝えるカード</h2><p>言葉で言わなくても、指で選んだり画面から離れたりして伝えられます。</p>
+          <div class="comm-grid">
+            <button class="comm-button" type="button" data-comm="help"><span>🙋</span>たすけて</button>
+            <button class="comm-button" type="button" data-comm="rest"><span>☕</span>休憩</button>
+            <button class="comm-button" type="button" data-comm="different"><span>↩️</span>ちがう</button>
+            <button class="comm-button" type="button" data-comm="again"><span>🔁</span>もう1回</button>
+            <button class="comm-button" type="button" data-comm="end"><span>🏠</span>おしまい</button>
+          </div>
+        </section>
+      </section>
+
+      <section id="finishScreen" class="screen card finish-card" aria-labelledby="finishTitle" hidden tabindex="-1">
+        <div class="finish-cat" aria-hidden="true">😺</div>
+        <h1 id="finishTitle">いっしょに遊べたね</h1>
+        <p id="finishLead" class="finish-lead"></p>
+        <div class="result-box"><strong id="finishGameName"></strong><span>自分たちのペースで終えました</span></div>
+        <div id="skillResults" class="skill-results" aria-label="親が試した関わり方"></div>
+        <p id="commSummary" class="finish-note"></p>
+        <p class="finish-note"><strong>これは子どもの評価・診断結果ではありません。</strong><br>親子で一緒に過ごしたことと、親が試した関わり方だけを振り返ります。</p>
+        <div class="finish-actions">
+          <button id="playAgain" class="primary" type="button">同じ遊びをもう一度</button>
+          <button id="backHome" class="secondary" type="button">3つの遊びから選ぶ</button>
+          <a class="secondary" href="neko-kimiga-taicho.html">最初の「きみが隊長」で遊ぶ</a>
+        </div>
+      </section>
+    </main>
+
+    <footer><p>親子で楽しむ家庭練習用の試作です。医療行為、診断、治療、専門的な親子訓練の代替ではありません。名前や遊びの内容を外部へ送信しません。</p></footer>
+  </div>
+
+  <dialog id="messageDialog" aria-labelledby="messageTitle">
+    <div class="dialog-body"><span id="messageIcon" class="dialog-icon" aria-hidden="true">🙋</span><h2 id="messageTitle"></h2><p id="messageText"></p><p id="messageQuote" class="dialog-quote"></p><div class="dialog-actions"><button id="messageClose" class="dialog-button confirm" type="button">わかった</button></div></div>
+  </dialog>
+  <dialog id="pauseDialog" aria-labelledby="pauseTitle">
+    <div class="dialog-body"><span class="dialog-icon" aria-hidden="true">☕</span><h2 id="pauseTitle">ゆっくり休憩</h2><p>時間もゲームも止まっています。再開を急がなくて大丈夫です。</p><p class="dialog-quote">「休憩したいんだね。ここで休もう」</p><div class="dialog-actions"><button id="resumeButton" class="dialog-button confirm" type="button">遊びに戻る</button><button id="pauseEnd" class="dialog-button" type="button">ここでおしまい</button></div></div>
+  </dialog>
+  <dialog id="endDialog" aria-labelledby="endTitle">
+    <div class="dialog-body"><span class="dialog-icon" aria-hidden="true">🏠</span><h2 id="endTitle">ここでおしまいにする？</h2><p>途中で終えることも、自分で選べた大切な一歩です。</p><div class="dialog-actions"><button id="endNow" class="dialog-button confirm" type="button">おしまいにする</button><button id="endCancel" class="dialog-button" type="button">遊びに戻る</button></div></div>
+  </dialog>
+  <div id="liveRegion" class="live-region" aria-live="polite" aria-atomic="true"></div>
+
+  <script>
+    (() => {
+      "use strict";
+      const HISTORY_KEY = "nekoKimigaTaicho2HistoryV1";
+      const SETTINGS_KEY = "nekoKimigaTaicho2SettingsV1";
+      const GAME_SECONDS = 180;
+      const $ = selector => document.querySelector(selector);
+      const $$ = selector => Array.from(document.querySelectorAll(selector));
+      const games = {
+        parade:{ name:"まねっこ！にゃんこパレード", icon:"🎺" },
+        story:{ name:"ねこのへんてこおはなし工房", icon:"📖" },
+        cafe:{ name:"ねこカフェ・きょうのスペシャル", icon:"🍳" }
+      };
+      const skills = [
+        { key:"praise", letter:"P", short:"ほめる", title:"選んだことを具体的にほめる", instruction:"結果ではなく、子どもが自分で選んだことや続けていることを短く伝えます。", example:"例：「自分で選んだね」「その組み合わせ、すてきだね」" },
+        { key:"reflect", letter:"R", short:"返す", title:"子どもの表現をやさしく返す", instruction:"言葉、音、身振り、指さしを、そのまま少し返してみます。", example:"例：子「にゃー」→ 親「にゃーなんだね」／同じ身振りを返す" },
+        { key:"imitate", letter:"I", short:"まねる", title:"まねして遊びに入る", instruction:"子どもの動きや選び方を一つだけまねして、同じ遊びの仲間になります。", example:"例：同じポーズをする／同じ材料を一つ選ぶ" },
+        { key:"describe", letter:"D", short:"実況", title:"見たままを実況する", instruction:"質問や評価を足さず、いま子どもがしていることを言葉にします。", example:"例：「星を入れたね」「ゆらゆらを選んだね」" },
+        { key:"enjoy", letter:"E", short:"楽しむ", title:"一緒にいる楽しさを伝える", instruction:"笑顔、うなずき、やさしい声など、無理のない方法で楽しさを表します。", example:"例：「一緒にできてうれしいな」／静かに隣で同じ動きをする" }
+      ];
+      const moves = {
+        spin:{ icon:"🌀", label:"くるっ", className:"perform-spin" },
+        stretch:{ icon:"🙆", label:"のびーる", className:"perform-stretch" },
+        tap:{ icon:"🐾", label:"トントン", className:"perform-tap" },
+        sway:{ icon:"🎵", label:"ゆらゆら", className:"perform-sway" },
+        meow:{ icon:"😺", label:"にゃー", className:"perform-meow" },
+        pose:{ icon:"✨", label:"きめポーズ", className:"perform-pose" }
+      };
+      const storyData = {
+        who:{ cat:{emoji:"🐱",text:"ねこが"}, lion:{emoji:"🦁",text:"ライオンが"}, robot:{emoji:"🤖",text:"ロボットが"}, penguin:{emoji:"🐧",text:"ペンギンが"} },
+        where:{ moon:{emoji:"🌙",text:"お月さまで"}, bath:{emoji:"🛁",text:"おふろで"}, forest:{emoji:"🌳",text:"森で"}, train:{emoji:"🚂",text:"電車で"} },
+        action:{ dance:{emoji:"💃",text:"おどった"}, cook:{emoji:"🥞",text:"料理した"}, sleep:{emoji:"💤",text:"お昼寝した"}, sing:{emoji:"🎤",text:"歌った"} }
+      };
+      const cafeData = {
+        bases:{ plate:"🍽️", cup:"☕", bowl:"🥣" },
+        ingredients:{ strawberry:"🍓",cheese:"🧀",leaf:"🌿",star:"⭐",fish:"🐟",banana:"🍌",ice:"🧊",flower:"🌼" }
+      };
+      const commNames = { help:"たすけて",rest:"休憩",different:"ちがう",again:"もう1回",end:"おしまい" };
+      const commMessages = {
+        help:{icon:"🙋",title:"たすけてを受け止めよう",text:"すぐに答えを決めず、選びやすい形にして待ちます。",quote:"「手伝ってほしいんだね。二つから選ぶ？」"},
+        different:{icon:"↩️",title:"ちがうを受け止めよう",text:"戻せるものがあれば一つ戻します。いつでも選び直して大丈夫です。",quote:"「ちがうんだね。選び直せるよ」"},
+        again:{icon:"🔁",title:"もう1回を受け止めよう",text:"好きな繰り返しは、遊びを共有するチャンスです。",quote:"「もう1回したいんだね」"}
+      };
+      const els = {
+        home:$("#homeScreen"), play:$("#playScreen"), finish:$("#finishScreen"),
+        sound:$("#soundToggle"), motion:$("#motionToggle"), playTitle:$("#playTitle"),
+        timer:$("#timerText"), progress:$("#progressTrack"), progressBar:$("#progressBar"), pause:$("#pauseButton"),
+        parade:$("#paradeGame"), story:$("#storyGame"), cafe:$("#cafeGame"),
+        skillLetter:$("#skillLetter"), coachTitle:$("#coachTitle"), coachInstruction:$("#coachInstruction"), coachExample:$("#coachExample"),
+        historyList:$("#historyList"), historyEmpty:$("#historyEmpty"), deleteHistory:$("#deleteHistory"),
+        messageDialog:$("#messageDialog"), messageIcon:$("#messageIcon"), messageTitle:$("#messageTitle"), messageText:$("#messageText"), messageQuote:$("#messageQuote"),
+        pauseDialog:$("#pauseDialog"), endDialog:$("#endDialog"), live:$("#liveRegion")
+      };
+      let state = null;
+      let timerId = null;
+      let audioContext = null;
+      let audioOutput = null;
+      let soundEnabled = false;
+      let playToken = 0;
+      let deleteArmTimer = null;
+      let dialogWasPlaying = false;
+      let endReturnFocus = null;
+      let endOpenedFromPause = false;
+      let pausedByVisibility = false;
+      let reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+      function safeRead(key,fallback) {
+        try { const value = JSON.parse(localStorage.getItem(key)); return value ?? fallback; }
+        catch (_) { try { localStorage.removeItem(key); } catch (_) {} return fallback; }
+      }
+      function safeWrite(key,value) { try { localStorage.setItem(key,JSON.stringify(value)); return true; } catch (_) { return false; } }
+      const settings = safeRead(SETTINGS_KEY,{});
+      if (typeof settings.motion === "boolean") reduceMotion = settings.motion;
+      function announce(message) { els.live.textContent=""; window.setTimeout(() => { els.live.textContent=message; },30); }
+      function focusScreen(element) { window.scrollTo(0,0); window.setTimeout(() => element.focus({preventScroll:true}),20); }
+      function showScreen(name) {
+        els.home.hidden = name !== "home"; els.play.hidden = name !== "play"; els.finish.hidden = name !== "finish";
+        if (name === "play") focusScreen(els.play);
+        if (name === "finish") focusScreen(els.finish);
+        if (name === "home") { window.scrollTo(0,0); const first=$("[data-start-game]"); if (first) window.setTimeout(() => first.focus(),20); }
+      }
+      function applySettings() {
+        document.body.classList.toggle("reduce-motion",reduceMotion);
+        els.sound.setAttribute("aria-pressed",String(soundEnabled)); els.sound.textContent=soundEnabled?"🔊 音ON":"🔇 音OFF";
+        els.motion.setAttribute("aria-pressed",String(reduceMotion)); els.motion.textContent=reduceMotion?"動き：少なめ":"動き：通常";
+        safeWrite(SETTINGS_KEY,{motion:reduceMotion});
+      }
+      async function ensureAudio() {
+        if (!soundEnabled) return false;
+        try {
+          const AudioCtor=window.AudioContext||window.webkitAudioContext; if (!AudioCtor) return false;
+          if (!audioContext) audioContext=new AudioCtor();
+          if (audioContext.state==="suspended") await audioContext.resume();
+          return audioContext.state==="running";
+        } catch (_) { return false; }
+      }
+      function getAudioOutput() {
+        if (audioOutput) return audioOutput;
+        const now=audioContext.currentTime, compressor=audioContext.createDynamicsCompressor(), master=audioContext.createGain();
+        compressor.threshold.setValueAtTime(-8,now); compressor.knee.setValueAtTime(3,now); compressor.ratio.setValueAtTime(12,now);
+        compressor.attack.setValueAtTime(.003,now); compressor.release.setValueAtTime(.16,now); master.gain.setValueAtTime(.9,now);
+        compressor.connect(master); master.connect(audioContext.destination); audioOutput=compressor; return audioOutput;
+      }
+      async function tone(kind="soft") {
+        if (!(await ensureAudio())) return;
+        try {
+          const now=audioContext.currentTime, osc=audioContext.createOscillator(), gain=audioContext.createGain();
+          const joy=kind==="joy", duration=joy ? .3 : .18, peak=joy ? .22 : .18;
+          osc.type=joy?"triangle":"sine"; osc.frequency.setValueAtTime(joy?620:760,now); osc.frequency.exponentialRampToValueAtTime(joy?980:680,now+duration*.72);
+          gain.gain.setValueAtTime(.0001,now); gain.gain.exponentialRampToValueAtTime(peak,now+.008); gain.gain.exponentialRampToValueAtTime(.0001,now+duration);
+          osc.connect(gain); gain.connect(getAudioOutput()); osc.start(now); osc.stop(now+duration+.02);
+        } catch (_) {}
+      }
+      function initialState(game) {
+        return { game,remaining:GAME_SECONDS,paused:false,ended:false,endReason:"own",skillIndex:games[game]?Object.keys(games).indexOf(game):0,
+          skillCounts:Object.fromEntries(skills.map(skill=>[skill.key,0])),commUsed:Object.fromEntries(Object.keys(commNames).map(key=>[key,0])),
+          parade:[],paradePlaying:false,story:{who:null,where:null,action:null,scenes:0,revealed:false,help:false},
+          cafe:{base:null,ingredients:[],large:false,delivered:false,dishes:0} };
+      }
+      function startGame(game) {
+        if (!games[game]) return;
+        playToken+=1; if (timerId) window.clearInterval(timerId);
+        pausedByVisibility=false; state=initialState(game); els.playTitle.textContent=games[game].name; $("#nowBannerText").textContent="子どもが選び、親はその遊びについていきます";
+        els.parade.hidden=game!=="parade"; els.story.hidden=game!=="story"; els.cafe.hidden=game!=="cafe";
+        renderParade(); renderStory(); renderCafe(); renderCoach(); updateTimer(); setPaused(false,false);
+        showScreen("play"); timerId=window.setInterval(tick,1000); tone("soft"); announce(`${games[game].name}を始めます。子どもが隊長です。`);
+      }
+      function tick() {
+        if (!state||state.ended||state.paused||document.hidden) return;
+        state.remaining=Math.max(0,state.remaining-1); updateTimer();
+        if (state.remaining===0) { if(timerId){window.clearInterval(timerId);timerId=null;} $("#nowBannerText").textContent="3分の目安です。続けても、ここで終えても大丈夫"; announce("3分の目安になりました。続けても、ここで終えても大丈夫です。"); }
+      }
+      function updateTimer() {
+        if (!state) return;
+        const minutes=Math.floor(state.remaining/60),seconds=String(state.remaining%60).padStart(2,"0"),elapsed=GAME_SECONDS-state.remaining;
+        els.timer.textContent=`${minutes}:${seconds}`; els.progressBar.style.width=`${Math.min(100,elapsed/GAME_SECONDS*100)}%`; els.progress.setAttribute("aria-valuenow",String(elapsed)); els.progress.setAttribute("aria-valuetext",`残り${minutes}分${seconds}秒。時間は目安です`);
+      }
+      function setPaused(paused,open=true) {
+        if (!state||state.ended) return;
+        state.paused=paused;
+        if(paused&&state.game==="parade"&&state.paradePlaying){playToken+=1;state.paradePlaying=false;}
+        els.pause.setAttribute("aria-pressed",String(paused)); els.pause.textContent=paused?"▶ 再開":"⏸ 休憩";
+        if(state.game==="parade")renderParade();
+        if (paused&&open&&!els.pauseDialog.open) els.pauseDialog.showModal();
+        if (!paused&&els.pauseDialog.open) els.pauseDialog.close();
+      }
+      function renderCoach() {
+        if (!state) return; const skill=skills[state.skillIndex%skills.length];
+        els.skillLetter.textContent=skill.letter; els.coachTitle.textContent=skill.title; els.coachInstruction.textContent=skill.instruction; els.coachExample.textContent=skill.example;
+      }
+      function nextCoach() { if (!state||state.paused) return; state.skillIndex=(state.skillIndex+1)%skills.length; renderCoach(); tone("soft"); announce("次の親向けヒントを表示しました。"); }
+      function markCoach() { if (!state||state.paused) return; const session=state,skill=skills[state.skillIndex%skills.length]; state.skillCounts[skill.key]+=1; tone("joy"); announce(`${skill.title}を試したことを、親のメモに残しました。`); window.setTimeout(()=>{ if(state===session&&!state.ended&&!state.paused) nextCoach(); },700); }
+
+      function renderParade() {
+        const sequence=$("#paradeSequence"); if (!sequence) return; sequence.innerHTML="";
+        for (let i=0;i<3;i+=1) { const slot=document.createElement("div"); slot.className="sequence-slot"; const key=state&&state.parade[i]; slot.textContent=key?moves[key].icon:`${i+1}`; if(key)slot.classList.add("filled"); sequence.appendChild(slot); }
+        const full=!!state&&state.parade.length>=3; $$("[data-move]").forEach(button=>button.disabled=full||!!(state&&(state.paused||state.paradePlaying))); $("#paradeUndo").disabled=!state||!state.parade.length||state.paused||state.paradePlaying; $("#paradePlay").disabled=!full||!!(state&&(state.paused||state.paradePlaying));
+        $("#paradePlay").textContent=full?"パレードを見る！":"3つ選んでパレード！";
+      }
+      function chooseMove(key) { if (!state||state.paused||state.game!=="parade"||state.parade.length>=3||!moves[key]) return; state.parade.push(key); renderParade(); performMove(key); if(state.parade.length>=3)window.setTimeout(()=>$("#paradePlay").focus(),0); announce(`${moves[key].label}を選びました。`); }
+      function undoParade() { if (!state||state.paused||!state.parade.length) return false; state.parade.pop(); renderParade(); tone("soft"); announce("最後の動きを戻しました。"); return true; }
+      function sleep(ms) { return new Promise(resolve=>window.setTimeout(resolve,ms)); }
+      async function performMove(key,token=playToken) {
+        const move=moves[key],cat=$("#paradeCat"),speech=$("#paradeSpeech"); if(!move||!cat)return;
+        cat.className="parade-cat"; speech.classList.remove("show"); void cat.offsetWidth; cat.classList.add(move.className);
+        if(key==="meow") { void speech.offsetWidth; speech.classList.add("show"); }
+        tone(key==="pose"?"joy":"soft"); await sleep(reduceMotion?40:720); if(token!==playToken)return; cat.className="parade-cat";
+      }
+      async function playParade() {
+        if(!state||state.paused||state.paradePlaying||state.game!=="parade"||state.parade.length<3)return;
+        const session=state,token=++playToken; state.paradePlaying=true; renderParade(); announce("パレードが始まります。親子でまねしてみましょう。");
+        for(const key of session.parade){ if(state!==session||session.ended||session.paused||token!==playToken)return; await performMove(key,token); await sleep(reduceMotion?30:180); }
+        if(state===session&&!session.ended&&!session.paused&&token===playToken){ session.paradePlaying=false; tone("joy"); await sleep(reduceMotion?40:450); if(state===session&&!session.ended&&!session.paused&&token===playToken)finishGame("complete"); }
+      }
+
+      function storyStep() { if(!state)return 0; if(!state.story.who)return 0; if(!state.story.where)return 1; if(!state.story.action)return 2; return 3; }
+      function clearStoryHelp() { $$(".story-option").forEach(button=>button.hidden=false); if(state)state.story.help=false; }
+      function storySentence() {
+        if(!state)return {emoji:"❓ ＋ ❓ ＋ ❓",text:"どんなお話になるかな？"};
+        const s=state.story,who=s.who?storyData.who[s.who]:null,where=s.where?storyData.where[s.where]:null,action=s.action?storyData.action[s.action]:null;
+        return {emoji:`${who?who.emoji:"❓"} ＋ ${where?where.emoji:"❓"} ＋ ${action?action.emoji:"❓"}`,text:[who&&who.text,where&&where.text,action&&action.text].filter(Boolean).join(" ")||"どんなお話になるかな？"};
+      }
+      function renderStory() {
+        if(!state)return; const step=storyStep(),sentence=storySentence();
+        $("#storyPreviewEmoji").textContent=sentence.emoji; $("#storyPreviewText").textContent=sentence.text;
+        $("#storyWho").disabled=step!==0; $("#storyWhere").disabled=step!==1; $("#storyAction").disabled=step!==2;
+        $$(".story-option").forEach(button=>button.setAttribute("aria-pressed",String(state.story[button.dataset.storyPart]===button.dataset.value)));
+        $("#storyUndo").disabled=step===0||state.story.revealed; $("#storyShow").disabled=step!==3||state.story.revealed;
+        $("#storyReveal").hidden=!state.story.revealed; $("#storyNext").hidden=state.story.scenes>=1;
+        if(state.story.revealed){ $("#storyRevealEmoji").textContent=sentence.emoji; $("#storyRevealText").textContent=`${sentence.text}！`; }
+      }
+      function chooseStory(part,value) {
+        if(!state||state.paused||state.game!=="story"||state.story.revealed||!storyData[part]||!storyData[part][value])return;
+        const expected=["who","where","action"][storyStep()]; if(part!==expected)return; state.story[part]=value; clearStoryHelp(); renderStory(); const nextPart=["who","where","action"][storyStep()]; const nextTarget=nextPart?document.querySelector(`[data-story-part="${nextPart}"]:not([hidden])`):$("#storyShow"); if(nextTarget)window.setTimeout(()=>nextTarget.focus(),0); tone("soft"); announce(`${storyData[part][value].text}を選びました。`);
+      }
+      function undoStory() {
+        if(!state||state.paused||state.story.revealed)return false; const step=storyStep(); if(step===0)return false;
+        const part=["who","where","action"][step-1]; state.story[part]=null; clearStoryHelp(); renderStory(); tone("soft"); announce("最後の選択を戻しました。"); return true;
+      }
+      function showStory() { if(!state||state.paused||storyStep()!==3)return; state.story.revealed=true; renderStory(); window.setTimeout(()=>$("#storyDone").focus(),0); tone("joy"); announce(`${storySentence().text}。お話ができました。`); }
+      function nextStoryScene() {
+        if(!state||state.paused||!state.story.revealed||state.story.scenes>=1)return;
+        state.story.scenes=1; state.story.who=null; state.story.where=null; state.story.action=null; state.story.revealed=false; clearStoryHelp(); renderStory(); const firstWho=document.querySelector('[data-story-part="who"]'); if(firstWho)window.setTimeout(()=>firstWho.focus(),0); tone("soft"); announce("もう一場面つくります。だれが、から選んでください。");
+      }
+      function helpStory() {
+        if(!state||state.story.revealed)return; const part=["who","where","action"][storyStep()]; if(!part)return;
+        $$(`[data-story-part="${part}"]`).forEach((button,index)=>button.hidden=index>=2); state.story.help=true; announce("いまの選択肢を二つにしました。どちらも選ばず休んでも大丈夫です。");
+      }
+      function repeatStory() { if(!state||!state.story.revealed)return false; const reveal=$("#storyReveal"); reveal.style.animation="none"; void reveal.offsetWidth; reveal.style.animation=""; tone("joy"); announce(storySentence().text); return true; }
+
+      function dishText() {
+        if(!state||!state.cafe.base)return "✨"; const base=cafeData.bases[state.cafe.base],items=state.cafe.ingredients.map(key=>cafeData.ingredients[key]).join(""); return `${base}${items||""}`;
+      }
+      function renderCafe() {
+        if(!state)return; const cafe=state.cafe; $("#dishPreview").textContent=dishText(); $("#dishPreview").classList.toggle("large",cafe.large);
+        $$(`[data-base]`).forEach(button=>button.setAttribute("aria-pressed",String(button.dataset.base===cafe.base)));
+        $("#cafeUndo").disabled=!cafe.ingredients.length&&!cafe.base; $("#cafeBig").setAttribute("aria-pressed",String(cafe.large));
+        $("#cafeDeliver").disabled=!cafe.base||!cafe.ingredients.length||cafe.delivered; $("#cafeDelivery").hidden=!cafe.delivered; $("#cafeNext").hidden=cafe.dishes>=1;
+        $$(`#cafeGame button:not(#cafeNext):not(#cafeDone)`).forEach(button=>{ if(cafe.delivered)button.disabled=true; });
+        if(!cafe.delivered){ $$(`[data-base],[data-ingredient],#cafeMix,#cafeBig`).forEach(button=>button.disabled=false); $("#cafeUndo").disabled=!cafe.ingredients.length&&!cafe.base; $("#cafeDeliver").disabled=!cafe.base||!cafe.ingredients.length; }
+      }
+      function chooseBase(key) { if(!state||state.paused||state.game!=="cafe"||state.cafe.delivered||!cafeData.bases[key])return; state.cafe.base=key; renderCafe(); tone("soft"); announce("器を選びました。"); }
+      function addIngredient(key) { if(!state||state.paused||state.game!=="cafe"||state.cafe.delivered||!cafeData.ingredients[key])return; state.cafe.ingredients.push(key); renderCafe(); tone("soft"); announce(`${cafeData.ingredients[key]}を入れました。同じものを何度入れても大丈夫です。`); }
+      function undoCafe() { if(!state||state.paused||state.cafe.delivered)return false; if(state.cafe.ingredients.length)state.cafe.ingredients.pop(); else if(state.cafe.base)state.cafe.base=null; else return false; renderCafe(); tone("soft"); announce("最後の選択を戻しました。"); return true; }
+      function mixCafe() { if(!state||state.paused||state.cafe.delivered)return false; const dish=$("#dishPreview"); dish.classList.remove("mixing"); void dish.offsetWidth; dish.classList.add("mixing"); tone("soft"); announce("くるくる、まぜました。"); return true; }
+      function toggleCafeBig() { if(!state||state.paused||state.cafe.delivered)return; state.cafe.large=!state.cafe.large; renderCafe(); tone("soft"); announce(state.cafe.large?"大きなメニューになりました。":"元の大きさに戻しました。"); }
+      function deliverCafe() { if(!state||state.paused||!state.cafe.base||!state.cafe.ingredients.length)return; state.cafe.delivered=true; renderCafe(); window.setTimeout(()=>$("#cafeDone").focus(),0); tone("joy"); announce("スペシャルメニューを届けました。ねこ店長が喜んでいます。"); }
+      function nextCafeDish() { if(!state||state.paused||!state.cafe.delivered||state.cafe.dishes>=1)return; state.cafe={base:null,ingredients:[],large:false,delivered:false,dishes:1}; renderCafe(); const firstBase=document.querySelector('[data-base]'); if(firstBase)window.setTimeout(()=>firstBase.focus(),0); tone("soft"); announce("もう一品つくります。好きな器を選んでください。"); }
+
+      function temporarilyPause() { dialogWasPlaying=!!state&&!state.paused; if(dialogWasPlaying)setPaused(true,false); }
+      function resumeAfterMessage() { if(state&&dialogWasPlaying&&!state.ended)setPaused(false,false); dialogWasPlaying=false; }
+      function showMessage(kind) { const item=commMessages[kind]; if(!item)return; temporarilyPause(); els.messageIcon.textContent=item.icon; els.messageTitle.textContent=item.title; els.messageText.textContent=item.text; els.messageQuote.textContent=item.quote; if(!els.messageDialog.open)els.messageDialog.showModal(); }
+      function useCommunication(kind) {
+        if(!state||state.ended||!commNames[kind])return; state.commUsed[kind]+=1;
+        if(kind==="rest"){ setPaused(true,true); announce("休憩にしました。時間もゲームも止まっています。"); return; }
+        if(kind==="end"){ openEndDialog(document.activeElement); return; }
+        if(state.game==="parade"&&state.paradePlaying){playToken+=1;state.paradePlaying=false;renderParade();}
+        let changed=false;
+        if(kind==="help"&&state.game==="story")helpStory();
+        if(kind==="different"){ if(state.game==="parade")changed=undoParade(); if(state.game==="story")changed=undoStory(); if(state.game==="cafe")changed=undoCafe(); }
+        if(kind==="again"){ if(state.game==="parade"&&state.parade.length) { performMove(state.parade[state.parade.length-1]); changed=true; } if(state.game==="story")changed=repeatStory(); if(state.game==="cafe")changed=mixCafe(); }
+        showMessage(kind); if(!changed&&kind!=="help") announce(`${commNames[kind]}を伝えました。今できる範囲で受け止めます。`);
+      }
+      function openEndDialog(trigger,fromPause=false) { if(!state||state.ended)return; endReturnFocus=trigger||document.activeElement; endOpenedFromPause=fromPause; temporarilyPause(); if(!els.endDialog.open)els.endDialog.showModal(); }
+      function cancelEndDialog() { if(els.endDialog.open)els.endDialog.close(); if(endOpenedFromPause){endOpenedFromPause=false;if(state&&!state.ended&&!els.pauseDialog.open){els.pauseDialog.showModal();window.setTimeout(()=>$("#resumeButton").focus(),0);}return;} resumeAfterMessage(); if(endReturnFocus&&endReturnFocus.focus)endReturnFocus.focus(); }
+      function closeAllDialogs() { [els.messageDialog,els.pauseDialog,els.endDialog].forEach(dialog=>{ if(dialog.open)dialog.close(); }); dialogWasPlaying=false; endOpenedFromPause=false; pausedByVisibility=false; }
+      function finishGame(reason="own") {
+        if(!state||state.ended)return; state.ended=true; state.endReason=reason; playToken+=1; if(timerId){window.clearInterval(timerId);timerId=null;} closeAllDialogs(); saveHistory(); renderFinish(); showScreen("finish"); tone("joy"); announce("遊びを終えました。いっしょに遊べたことを振り返ります。");
+      }
+      function saveHistory() {
+        const history=safeRead(HISTORY_KEY,[]),entry={date:new Date().toISOString(),game:state.game,skills:{...state.skillCounts}};
+        safeWrite(HISTORY_KEY,[entry,...(Array.isArray(history)?history:[])].slice(0,7)); renderHistory();
+      }
+      function renderFinish() {
+        const reason=state.endReason==="time"?"3分の目安まで、ゆっくり遊びました。":state.endReason==="complete"?"一つの遊びを、自分たちのペースで完成できました。":"自分たちで終わるタイミングを選びました。";
+        $("#finishLead").textContent=reason; $("#finishGameName").textContent=`${games[state.game].icon} ${games[state.game].name}`;
+        const results=$("#skillResults"); results.innerHTML=""; skills.forEach(skill=>{const item=document.createElement("div");item.className="skill-result";const strong=document.createElement("strong");strong.textContent=state.skillCounts[skill.key];item.append(strong,document.createTextNode(skill.short));results.appendChild(item);});
+        const used=Object.keys(state.commUsed).filter(key=>state.commUsed[key]>0).map(key=>commNames[key]); $("#commSummary").textContent=used.length?`伝えるカード：${used.join("・")}を受け止めました。`:"伝えるカードを使わない日も大丈夫。言葉以外のサインも大切にします。";
+      }
+      function renderHistory() {
+        const raw=safeRead(HISTORY_KEY,[]),history=Array.isArray(raw)?raw.filter(item=>item&&games[item.game]).slice(0,7):[]; els.historyList.innerHTML=""; els.historyEmpty.hidden=history.length>0; els.deleteHistory.hidden=history.length===0;
+        history.forEach(item=>{const li=document.createElement("li");li.className="history-item";const icon=document.createElement("span");icon.className="history-icon";icon.textContent=games[item.game].icon;const copy=document.createElement("div"),title=document.createElement("strong");title.textContent=games[item.game].name;const date=new Date(item.date);const total=item.skills&&typeof item.skills==="object"?Object.values(item.skills).reduce((sum,value)=>sum+(Number(value)||0),0):0;const detail=document.createElement("span");detail.textContent=`${Number.isNaN(date.getTime())?"日時不明":date.toLocaleDateString("ja-JP")}・親が関わりを試した回数 ${total}`;copy.append(title,detail);li.append(icon,copy);els.historyList.appendChild(li);});
+      }
+      function armDeleteHistory() {
+        if(els.deleteHistory.dataset.armed==="true"){try{localStorage.removeItem(HISTORY_KEY);}catch(_){} delete els.deleteHistory.dataset.armed;els.deleteHistory.textContent="この端末の記録を消す";if(deleteArmTimer)window.clearTimeout(deleteArmTimer);renderHistory();announce("この端末の遊びメモを消しました。");return;}
+        els.deleteHistory.dataset.armed="true";els.deleteHistory.textContent="もう一度押すと消えます";announce("記録を消すには、もう一度ボタンを押してください。");deleteArmTimer=window.setTimeout(()=>{delete els.deleteHistory.dataset.armed;els.deleteHistory.textContent="この端末の記録を消す";},3500);
+      }
+      function goHome() { playToken+=1;if(timerId){window.clearInterval(timerId);timerId=null;}closeAllDialogs();state=null;renderHistory();showScreen("home");announce("3つの遊びを選ぶ画面に戻りました。"); }
+
+      $$(`[data-start-game]`).forEach(button=>button.addEventListener("click",()=>startGame(button.dataset.startGame)));
+      els.sound.addEventListener("click",async()=>{soundEnabled=!soundEnabled;applySettings();if(soundEnabled)await tone("soft");announce(soundEnabled?"音をオンにしました。":"音をオフにしました。");});
+      els.motion.addEventListener("click",()=>{reduceMotion=!reduceMotion;applySettings();announce(reduceMotion?"動きを少なくしました。":"通常の動きに戻しました。");});
+      els.pause.addEventListener("click",()=>{if(!state)return;if(state.paused){setPaused(false,false);if(els.pauseDialog.open)els.pauseDialog.close();}else{state.commUsed.rest+=1;setPaused(true,true);}});
+      $("#hubButton").addEventListener("click",event=>openEndDialog(event.currentTarget)); $("#finishButton").addEventListener("click",event=>openEndDialog(event.currentTarget));
+      $$("[data-move]").forEach(button=>button.addEventListener("click",()=>chooseMove(button.dataset.move))); $("#paradeUndo").addEventListener("click",undoParade); $("#paradePlay").addEventListener("click",playParade);
+      $$("[data-story-part]").forEach(button=>button.addEventListener("click",()=>chooseStory(button.dataset.storyPart,button.dataset.value))); $("#storyUndo").addEventListener("click",undoStory); $("#storyShow").addEventListener("click",showStory); $("#storyNext").addEventListener("click",nextStoryScene); $("#storyDone").addEventListener("click",()=>finishGame("complete"));
+      $$("[data-base]").forEach(button=>button.addEventListener("click",()=>chooseBase(button.dataset.base))); $$("[data-ingredient]").forEach(button=>button.addEventListener("click",()=>addIngredient(button.dataset.ingredient))); $("#cafeUndo").addEventListener("click",undoCafe); $("#cafeMix").addEventListener("click",mixCafe); $("#cafeBig").addEventListener("click",toggleCafeBig); $("#cafeDeliver").addEventListener("click",deliverCafe); $("#cafeNext").addEventListener("click",nextCafeDish); $("#cafeDone").addEventListener("click",()=>finishGame("complete"));
+      $("#trySkill").addEventListener("click",markCoach); $("#nextSkill").addEventListener("click",nextCoach); $$("[data-comm]").forEach(button=>button.addEventListener("click",()=>useCommunication(button.dataset.comm)));
+      $("#messageClose").addEventListener("click",()=>{els.messageDialog.close();resumeAfterMessage();});
+      $("#resumeButton").addEventListener("click",()=>{els.pauseDialog.close();setPaused(false,false);announce("遊びを再開しました。");}); $("#pauseEnd").addEventListener("click",()=>{els.pauseDialog.close();openEndDialog($("#pauseEnd"),true);});
+      $("#endNow").addEventListener("click",()=>finishGame("own")); $("#endCancel").addEventListener("click",cancelEndDialog);
+      $("#playAgain").addEventListener("click",()=>startGame(state.game)); $("#backHome").addEventListener("click",goHome); els.deleteHistory.addEventListener("click",armDeleteHistory);
+      els.messageDialog.addEventListener("cancel",event=>{event.preventDefault();els.messageDialog.close();resumeAfterMessage();}); els.pauseDialog.addEventListener("cancel",event=>{event.preventDefault();}); els.endDialog.addEventListener("cancel",event=>{event.preventDefault();cancelEndDialog();});
+      document.addEventListener("visibilitychange",()=>{
+        if(document.hidden&&state&&!state.ended&&!state.paused){pausedByVisibility=true;setPaused(true,false);return;}
+        if(!document.hidden&&pausedByVisibility){pausedByVisibility=false;if(state&&!state.ended&&state.paused&&!els.messageDialog.open&&!els.endDialog.open&&!els.pauseDialog.open){els.pauseDialog.showModal();announce("画面を離れていたため休憩中です。再開ボタンを押してください。");}}
+      });
+      window.addEventListener("beforeunload",()=>{if(timerId)window.clearInterval(timerId);playToken+=1;});
+      applySettings(); renderHistory();
+    })();
+  </script>
+</body>
+</html>

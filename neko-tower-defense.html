@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>にゃんこディフェンス 〜チーズを守れ!〜</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { height:100%; overflow:hidden; font-family:'Hiragino Maru Gothic ProN','Yu Gothic',sans-serif;
+    background:linear-gradient(160deg,#ffe9f0 0%,#fff6e0 50%,#e3f6ff 100%);
+    touch-action:manipulation; user-select:none; }
+  #wrap { display:flex; flex-direction:column; height:100%; max-width:820px; margin:0 auto; padding:6px; }
+  #topbar { display:flex; justify-content:space-between; align-items:center; gap:8px;
+    background:#fffdf7; border-radius:14px; padding:6px 12px; box-shadow:0 2px 6px rgba(180,140,100,.2);
+    font-weight:bold; color:#7a5a3a; flex-wrap:wrap; }
+  #topbar span { white-space:nowrap; font-size:15px; }
+  #cv { flex:1; width:100%; border-radius:14px; box-shadow:0 3px 10px rgba(180,140,100,.25);
+    margin:6px 0; display:block; cursor:pointer; }
+  #shop { display:flex; gap:8px; justify-content:center; align-items:stretch; }
+  .card { flex:1; max-width:150px; background:#fffdf7; border:3px solid transparent; border-radius:14px;
+    padding:6px 4px; text-align:center; cursor:pointer; box-shadow:0 2px 6px rgba(180,140,100,.2);
+    transition:transform .08s; }
+  .card:active { transform:scale(.95); }
+  .card.sel { border-color:#ff9ec0; background:#fff0f5; }
+  .card.poor { opacity:.45; }
+  .card canvas { width:44px; height:44px; }
+  .card .nm { font-size:13px; font-weight:bold; color:#7a5a3a; }
+  .card .cost { font-size:12px; color:#3a86c8; font-weight:bold; }
+  .card .desc { font-size:10px; color:#a58a6a; }
+  #msg { position:absolute; left:50%; top:42%; transform:translate(-50%,-50%);
+    background:rgba(255,253,247,.96); border-radius:20px; padding:24px 34px; text-align:center;
+    box-shadow:0 6px 24px rgba(150,100,60,.35); display:none; z-index:10; min-width:260px; }
+  #msg h2 { color:#e0608a; margin-bottom:10px; font-size:26px; }
+  #msg p { color:#7a5a3a; font-size:15px; margin:4px 0; }
+  #msg button { margin-top:14px; font-size:17px; font-weight:bold; color:#fff;
+    background:linear-gradient(180deg,#ffb0c8,#ff8fb0); border:none; border-radius:24px;
+    padding:10px 30px; cursor:pointer; box-shadow:0 3px 0 #e0708f; font-family:inherit; }
+  #msg button:active { transform:translateY(2px); box-shadow:none; }
+  #wavebtn { font-size:14px; font-weight:bold; color:#fff; background:linear-gradient(180deg,#8fd0ff,#5aabe8);
+    border:none; border-radius:18px; padding:6px 14px; cursor:pointer; box-shadow:0 2px 0 #4a8cc0;
+    font-family:inherit; }
+  #wavebtn:disabled { opacity:.4; box-shadow:none; }
+  #sellbtn { position:absolute; display:none; z-index:5; font-size:13px; font-weight:bold; color:#fff;
+    background:linear-gradient(180deg,#ffb080,#f08050); border:none; border-radius:16px;
+    padding:6px 12px; cursor:pointer; box-shadow:0 2px 0 #c86840; font-family:inherit; }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div id="topbar">
+    <span>🐟 <b id="fish">100</b></span>
+    <span>🧀 <b id="lives">9</b></span>
+    <span>ウェーブ <b id="wave">0</b></span>
+    <span>スコア <b id="score">0</b></span>
+    <button id="wavebtn">▶ スタート</button>
+  </div>
+  <canvas id="cv"></canvas>
+  <div id="shop"></div>
+</div>
+<div id="msg"></div>
+<button id="sellbtn"></button>
+<script>
+"use strict";
+// ---------- 基本設定 ----------
+const COLS = 10, ROWS = 7;
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+let CELL = 60, OX = 0, OY = 0, W = 0, H = 0;
+
+// 道 (セル座標の折れ点)
+const PATH_CELLS = [[-1,1],[6,1],[6,3],[2,3],[2,5],[10,5]];
+let pathPts = [], pathLens = [], pathTotal = 0;
+const pathSet = new Set();
+(function buildPathSet(){
+  for (let i=0;i<PATH_CELLS.length-1;i++){
+    const [x1,y1]=PATH_CELLS[i],[x2,y2]=PATH_CELLS[i+1];
+    const dx=Math.sign(x2-x1), dy=Math.sign(y2-y1);
+    let x=x1,y=y1;
+    while(true){
+      if(x>=0&&x<COLS) pathSet.add(x+','+y);
+      if(x===x2&&y===y2) break;
+      x+=dx; y+=dy;
+    }
+  }
+})();
+
+function resize(){
+  const rect = cv.parentElement.getBoundingClientRect();
+  const topH = document.getElementById('topbar').offsetHeight;
+  const shopH = document.getElementById('shop').offsetHeight;
+  const availH = rect.height - topH - shopH - 30;
+  const availW = rect.width - 4;
+  CELL = Math.floor(Math.min(availW/COLS, availH/ROWS));
+  W = CELL*COLS; H = CELL*ROWS;
+  const dpr = window.devicePixelRatio||1;
+  cv.width = W*dpr; cv.height = H*dpr;
+  cv.style.width = W+'px'; cv.style.height = H+'px';
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  // 経路のピクセル座標
+  pathPts = PATH_CELLS.map(([x,y])=>[(x+0.5)*CELL,(y+0.5)*CELL]);
+  pathLens=[0]; pathTotal=0;
+  for(let i=1;i<pathPts.length;i++){
+    pathTotal += Math.hypot(pathPts[i][0]-pathPts[i-1][0], pathPts[i][1]-pathPts[i-1][1]);
+    pathLens.push(pathTotal);
+  }
+}
+window.addEventListener('resize', ()=>{ resize(); });
+
+function pointAt(s){
+  if(s<=0) return {x:pathPts[0][0], y:pathPts[0][1]};
+  if(s>=pathTotal){ const p=pathPts[pathPts.length-1]; return {x:p[0],y:p[1]}; }
+  let i=1; while(pathLens[i]<s) i++;
+  const t=(s-pathLens[i-1])/(pathLens[i]-pathLens[i-1]);
+  return { x: pathPts[i-1][0]+(pathPts[i][0]-pathPts[i-1][0])*t,
+           y: pathPts[i-1][1]+(pathPts[i][1]-pathPts[i-1][1])*t };
+}
+
+// ---------- サウンド ----------
+let AC=null;
+function beep(freq,dur,type='sine',vol=0.12){
+  if(!AC) return;
+  const o=AC.createOscillator(), g=AC.createGain();
+  o.type=type; o.frequency.value=freq;
+  g.gain.setValueAtTime(vol,AC.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001,AC.currentTime+dur);
+  o.connect(g); g.connect(AC.destination);
+  o.start(); o.stop(AC.currentTime+dur);
+}
+function initAudio(){ if(!AC){ try{ AC=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } }
+
+// ---------- ネコ定義 ----------
+const CAT_TYPES = {
+  kedama: { name:'けだまネコ', cost:50,  range:2.2, dmg:12, rate:0.7, color:'#f5c98a', proj:'#e8a35a',
+            desc:'バランス型' },
+  koori:  { name:'こおりネコ', cost:70,  range:1.9, dmg:6,  rate:0.9, color:'#a8d8f0', proj:'#6ab8e8',
+            desc:'敵を遅くする', slow:true },
+  maguro: { name:'マグロネコ', cost:120, range:3.4, dmg:45, rate:2.0, color:'#8a8f9a', proj:'#e05a6a',
+            desc:'遠距離・強力' },
+};
+const MOUSE_TYPES = {
+  chibi: { hp:22,  speed:75, reward:6,  r:0.26, color:'#c8b8e8' },
+  futsu: { hp:45,  speed:55, reward:9,  r:0.32, color:'#b8b0a8' },
+  debu:  { hp:110, speed:38, reward:16, r:0.40, color:'#d8a8a0' },
+  boss:  { hp:600, speed:30, reward:80, r:0.50, color:'#9a88b8', boss:true },
+};
+
+// ---------- 状態 ----------
+let fish, lives, wave, score, towers, enemies, projs, parts, spawnQueue, spawnTimer;
+let waveActive, gameOver, selShop, selTower, autoTimer;
+
+function reset(){
+  fish=100; lives=9; wave=0; score=0;
+  towers=[]; enemies=[]; projs=[]; parts=[];
+  spawnQueue=[]; spawnTimer=0; waveActive=false; gameOver=false;
+  selShop=null; selTower=null; autoTimer=0;
+  updateUI();
+  document.getElementById('wavebtn').disabled=false;
+  document.getElementById('wavebtn').textContent='▶ スタート';
+  hideSell();
+}
+
+function updateUI(){
+  document.getElementById('fish').textContent=fish;
+  document.getElementById('lives').textContent=lives;
+  document.getElementById('wave').textContent=wave;
+  document.getElementById('score').textContent=score;
+  document.querySelectorAll('.card').forEach(c=>{
+    c.classList.toggle('poor', fish < CAT_TYPES[c.dataset.type].cost);
+    c.classList.toggle('sel', selShop===c.dataset.type);
+  });
+}
+
+// ---------- ウェーブ ----------
+function startWave(){
+  if(waveActive||gameOver) return;
+  wave++;
+  const q=[];
+  const n = 5 + wave*2;
+  const hpMul = 1 + (wave-1)*0.28;
+  for(let i=0;i<n;i++){
+    let t='futsu';
+    const r=Math.random();
+    if(wave>=2 && r<0.35) t='chibi';
+    else if(wave>=3 && r>0.75) t='debu';
+    q.push({type:t, hpMul, delay: 0.9 - Math.min(0.5, wave*0.04)});
+  }
+  if(wave%5===0) q.push({type:'boss', hpMul, delay:1.5});
+  spawnQueue=q; spawnTimer=0.5; waveActive=true;
+  document.getElementById('wavebtn').disabled=true;
+  document.getElementById('wavebtn').textContent='ウェーブ中…';
+  updateUI();
+  beep(520,.12,'triangle'); setTimeout(()=>beep(660,.15,'triangle'),130);
+}
+document.getElementById('wavebtn').addEventListener('click',()=>{ initAudio(); startWave(); });
+
+function spawnEnemy(sp){
+  const t=MOUSE_TYPES[sp.type];
+  enemies.push({ type:sp.type, s:0, hp:t.hp*sp.hpMul, maxHp:t.hp*sp.hpMul,
+    speed:t.speed*(CELL/60), reward:t.reward, r:t.r*CELL, color:t.color,
+    slow:0, wob:Math.random()*6.28, boss:!!t.boss });
+}
+
+// ---------- 描画: かわいいキャラ ----------
+function drawCat(c,x,y,r,color,angle){
+  c.save(); c.translate(x,y);
+  // しっぽ
+  c.strokeStyle=color; c.lineWidth=r*0.28; c.lineCap='round';
+  c.beginPath(); c.moveTo(r*0.6,r*0.5); c.quadraticCurveTo(r*1.3,r*0.6,r*1.2,-r*0.2); c.stroke();
+  // 耳
+  c.fillStyle=color;
+  c.beginPath(); c.moveTo(-r*0.85,-r*0.45); c.lineTo(-r*0.55,-r*1.15); c.lineTo(-r*0.2,-r*0.7); c.fill();
+  c.beginPath(); c.moveTo(r*0.85,-r*0.45); c.lineTo(r*0.55,-r*1.15); c.lineTo(r*0.2,-r*0.7); c.fill();
+  c.fillStyle='#ffb0c0';
+  c.beginPath(); c.moveTo(-r*0.72,-r*0.6); c.lineTo(-r*0.57,-r*0.98); c.lineTo(-r*0.36,-r*0.7); c.fill();
+  c.beginPath(); c.moveTo(r*0.72,-r*0.6); c.lineTo(r*0.57,-r*0.98); c.lineTo(r*0.36,-r*0.7); c.fill();
+  // 顔
+  c.fillStyle=color;
+  c.beginPath(); c.arc(0,0,r,0,6.29); c.fill();
+  // 目 (向きに少し寄る)
+  const ex=Math.cos(angle||0)*r*0.12, ey=Math.sin(angle||0)*r*0.12;
+  c.fillStyle='#3a3a3a';
+  c.beginPath(); c.arc(-r*0.35+ex,-r*0.1+ey,r*0.13,0,6.29); c.fill();
+  c.beginPath(); c.arc(r*0.35+ex,-r*0.1+ey,r*0.13,0,6.29); c.fill();
+  c.fillStyle='#fff';
+  c.beginPath(); c.arc(-r*0.31+ex,-r*0.15+ey,r*0.05,0,6.29); c.fill();
+  c.beginPath(); c.arc(r*0.39+ex,-r*0.15+ey,r*0.05,0,6.29); c.fill();
+  // 鼻・口
+  c.fillStyle='#e08a9a';
+  c.beginPath(); c.arc(0,r*0.18,r*0.09,0,6.29); c.fill();
+  c.strokeStyle='#b07a6a'; c.lineWidth=r*0.06;
+  c.beginPath(); c.moveTo(0,r*0.27); c.quadraticCurveTo(-r*0.15,r*0.42,-r*0.28,r*0.32); c.stroke();
+  c.beginPath(); c.moveTo(0,r*0.27); c.quadraticCurveTo(r*0.15,r*0.42,r*0.28,r*0.32); c.stroke();
+  // ひげ
+  c.strokeStyle='rgba(120,90,70,.6)'; c.lineWidth=r*0.045;
+  for(const s of [-1,1]) for(const dy of [-0.02,0.12]){
+    c.beginPath(); c.moveTo(s*r*0.5,r*(0.1+dy)); c.lineTo(s*r*0.95,r*(dy)); c.stroke();
+  }
+  // ほっぺ
+  c.fillStyle='rgba(255,150,170,.35)';
+  c.beginPath(); c.arc(-r*0.55,r*0.22,r*0.16,0,6.29); c.fill();
+  c.beginPath(); c.arc(r*0.55,r*0.22,r*0.16,0,6.29); c.fill();
+  c.restore();
+}
+function drawMouse(c,e){
+  const p=pointAt(e.s);
+  const wob=Math.sin(e.wob)*e.r*0.12;
+  const x=p.x, y=p.y+wob, r=e.r;
+  c.save(); c.translate(x,y);
+  // しっぽ
+  c.strokeStyle='#d89aa8'; c.lineWidth=r*0.16; c.lineCap='round';
+  c.beginPath(); c.moveTo(-r*0.8,r*0.2); c.quadraticCurveTo(-r*1.5,r*0.4+wob,-r*1.6,-r*0.3); c.stroke();
+  // 耳
+  c.fillStyle=e.color;
+  c.beginPath(); c.arc(-r*0.5,-r*0.75,r*0.45,0,6.29); c.fill();
+  c.beginPath(); c.arc(r*0.5,-r*0.75,r*0.45,0,6.29); c.fill();
+  c.fillStyle='#ffc8d4';
+  c.beginPath(); c.arc(-r*0.5,-r*0.75,r*0.26,0,6.29); c.fill();
+  c.beginPath(); c.arc(r*0.5,-r*0.75,r*0.26,0,6.29); c.fill();
+  // 体
+  c.fillStyle=e.color;
+  c.beginPath(); c.ellipse(0,0,r,r*0.88,0,0,6.29); c.fill();
+  // 目
+  c.fillStyle='#3a3a3a';
+  c.beginPath(); c.arc(-r*0.3,-r*0.08,r*0.12,0,6.29); c.fill();
+  c.beginPath(); c.arc(r*0.3,-r*0.08,r*0.12,0,6.29); c.fill();
+  c.fillStyle='#fff';
+  c.beginPath(); c.arc(-r*0.26,-r*0.13,r*0.045,0,6.29); c.fill();
+  c.beginPath(); c.arc(r*0.34,-r*0.13,r*0.045,0,6.29); c.fill();
+  // 鼻
+  c.fillStyle='#e87a90';
+  c.beginPath(); c.arc(0,r*0.22,r*0.12,0,6.29); c.fill();
+  // 前歯
+  c.fillStyle='#fff';
+  c.fillRect(-r*0.09,r*0.32,r*0.09,r*0.16);
+  c.fillRect(r*0.005,r*0.32,r*0.09,r*0.16);
+  if(e.boss){ // 王冠
+    c.fillStyle='#f0c040';
+    c.beginPath();
+    c.moveTo(-r*0.45,-r*1.05); c.lineTo(-r*0.45,-r*1.45); c.lineTo(-r*0.22,-r*1.15);
+    c.lineTo(0,-r*1.5); c.lineTo(r*0.22,-r*1.15); c.lineTo(r*0.45,-r*1.45); c.lineTo(r*0.45,-r*1.05);
+    c.fill();
+  }
+  // 氷エフェクト
+  if(e.slow>0){ c.fillStyle='rgba(120,200,255,.3)'; c.beginPath(); c.arc(0,0,r*1.15,0,6.29); c.fill(); }
+  c.restore();
+  // HPバー
+  if(e.hp<e.maxHp){
+    const w=r*2, hw=w*Math.max(0,e.hp/e.maxHp);
+    c.fillStyle='rgba(0,0,0,.25)'; c.fillRect(x-r,y-r*1.6,w,4);
+    c.fillStyle='#6ad06a'; c.fillRect(x-r,y-r*1.6,hw,4);
+  }
+}
+
+// ---------- フィールド描画 ----------
+function drawField(){
+  // 草地
+  ctx.fillStyle='#bfe8a8'; ctx.fillRect(0,0,W,H);
+  for(let x=0;x<COLS;x++) for(let y=0;y<ROWS;y++){
+    if((x+y)%2===0){ ctx.fillStyle='rgba(255,255,255,.08)'; ctx.fillRect(x*CELL,y*CELL,CELL,CELL); }
+  }
+  // 道
+  ctx.strokeStyle='#e8d5a8'; ctx.lineWidth=CELL*0.78; ctx.lineCap='round'; ctx.lineJoin='round';
+  ctx.beginPath();
+  ctx.moveTo(pathPts[0][0]-CELL*0.5,pathPts[0][1]);
+  for(let i=0;i<pathPts.length;i++) ctx.lineTo(pathPts[i][0],pathPts[i][1]);
+  ctx.stroke();
+  ctx.strokeStyle='#d8c090'; ctx.lineWidth=CELL*0.78; ctx.setLineDash([2,CELL*0.5]); ctx.stroke(); ctx.setLineDash([]);
+  // ゴールのチーズ
+  const g=pathPts[pathPts.length-1];
+  const gx=g[0]-CELL*0.15, gy=g[1];
+  ctx.save(); ctx.translate(gx,gy);
+  ctx.fillStyle='#f8d060';
+  ctx.beginPath(); ctx.moveTo(-CELL*0.38,CELL*0.3); ctx.lineTo(CELL*0.38,CELL*0.3);
+  ctx.lineTo(CELL*0.38,-CELL*0.05); ctx.lineTo(-CELL*0.38,-CELL*0.35); ctx.closePath(); ctx.fill();
+  ctx.fillStyle='#e8b840';
+  ctx.beginPath(); ctx.arc(CELL*0.1,CELL*0.12,CELL*0.08,0,6.29); ctx.fill();
+  ctx.beginPath(); ctx.arc(-CELL*0.15,CELL*0.18,CELL*0.06,0,6.29); ctx.fill();
+  ctx.restore();
+}
+
+// ---------- 入力 ----------
+const shopEl=document.getElementById('shop');
+for(const key of Object.keys(CAT_TYPES)){
+  const t=CAT_TYPES[key];
+  const d=document.createElement('div');
+  d.className='card'; d.dataset.type=key;
+  d.innerHTML=`<canvas width="88" height="88"></canvas>
+    <div class="nm">${t.name}</div><div class="cost">🐟${t.cost}</div><div class="desc">${t.desc}</div>`;
+  shopEl.appendChild(d);
+  const ic=d.querySelector('canvas').getContext('2d');
+  drawCat(ic,44,50,30,t.color,0);
+  d.addEventListener('click',()=>{
+    initAudio();
+    selShop = (selShop===key)? null : key;
+    selTower=null; hideSell(); updateUI();
+    beep(700,.06,'sine',.08);
+  });
+}
+
+const sellBtn=document.getElementById('sellbtn');
+function hideSell(){ sellBtn.style.display='none'; }
+sellBtn.addEventListener('click',()=>{
+  if(!selTower) return;
+  const refund=Math.floor(CAT_TYPES[selTower.type].cost*0.6);
+  fish+=refund;
+  towers=towers.filter(t=>t!==selTower);
+  selTower=null; hideSell(); updateUI();
+  beep(400,.1,'sine'); beep(300,.15,'sine');
+});
+
+cv.addEventListener('pointerdown',ev=>{
+  initAudio();
+  if(gameOver) return;
+  const rect=cv.getBoundingClientRect();
+  const px=ev.clientX-rect.left, py=ev.clientY-rect.top;
+  const gx=Math.floor(px/CELL), gy=Math.floor(py/CELL);
+  if(gx<0||gx>=COLS||gy<0||gy>=ROWS) return;
+  const existing=towers.find(t=>t.gx===gx&&t.gy===gy);
+  if(existing){
+    selTower=existing; selShop=null; updateUI();
+    const brect=cv.getBoundingClientRect();
+    sellBtn.textContent=`× 売却 (+🐟${Math.floor(CAT_TYPES[existing.type].cost*0.6)})`;
+    sellBtn.style.display='block';
+    sellBtn.style.left=(brect.left+(gx+0.5)*CELL-50)+'px';
+    sellBtn.style.top=(brect.top+gy*CELL-34)+'px';
+    beep(600,.06,'sine',.08);
+    return;
+  }
+  selTower=null; hideSell();
+  if(!selShop) return;
+  if(pathSet.has(gx+','+gy)){ beep(180,.12,'square',.08); return; }
+  const t=CAT_TYPES[selShop];
+  if(fish<t.cost){ beep(180,.12,'square',.08); return; }
+  fish-=t.cost;
+  towers.push({ gx,gy, x:(gx+0.5)*CELL, y:(gy+0.5)*CELL, type:selShop, cd:0, angle:0 });
+  updateUI();
+  beep(880,.08,'triangle'); setTimeout(()=>beep(1100,.1,'triangle'),80);
+});
+
+// ---------- 更新 ----------
+function update(dt){
+  if(gameOver) return;
+  // スポーン
+  if(spawnQueue.length>0){
+    spawnTimer-=dt;
+    if(spawnTimer<=0){
+      const sp=spawnQueue.shift();
+      spawnEnemy(sp);
+      spawnTimer=sp.delay;
+    }
+  }
+  // 敵
+  for(const e of enemies){
+    const mul = e.slow>0 ? 0.45 : 1;
+    e.slow=Math.max(0,e.slow-dt);
+    e.s += e.speed*mul*dt;
+    e.wob += dt*8;
+    if(e.s>=pathTotal){
+      e.dead=true;
+      lives -= e.boss?3:1;
+      beep(220,.25,'sawtooth',.1);
+      if(lives<=0){ lives=0; endGame(); }
+      updateUI();
+    }
+  }
+  enemies=enemies.filter(e=>!e.dead);
+  // タワー攻撃
+  for(const tw of towers){
+    const spec=CAT_TYPES[tw.type];
+    tw.cd-=dt;
+    if(tw.cd>0) continue;
+    const range=spec.range*CELL;
+    let best=null, bestS=-1;
+    for(const e of enemies){
+      const p=pointAt(e.s);
+      if(Math.hypot(p.x-tw.x,p.y-tw.y)<=range && e.s>bestS){ best=e; bestS=e.s; }
+    }
+    if(best){
+      tw.cd=spec.rate;
+      const p=pointAt(best.s);
+      tw.angle=Math.atan2(p.y-tw.y,p.x-tw.x);
+      projs.push({ x:tw.x, y:tw.y, target:best, speed:CELL*7, dmg:spec.dmg,
+        color:spec.proj, slow:!!spec.slow, r:CELL*(tw.type==='maguro'?0.13:0.1) });
+      beep(tw.type==='maguro'?300:900,.05,'sine',.06);
+    }
+  }
+  // 弾
+  for(const pr of projs){
+    if(pr.target.dead||pr.target.hp<=0){ pr.dead=true; continue; }
+    const p=pointAt(pr.target.s);
+    const dx=p.x-pr.x, dy=p.y-pr.y, d=Math.hypot(dx,dy);
+    const step=pr.speed*dt;
+    if(d<=step+pr.target.r*0.5){
+      pr.dead=true;
+      pr.target.hp-=pr.dmg;
+      if(pr.slow) pr.target.slow=1.6;
+      for(let i=0;i<5;i++) parts.push({x:p.x,y:p.y,vx:(Math.random()-0.5)*120,vy:(Math.random()-0.5)*120,
+        life:0.35,color:pr.color});
+      if(pr.target.hp<=0){
+        pr.target.dead=true;
+        fish+=pr.target.reward;
+        score+=pr.target.boss?100:10;
+        beep(1200,.1,'sine',.09); beep(1500,.12,'sine',.06);
+        for(let i=0;i<10;i++) parts.push({x:p.x,y:p.y,vx:(Math.random()-0.5)*200,vy:(Math.random()-0.5)*200,
+          life:0.5,color:'#ffd700'});
+        updateUI();
+      }
+    } else { pr.x+=dx/d*step; pr.y+=dy/d*step; }
+  }
+  projs=projs.filter(p=>!p.dead);
+  enemies=enemies.filter(e=>!e.dead);
+  // パーティクル
+  for(const pa of parts){ pa.life-=dt; pa.x+=pa.vx*dt; pa.y+=pa.vy*dt; }
+  parts=parts.filter(p=>p.life>0);
+  // ウェーブ終了
+  if(waveActive && spawnQueue.length===0 && enemies.length===0){
+    waveActive=false;
+    const bonus=20+wave*5;
+    fish+=bonus; score+=wave*20;
+    updateUI();
+    const btn=document.getElementById('wavebtn');
+    btn.disabled=false; btn.textContent=`▶ ウェーブ${wave+1} (+🐟${bonus}獲得!)`;
+    beep(660,.1,'triangle'); setTimeout(()=>beep(880,.15,'triangle'),120);
+    autoTimer=8;
+  }
+  if(!waveActive && wave>0 && !gameOver){
+    autoTimer-=dt;
+    if(autoTimer<=0) startWave();
+  }
+}
+
+function endGame(){
+  gameOver=true;
+  const m=document.getElementById('msg');
+  m.innerHTML=`<h2>ゲームオーバー…</h2>
+    <p>チーズを食べられちゃった 🐭🧀</p>
+    <p>到達ウェーブ: <b>${wave}</b></p><p>スコア: <b>${score}</b></p>
+    <button onclick="restart()">もういちど!</button>`;
+  m.style.display='block';
+  hideSell();
+  beep(300,.3,'sawtooth',.1); setTimeout(()=>beep(200,.5,'sawtooth',.1),250);
+}
+window.restart=function(){
+  document.getElementById('msg').style.display='none';
+  reset();
+};
+
+// ---------- 描画 ----------
+function render(){
+  drawField();
+  // 選択中セルのハイライト
+  if(selShop){
+    for(let x=0;x<COLS;x++) for(let y=0;y<ROWS;y++){
+      if(!pathSet.has(x+','+y) && !towers.find(t=>t.gx===x&&t.gy===y)){
+        ctx.fillStyle='rgba(255,255,255,.18)';
+        ctx.beginPath(); ctx.arc((x+0.5)*CELL,(y+0.5)*CELL,CELL*0.08,0,6.29); ctx.fill();
+      }
+    }
+  }
+  // 射程円
+  const showR = selTower || (selShop&&null);
+  if(selTower){
+    const spec=CAT_TYPES[selTower.type];
+    ctx.fillStyle='rgba(120,180,255,.15)'; ctx.strokeStyle='rgba(120,180,255,.5)'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.arc(selTower.x,selTower.y,spec.range*CELL,0,6.29); ctx.fill(); ctx.stroke();
+  }
+  // タワー
+  for(const tw of towers){
+    drawCat(ctx,tw.x,tw.y,CELL*0.34,CAT_TYPES[tw.type].color,tw.angle);
+  }
+  // 敵
+  for(const e of enemies) drawMouse(ctx,e);
+  // 弾
+  for(const pr of projs){
+    ctx.fillStyle=pr.color;
+    ctx.beginPath(); ctx.arc(pr.x,pr.y,pr.r,0,6.29); ctx.fill();
+    ctx.strokeStyle='rgba(255,255,255,.5)'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.arc(pr.x,pr.y,pr.r*0.55,0,3.5); ctx.stroke();
+  }
+  // パーティクル
+  for(const pa of parts){
+    ctx.globalAlpha=Math.max(0,pa.life*2);
+    ctx.fillStyle=pa.color;
+    ctx.beginPath(); ctx.arc(pa.x,pa.y,3,0,6.29); ctx.fill();
+  }
+  ctx.globalAlpha=1;
+  // 次ウェーブカウントダウン
+  if(!waveActive && wave>0 && !gameOver && autoTimer>0){
+    ctx.fillStyle='rgba(122,90,58,.75)'; ctx.font=`bold ${CELL*0.3}px sans-serif`; ctx.textAlign='center';
+    ctx.fillText(`つぎのウェーブまで ${Math.ceil(autoTimer)}秒`, W/2, CELL*0.5);
+  }
+  if(wave===0&&!gameOver){
+    ctx.fillStyle='rgba(122,90,58,.8)'; ctx.font=`bold ${CELL*0.28}px sans-serif`; ctx.textAlign='center';
+    ctx.fillText('ネコをえらんで配置 → ▶スタート!', W/2, CELL*0.5);
+  }
+}
+
+// ---------- ループ ----------
+let last=performance.now();
+function loop(now){
+  const dt=Math.min(0.05,(now-last)/1000); last=now;
+  update(dt); render();
+  requestAnimationFrame(loop);
+}
+resize(); reset();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

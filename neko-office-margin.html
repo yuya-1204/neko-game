@@ -1,0 +1,1269 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light">
+<title>ネコオフィス：きょうの余白をつくろう</title>
+<style>
+  :root {
+    --navy: #26344b;
+    --navy-2: #354761;
+    --teal: #2f817d;
+    --teal-dark: #246965;
+    --teal-soft: #dff1ee;
+    --orange: #d9793f;
+    --orange-soft: #fff0e4;
+    --cream: #fffaf1;
+    --paper: #ffffff;
+    --ink: #253248;
+    --muted: #667085;
+    --line: #d8e0e8;
+    --ok: #247a54;
+    --ok-soft: #e4f5ec;
+    --warn: #8a581c;
+    --warn-soft: #fff3d8;
+    --lavender: #eeeafa;
+    --lavender-dark: #62568e;
+    --shadow: 0 12px 30px rgba(38, 52, 75, .12);
+    --radius: 20px;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    color: var(--ink);
+    background:
+      radial-gradient(circle at 10% 0%, rgba(47,129,125,.14), transparent 38%),
+      radial-gradient(circle at 100% 90%, rgba(217,121,63,.12), transparent 35%),
+      #f4f7f9;
+    font-family: "Hiragino Sans", "Yu Gothic UI", "Yu Gothic", Meiryo, system-ui, sans-serif;
+    line-height: 1.65;
+  }
+  body.text-large { font-size: 115%; }
+  body.text-xlarge { font-size: 130%; }
+  button { font: inherit; touch-action: manipulation; }
+  button:focus-visible, [tabindex]:focus-visible {
+    outline: 4px solid rgba(217,121,63,.4);
+    outline-offset: 3px;
+  }
+
+  .skip-link {
+    position: fixed;
+    left: 12px;
+    top: -80px;
+    z-index: 100;
+    padding: 10px 16px;
+    color: #fff;
+    background: var(--navy);
+    border-radius: 0 0 10px 10px;
+  }
+  .skip-link:focus { top: 0; }
+  .sr-only {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+  }
+
+  .page-shell {
+    width: min(1000px, calc(100% - 24px));
+    margin: 0 auto;
+    padding: 18px 0 42px;
+  }
+  .site-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+    padding: 10px 14px;
+    color: #fff;
+    background: var(--navy);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+  }
+  .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .brand-cats {
+    flex: 0 0 auto;
+    padding-right: 8px;
+    font-size: 28px;
+    letter-spacing: -8px;
+    filter: drop-shadow(0 2px 0 rgba(255,255,255,.2));
+  }
+  .brand-text { min-width: 0; }
+  .brand-text strong { display: block; font-size: clamp(15px, 3.5vw, 18px); line-height: 1.25; }
+  .brand-text span { display: block; color: #d7e6ee; font-size: 12px; }
+  .header-actions { display: flex; align-items: center; gap: 7px; flex: 0 0 auto; }
+  .icon-button {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 8px 9px;
+    color: #fff;
+    background: var(--navy-2);
+    border: 1px solid rgba(255,255,255,.25);
+    border-radius: 12px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 800;
+  }
+  .icon-button:hover { background: #435875; }
+
+  .progress-wrap {
+    margin: 0 2px 14px;
+    padding: 12px 16px;
+    background: rgba(255,255,255,.9);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+  }
+  .progress-labels { display: flex; justify-content: space-between; gap: 8px; color: var(--muted); font-size: 12px; }
+  .progress-labels strong { color: var(--teal-dark); }
+  .progress-track { height: 9px; margin-top: 7px; overflow: hidden; background: #e7edf1; border-radius: 999px; }
+  .progress-bar { width: 0; height: 100%; background: linear-gradient(90deg, var(--teal), #63aaa0); border-radius: inherit; transition: width .25s ease; }
+
+  main { min-height: 570px; }
+  .screen {
+    display: none;
+    padding: clamp(20px, 5vw, 38px);
+    background: rgba(255,255,255,.97);
+    border: 1px solid rgba(216,224,232,.95);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+  .screen.active { display: block; animation: fade-in .2s ease-out; }
+  @keyframes fade-in {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: none; }
+  }
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 0 8px;
+    padding: 4px 10px;
+    color: var(--teal-dark);
+    background: var(--teal-soft);
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 800;
+  }
+  h1, h2, h3 { line-height: 1.35; color: var(--navy); }
+  h1 { margin: 0 0 12px; font-size: clamp(27px, 7vw, 44px); letter-spacing: -.02em; }
+  h2 { margin: 0 0 14px; font-size: clamp(23px, 5.4vw, 33px); }
+  h3 { margin: 0 0 9px; font-size: 18px; }
+  p { margin: 0 0 14px; }
+  .lead { max-width: 720px; color: #40516a; font-size: clamp(16px, 3.7vw, 19px); }
+  .small-note { color: var(--muted); font-size: 13px; }
+
+  .hero-grid { display: grid; grid-template-columns: minmax(0,1.45fr) minmax(235px,.55fr); gap: 24px; align-items: center; }
+  .hero-art {
+    min-height: 260px;
+    display: grid;
+    place-items: center;
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(145deg, #e7f5f2, #fff5e8);
+    border: 1px solid #d8e9e6;
+    border-radius: 24px;
+  }
+  .hero-art::before, .hero-art::after { content: ""; position: absolute; border-radius: 50%; opacity: .65; }
+  .hero-art::before { width: 160px; height: 160px; right: -60px; top: -50px; background: #f8c59e; }
+  .hero-art::after { width: 130px; height: 130px; left: -45px; bottom: -52px; background: #8fd0c7; }
+  .calendar-scene { position: relative; z-index: 1; width: 88%; text-align: center; }
+  .calendar-cat { margin-bottom: -10px; font-size: 62px; filter: drop-shadow(0 5px 0 rgba(38,52,75,.12)); }
+  .mini-day { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; padding: 14px; background: #fff; border: 5px solid var(--navy); border-radius: 14px; }
+  .mini-card { min-height: 42px; display: grid; place-items: center; padding: 4px; border-radius: 8px; font-size: 20px; }
+  .mini-card.work { background: var(--teal-soft); }
+  .mini-card.rest { background: var(--orange-soft); }
+  .mini-card.open { background: #fff; border: 2px dashed #aab6c3; }
+  .bubble { margin: 12px auto 0; padding: 10px 13px; color: var(--navy); background: #fff; border-radius: 14px; box-shadow: 0 6px 18px rgba(38,52,75,.13); font-weight: 800; }
+
+  .notice {
+    margin: 18px 0;
+    padding: 14px 16px;
+    color: #344b58;
+    background: #eff8f6;
+    border-left: 5px solid var(--teal);
+    border-radius: 10px;
+  }
+  .notice.warning { background: var(--orange-soft); border-left-color: var(--orange); }
+  .notice strong { color: var(--navy); }
+  .feature-list { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 10px; margin: 20px 0; padding: 0; list-style: none; }
+  .feature-list li { padding: 13px; background: var(--cream); border: 1px solid #eee0c9; border-radius: 14px; text-align: center; font-size: 14px; font-weight: 700; }
+  .feature-list span { display: block; font-size: 24px; }
+
+  .button-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 22px; }
+  .button {
+    min-height: 48px;
+    padding: 11px 20px;
+    border: 2px solid transparent;
+    border-radius: 14px;
+    cursor: pointer;
+    font-weight: 800;
+    transition: transform .06s ease, box-shadow .12s ease, background .12s ease;
+  }
+  .button:hover { transform: translateY(-1px); }
+  .button:active { transform: translateY(1px); }
+  .button.primary { color: #fff; background: var(--teal); box-shadow: 0 4px 0 var(--teal-dark); }
+  .button.primary:hover { background: #357f79; }
+  .button.secondary { color: var(--navy); background: #fff; border-color: var(--line); }
+  .button.secondary:hover { background: #f5f7f9; }
+  .button.orange { color: #fff; background: var(--orange); box-shadow: 0 4px 0 #ad5e30; }
+  .button.danger { color: #a53d3d; background: #fff; border-color: #e7b7b2; }
+  .button:disabled { opacity: .45; cursor: not-allowed; transform: none; box-shadow: none; }
+
+  .capacity-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; margin: 20px 0; }
+  .capacity-card {
+    position: relative;
+    width: 100%;
+    min-height: 140px;
+    padding: 18px;
+    color: var(--ink);
+    background: #fff;
+    border: 2px solid var(--line);
+    border-radius: 16px;
+    cursor: pointer;
+    text-align: left;
+  }
+  .capacity-card:hover { background: #f7fbfa; border-color: #8ec3bd; }
+  .capacity-card[aria-pressed="true"] { background: #eff9f7; border-color: var(--teal); box-shadow: 0 0 0 4px rgba(47,129,125,.12); }
+  .capacity-card .capacity-icon { display: block; margin-bottom: 6px; font-size: 31px; }
+  .capacity-card strong { display: block; padding-right: 70px; color: var(--navy); font-size: 18px; }
+  .capacity-card p { margin: 6px 0 0; color: var(--muted); font-size: 13px; }
+  .selected-mark { display: none; position: absolute; right: 11px; top: 11px; padding: 2px 8px; color: #fff; background: var(--teal); border-radius: 999px; font-size: 12px; font-weight: 800; }
+  [aria-pressed="true"] .selected-mark { display: block; }
+
+  .round-banner { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 18px; padding: 12px 15px; color: #fff; background: var(--navy); border-radius: 14px; }
+  .round-banner strong { font-size: 17px; }
+  .round-banner span { color: #dce7ee; font-size: 13px; text-align: right; }
+  .planner-help { margin-bottom: 16px; padding: 14px 16px; background: var(--cream); border: 1px solid #eadcc4; border-radius: 14px; }
+  .planner-help strong { color: var(--navy); }
+  .selection-status { min-height: 48px; margin: 12px 0; padding: 11px 14px; color: #31585a; background: var(--teal-soft); border-radius: 12px; }
+
+  .card-pool { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; margin: 12px 0 18px; }
+  .plan-card {
+    position: relative;
+    width: 100%;
+    min-height: 112px;
+    padding: 14px 15px;
+    color: var(--ink);
+    background: #fff;
+    border: 2px solid var(--line);
+    border-radius: 14px;
+    cursor: pointer;
+    text-align: left;
+  }
+  .plan-card:hover { background: #f7fbfa; border-color: #8ec3bd; }
+  .plan-card[aria-pressed="true"] { background: #eff9f7; border-color: var(--teal); box-shadow: 0 0 0 3px rgba(47,129,125,.12); }
+  .plan-card.compact { min-height: 98px; }
+  .plan-card strong { display: block; margin: 5px 0 3px; padding-right: 55px; color: var(--navy); }
+  .plan-card p { margin: 0; color: var(--muted); font-size: 12px; }
+  .card-badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 900; }
+  .card-badge.work { color: var(--teal-dark); background: var(--teal-soft); }
+  .card-badge.rest { color: #8b4f25; background: var(--orange-soft); }
+  .card-badge.buffer { color: var(--lavender-dark); background: var(--lavender); }
+  .deadline { display: inline-block; margin-left: 5px; padding: 2px 7px; color: var(--warn); background: var(--warn-soft); border-radius: 999px; font-size: 11px; font-weight: 800; }
+
+  .destination-grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 8px; margin: 13px 0 21px; }
+  .destination-button {
+    min-height: 66px;
+    padding: 9px;
+    color: var(--navy);
+    background: #fff;
+    border: 2px solid var(--line);
+    border-radius: 12px;
+    cursor: pointer;
+    font-weight: 800;
+  }
+  .destination-button:hover:not(:disabled) { background: #f7fbfa; border-color: var(--teal); }
+  .destination-button small { display: block; color: var(--muted); font-size: 10px; font-weight: 500; }
+  .destination-button:disabled { opacity: .45; cursor: not-allowed; }
+
+  .day-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 14px; }
+  .bucket { min-height: 215px; padding: 14px; background: #f8fafb; border: 2px solid var(--line); border-radius: 16px; }
+  .bucket h3 { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+  .bucket h3 small { color: var(--muted); font-size: 11px; font-weight: 500; }
+  .bucket-cards { display: grid; gap: 9px; }
+  .empty-bucket { padding: 16px; color: var(--muted); background: #fff; border: 2px dashed #c8d0d9; border-radius: 12px; text-align: center; font-size: 13px; }
+  .other-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 14px; margin-top: 14px; }
+  .other-bucket { min-height: 130px; padding: 14px; background: var(--cream); border: 1px solid #eadcc4; border-radius: 15px; }
+  .other-bucket.consult { background: #f4f1fb; border-color: #d7cfee; }
+  .other-bucket h3 { margin-bottom: 10px; }
+  .finish-note { min-height: 24px; margin-top: 12px; color: var(--muted); font-size: 13px; }
+
+  .outlook-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 14px; margin: 18px 0; }
+  .outlook-day { padding: 17px; background: #f8fafb; border: 1px solid var(--line); border-radius: 16px; }
+  .outlook-day h3 { display: flex; justify-content: space-between; gap: 8px; }
+  .outlook-list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+  .outlook-list li { padding: 10px 11px; background: #fff; border: 1px solid var(--line); border-radius: 10px; }
+  .outlook-list li.open { color: var(--teal-dark); background: #f7fbfa; border-style: dashed; font-weight: 800; }
+  .outlook-other { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; margin: 14px 0; }
+  .outlook-other-card { padding: 15px; background: var(--cream); border: 1px solid #eadcc4; border-radius: 14px; }
+  .outlook-other-card.consult { background: #f4f1fb; border-color: #d7cfee; }
+  .outlook-other-card ul { margin: 7px 0 0; padding-left: 22px; }
+  .metric-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 10px; margin: 18px 0; }
+  .metric-card { padding: 14px; background: #fff; border: 1px solid var(--line); border-radius: 13px; text-align: center; }
+  .metric-card strong { display: block; color: var(--teal-dark); font-size: 25px; }
+  .observation-card { padding: 18px; background: linear-gradient(145deg, #e8f6f3, #fffaf1); border: 2px solid #add7d0; border-radius: 18px; }
+  .observation-card ul { margin: 8px 0 0; padding-left: 23px; }
+  .observation-card li { margin: 7px 0; }
+
+  .report-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 14px; margin: 18px 0; }
+  .report-card { padding: 17px; background: #f8fafb; border: 1px solid var(--line); border-radius: 15px; }
+  .report-card.support { background: #eff9f7; border-color: #acd7d1; }
+  .report-card h3 { margin-bottom: 10px; }
+  .report-list { margin: 0; padding-left: 23px; }
+  .report-list li { margin: 7px 0; }
+  .report-highlight { margin: 18px 0; padding: 20px; background: linear-gradient(145deg, #e8f6f3, #fffaf1); border: 2px solid #add7d0; border-radius: 18px; }
+  .report-highlight h3 { color: var(--teal-dark); }
+  .share-phrase { margin-top: 13px; padding: 16px; background: #fff; border: 2px dashed #9ecbc5; border-radius: 13px; font-weight: 700; }
+  .saved-banner { display: none; margin-top: 12px; padding: 10px 13px; color: var(--ok); background: var(--ok-soft); border-radius: 10px; }
+  .saved-banner.show { display: block; }
+
+  .dialog-backdrop { display: none; position: fixed; inset: 0; z-index: 80; place-items: center; padding: 18px; background: rgba(27,38,55,.62); }
+  .dialog-backdrop.show { display: grid; }
+  .dialog { width: min(580px, 100%); max-height: min(82vh, 720px); overflow: auto; padding: 24px; background: #fff; border-radius: 20px; box-shadow: 0 22px 60px rgba(0,0,0,.25); }
+  .dialog h2 { font-size: 24px; }
+  .dialog ol { padding-left: 24px; }
+  .dialog li { margin: 7px 0; }
+  .footer-note { margin: 18px 4px 0; color: var(--muted); text-align: center; font-size: 12px; }
+  .noscript { margin: 20px auto; padding: 18px; background: #fff; border: 2px solid #a53d3d; border-radius: 14px; }
+
+  @media (max-width: 800px) {
+    .hero-grid { grid-template-columns: 1fr; }
+    .hero-art { min-height: 220px; }
+    .destination-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+    .metric-grid { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 640px) {
+    .capacity-grid, .card-pool, .day-grid, .other-grid, .outlook-grid, .outlook-other, .report-grid { grid-template-columns: 1fr; }
+    .bucket { min-height: auto; }
+  }
+  @media (max-width: 480px) {
+    .page-shell { width: min(100% - 14px, 1000px); padding-top: 7px; }
+    .site-header { align-items: flex-start; padding: 8px 9px; border-radius: 12px; }
+    .brand-cats { display: none; }
+    .brand-text span { display: none; }
+    .header-actions { gap: 4px; }
+    .icon-button { min-width: 40px; min-height: 42px; padding: 6px; font-size: 12px; }
+    .screen { padding: 20px 16px; border-radius: 16px; }
+    .progress-wrap { margin-bottom: 8px; }
+    .round-banner { align-items: flex-start; flex-direction: column; }
+    .round-banner span { text-align: left; }
+    .button-row .button { width: 100%; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: .01ms !important;
+      animation-iteration-count: 1 !important;
+      scroll-behavior: auto !important;
+      transition-duration: .01ms !important;
+    }
+  }
+  @media print {
+    @page { margin: 14mm; }
+    body { background: #fff; }
+    .site-header, .progress-wrap, .screen:not(#reportScreen), .button-row, .footer-note, .saved-banner { display: none !important; }
+    .page-shell { width: 100%; padding: 0; }
+    #reportScreen { display: block !important; padding: 0; border: 0; box-shadow: none; }
+    #reportScreen::before { content: "ネコオフィス　余白のある一日メモ"; display: block; margin-bottom: 14px; color: var(--navy); font-size: 24px; font-weight: 900; }
+    .report-card, .report-highlight, .notice { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<a class="skip-link" href="#mainContent">ゲーム本文へ移動</a>
+<div class="page-shell">
+  <header class="site-header">
+    <div class="brand">
+      <div class="brand-cats" aria-hidden="true">🐈🐈‍⬛🐈</div>
+      <div class="brand-text">
+        <strong>ネコオフィス</strong>
+        <span>仕事の工夫を見つけるミニゲーム</span>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="icon-button" id="textSizeButton" type="button" aria-label="文字を大きくする" title="文字サイズ">文字</button>
+      <button class="icon-button" id="helpButton" type="button" aria-label="使い方を開く" title="使い方">？</button>
+      <button class="icon-button" id="soundButton" type="button" aria-pressed="false" aria-label="操作音をオンにする" title="操作音のオン・オフ">🔇</button>
+      <button class="icon-button" id="pauseButton" type="button" aria-label="中断して休む" title="中断">休む</button>
+    </div>
+  </header>
+
+  <div class="progress-wrap" aria-label="ゲームの進み具合">
+    <div class="progress-labels"><span id="progressName">はじめに</span><strong id="progressPercent">0%</strong></div>
+    <div class="progress-track" id="progressTrack" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="ゲームの進み具合">
+      <div class="progress-bar" id="progressBar"></div>
+    </div>
+  </div>
+
+  <noscript><div class="noscript">このゲームにはJavaScriptが必要です。ブラウザの設定でJavaScriptを有効にしてください。</div></noscript>
+  <div class="sr-only" id="liveRegion" role="status" aria-live="polite" aria-atomic="true"></div>
+
+  <main id="mainContent" tabindex="-1">
+    <section class="screen active" id="introScreen" aria-labelledby="gameTitle">
+      <div class="hero-grid">
+        <div>
+          <p class="eyebrow">成人向け・一日の組み立てミニゲーム</p>
+          <h1 id="gameTitle">きょうの余白を<br>つくろう</h1>
+          <p class="lead">今の余力を手がかりに、仕事だけでなく、休憩と予備時間も一日の予定へ置いてみます。たくさん詰め込むことが目的ではありません。</p>
+          <ul class="feature-list" aria-label="ゲームの特徴">
+            <li><span aria-hidden="true">⏱️</span>約3〜5分</li>
+            <li><span aria-hidden="true">📱</span>スマホ・キーボード対応</li>
+            <li><span aria-hidden="true">🔒</span>入力の送信なし</li>
+          </ul>
+          <div class="notice">
+            <strong>休憩・余白も予定の一部です</strong><br>
+            翌日に回す、期限や仕事量を相談する、空いた枠を残すことも、このゲームでは妥当な選択として扱います。休憩に減点はありません。
+          </div>
+          <div class="notice warning">
+            <strong>大切なお知らせ</strong><br>
+            このゲームは、疾病の診断・治療、疲労状態や能力の判定、復職可否の判断を行いません。負担を感じたら、いつでも「休む」から中断してください。
+          </div>
+          <div class="button-row">
+            <button class="button primary" id="startButton" type="button">一日を組み立てる</button>
+            <button class="button secondary" id="showSavedButton" type="button">端末に保存したメモを見る</button>
+          </div>
+          <p class="small-note">氏名・診断名・会社名の入力はありません。プレイ内容は自動送信されません。</p>
+        </div>
+        <div class="hero-art" aria-hidden="true">
+          <div class="calendar-scene">
+            <div class="calendar-cat">🐈‍⬛</div>
+            <div class="mini-day">
+              <span class="mini-card work">📄</span>
+              <span class="mini-card rest">☕</span>
+              <span class="mini-card open">余白</span>
+              <span class="mini-card work">📨</span>
+              <span class="mini-card rest">🧺</span>
+              <span class="mini-card open">予備</span>
+            </div>
+            <div class="bubble">予定を減らすのも、工夫。</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen" id="capacityScreen" aria-labelledby="capacityTitle">
+      <p class="eyebrow">ステップ 1</p>
+      <h2 id="capacityTitle">今の余力に近いものを選ぶ</h2>
+      <p>正確に測るものではありません。今の感覚、または想像する仕事日の感覚に近いものを1つ選んでください。</p>
+      <div class="notice"><strong>日によって変わってかまいません。</strong>「まだ分からない」も選べます。ここでの選択は診断や評価には使いません。</div>
+      <div class="capacity-grid" id="capacityGrid" aria-label="今の余力の選択肢"></div>
+      <p class="small-note" id="capacityMessage" role="status" aria-live="polite"></p>
+      <div class="button-row">
+        <button class="button primary" id="toPlannerButton" type="button" disabled>カードを配置する</button>
+        <button class="button secondary" data-go="introScreen" type="button">戻る</button>
+      </div>
+    </section>
+
+    <section class="screen" id="plannerScreen" aria-labelledby="plannerTitle">
+      <div class="round-banner">
+        <strong id="plannerTitle">カードを一日の枠へ置く</strong>
+        <span id="plannerRoundLabel">最初の組み立て</span>
+      </div>
+      <div class="planner-help">
+        <strong>操作方法：</strong>カードを1枚選び、そのあと置き場所を選びます。配置済みのカードも、選び直して移動できます。ドラッグ操作は必要ありません。
+      </div>
+      <p id="scenarioIntroduction"></p>
+      <div class="notice"><strong>午前・午後は各3枠です。</strong>すべて埋める必要はありません。仕事カードは「翌日に回す」「期限・量を相談」へ置くこともできます。</div>
+
+      <h3>まだ置いていないカード</h3>
+      <div class="card-pool" id="unplacedCards"></div>
+      <div class="selection-status" id="selectionStatus" role="status" aria-live="polite">最初にカードを1枚選んでください。</div>
+
+      <h3>選んだカードの置き場所</h3>
+      <div class="destination-grid" id="destinationGrid">
+        <button class="destination-button" type="button" data-destination="morning" disabled>午前へ<small id="morningDestinationCount">0 / 3</small></button>
+        <button class="destination-button" type="button" data-destination="afternoon" disabled>午後へ<small id="afternoonDestinationCount">0 / 3</small></button>
+        <button class="destination-button" type="button" data-destination="tomorrow" disabled>翌日に回す<small>仕事カードのみ</small></button>
+        <button class="destination-button" type="button" data-destination="consult" disabled>期限・量を相談<small>仕事カードのみ</small></button>
+      </div>
+
+      <div class="day-grid">
+        <section class="bucket" aria-labelledby="morningTitle">
+          <h3 id="morningTitle">午前 <small id="morningCount">0 / 3 枠</small></h3>
+          <div class="bucket-cards" id="morningCards"></div>
+        </section>
+        <section class="bucket" aria-labelledby="afternoonTitle">
+          <h3 id="afternoonTitle">午後 <small id="afternoonCount">0 / 3 枠</small></h3>
+          <div class="bucket-cards" id="afternoonCards"></div>
+        </section>
+      </div>
+      <div class="other-grid">
+        <section class="other-bucket" aria-labelledby="tomorrowTitle">
+          <h3 id="tomorrowTitle">翌日に回す</h3>
+          <div class="bucket-cards" id="tomorrowCards"></div>
+        </section>
+        <section class="other-bucket consult" aria-labelledby="consultTitle">
+          <h3 id="consultTitle">期限・量を相談</h3>
+          <div class="bucket-cards" id="consultCards"></div>
+        </section>
+      </div>
+      <p class="finish-note" id="finishNote">6枚すべての置き場所を決めると、見通しを確認できます。</p>
+      <div class="button-row">
+        <button class="button primary" id="finishPlanButton" type="button" disabled>この一日の見通しを見る</button>
+        <button class="button secondary" id="backToCapacityButton" type="button">余力の選択へ戻る</button>
+      </div>
+    </section>
+
+    <section class="screen" id="outlookScreen" aria-labelledby="outlookTitle">
+      <p class="eyebrow">ステップ 3</p>
+      <h2 id="outlookTitle">一日の見通し</h2>
+      <p id="outlookLead"></p>
+      <div class="outlook-grid" id="outlookGrid"></div>
+      <div class="outlook-other" id="outlookOther"></div>
+      <div class="metric-grid" id="metricGrid"></div>
+      <div class="observation-card">
+        <h3>この組み方から見えること</h3>
+        <ul id="outlookObservations"></ul>
+      </div>
+      <div class="button-row" id="outlookActions"></div>
+    </section>
+
+    <section class="screen" id="reportScreen" aria-labelledby="reportTitle">
+      <p class="eyebrow">振り返り</p>
+      <h2 id="reportTitle">余白のある一日メモ</h2>
+      <p class="small-note" id="reportDate"></p>
+      <p class="small-note" id="reportScenario"></p>
+      <div class="notice" id="reportCapacity"></div>
+      <div class="report-grid">
+        <div class="report-card">
+          <h3>午前</h3>
+          <ul class="report-list" id="reportMorning"></ul>
+        </div>
+        <div class="report-card">
+          <h3>午後</h3>
+          <ul class="report-list" id="reportAfternoon"></ul>
+        </div>
+        <div class="report-card support">
+          <h3>翌日に回す</h3>
+          <ul class="report-list" id="reportTomorrow"></ul>
+        </div>
+        <div class="report-card support">
+          <h3>期限・量を相談</h3>
+          <ul class="report-list" id="reportConsult"></ul>
+        </div>
+      </div>
+      <div class="report-highlight">
+        <h3>今回の見つけ方メモ</h3>
+        <ul class="report-list" id="reportObservations"></ul>
+        <div class="share-phrase" id="sharePhrase"></div>
+      </div>
+      <div class="notice warning">
+        このメモは短い自己観察です。仕事の能力、疲労状態、復職準備の程度を示すものではありません。実際の期限変更や業務量の調整は、職場のルールと担当者との相談に合わせてください。
+      </div>
+      <div class="button-row">
+        <button class="button primary" id="saveButton" type="button">この端末にメモを保存</button>
+        <button class="button secondary" id="printButton" type="button">印刷・PDF保存</button>
+        <button class="button secondary" id="playAgainButton" type="button">別の一日を組み立てる</button>
+        <button class="button danger" id="clearSavedButton" type="button">端末保存を削除</button>
+      </div>
+      <div class="saved-banner" id="savedBanner" role="status" aria-live="polite">この端末のブラウザ内に保存しました。外部には送信していません。</div>
+    </section>
+  </main>
+
+  <p class="footer-note">ネコオフィス：きょうの余白をつくろう（試作版 v0.1）｜山岸産業医事務所</p>
+</div>
+
+<div class="dialog-backdrop" id="helpDialog" aria-hidden="true">
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="helpTitle" tabindex="-1">
+    <h2 id="helpTitle">使い方</h2>
+    <ol>
+      <li>今の余力に近いものを1つ選びます。</li>
+      <li>仕事・休憩・予備時間のカードを1枚選びます。</li>
+      <li>午前、午後、翌日、期限・量の相談から置き場所を選びます。</li>
+      <li>最初の一日の見通しを確認します。</li>
+      <li>見通しを手がかりに1回だけ組み直し、「余白のある一日メモ」を見ます。</li>
+    </ol>
+    <p>休憩や空き枠に減点はなく、速さや仕事量の得点もありません。カードの表示順は毎回変わることがあります。キーボードのTab・Shift＋Tab・Enter・Spaceでも操作できます。</p>
+    <div class="button-row"><button class="button primary" id="closeHelpButton" type="button">閉じる</button></div>
+  </div>
+</div>
+
+<div class="dialog-backdrop" id="pauseDialog" aria-hidden="true">
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="pauseTitle" tabindex="-1">
+    <h2 id="pauseTitle">いったん休みますか？</h2>
+    <p>この画面を開いたままなら、少し休んでから続きを再開できます。最初へ戻ると、まだ保存していない今回の配置は消えます。</p>
+    <div class="button-row">
+      <button class="button primary" id="resumeButton" type="button">続きを再開</button>
+      <button class="button secondary" id="quitButton" type="button">最初の画面へ戻る</button>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+const STORAGE_KEY = 'nekoOfficeMarginV1';
+const DAY_LIMIT = 3;
+
+const CAPACITIES = {
+  low: {
+    icon: '🌱',
+    name: '余力は少なめ',
+    description: '今日は抱える仕事を少なくし、休憩や余白を多めに置きたい感覚です。'
+  },
+  middle: {
+    icon: '🌿',
+    name: '余力は中くらい',
+    description: 'いつもの仕事量を考えつつ、休憩や予備時間も確保したい感覚です。'
+  },
+  high: {
+    icon: '🌳',
+    name: '余力は多め',
+    description: '比較的取り組みやすそうですが、休憩と予備時間は残しておきたい感覚です。'
+  },
+  unsure: {
+    icon: '☁️',
+    name: 'まだ分からない',
+    description: '始める前には決めにくいので、まず少なめに組んで様子を見たい感覚です。'
+  }
+};
+
+const SUPPORT_CARDS = [
+  {
+    id: 'rest',
+    type: 'rest',
+    title: '短い休憩',
+    detail: '10分ほど作業から離れ、水分補給や姿勢の切り替えをする枠です。',
+    deadline: '予定に入れる'
+  },
+  {
+    id: 'buffer',
+    type: 'buffer',
+    title: '予備時間',
+    detail: '確認、移動、予定のずれに使えるよう、用途を決めずに残す枠です。',
+    deadline: '使わなくてもよい'
+  }
+];
+
+const SCENARIOS = [
+  {
+    id: 'meeting-day',
+    title: '会議準備がある日',
+    introduction: 'ネコ企画課の一日です。会議準備のほか、今日中・明日以降の仕事があります。',
+    workCards: [
+      { id: 'meeting-materials', type: 'work', title: '会議資料の最終確認', detail: 'ページ順と共有先を確認します。', deadline: '今日 11:30', due: 'today' },
+      { id: 'reply-email', type: 'work', title: '取引先へ日程を返信', detail: '候補日を確認してメールを作ります。', deadline: '今日 16:00', due: 'today' },
+      { id: 'survey-sort', type: 'work', title: 'アンケート結果の整理', detail: '回答データを項目別にまとめます。', deadline: '明日', due: 'tomorrow' },
+      { id: 'manual-update', type: 'work', title: '手順書の表記を更新', detail: '古い部署名を新しい表記へ直します。', deadline: '今週中', due: 'later' }
+    ]
+  },
+  {
+    id: 'visitor-day',
+    title: '来客対応がある日',
+    introduction: 'ネコ総務課の一日です。来客準備と、期限の異なる事務仕事があります。',
+    workCards: [
+      { id: 'visitor-list', type: 'work', title: '来客名簿を受付へ共有', detail: '会社名と到着予定を確認します。', deadline: '今日 10:30', due: 'today' },
+      { id: 'room-check', type: 'work', title: '応接室の準備を確認', detail: '予約と必要な資料を確認します。', deadline: '今日 13:30', due: 'today' },
+      { id: 'cards-entry', type: 'work', title: '名刺情報を入力', detail: '今週受け取った名刺を一覧へ加えます。', deadline: '明日', due: 'tomorrow' },
+      { id: 'supply-labels', type: 'work', title: '備品棚のラベルを更新', detail: '表示が古い棚のラベルを交換します。', deadline: '来週', due: 'later' }
+    ]
+  },
+  {
+    id: 'closing-day',
+    title: '月末処理がある日',
+    introduction: 'ネコ管理課の一日です。今日締切の確認と、先の日程の整理があります。',
+    workCards: [
+      { id: 'attendance-check', type: 'work', title: '勤怠申請を確認', detail: '未確認の申請を一覧で確かめます。', deadline: '今日 12:00', due: 'today' },
+      { id: 'invoice-register', type: 'work', title: '請求書を登録', detail: '日付と取引先名を確認して登録します。', deadline: '今日 17:00', due: 'today' },
+      { id: 'next-month-calendar', type: 'work', title: '来月の予定表を整える', detail: '会議日程を共有用の表へまとめます。', deadline: '明後日', due: 'tomorrow' },
+      { id: 'archive-folders', type: 'work', title: '共有フォルダを整理', detail: '完了済み資料を保管場所へ移します。', deadline: '今月中', due: 'later' }
+    ]
+  },
+  {
+    id: 'training-day',
+    title: '研修準備がある日',
+    introduction: 'ネコ人事課の一日です。研修準備と、急がない整備作業があります。',
+    workCards: [
+      { id: 'training-print', type: 'work', title: '研修資料を準備', detail: '部数とページ順を確認します。', deadline: '今日 11:00', due: 'today' },
+      { id: 'participants-mail', type: 'work', title: '参加者へ案内を送る', detail: '開始時刻と会場を確認して送ります。', deadline: '今日 15:00', due: 'today' },
+      { id: 'feedback-template', type: 'work', title: '振り返り用紙を整える', detail: '次回用のひな形を見直します。', deadline: '明日', due: 'tomorrow' },
+      { id: 'books-list', type: 'work', title: '参考図書リストを更新', detail: '新しい資料名を一覧へ加えます。', deadline: '来週', due: 'later' }
+    ]
+  }
+];
+
+const DESTINATIONS = {
+  morning: '午前',
+  afternoon: '午後',
+  tomorrow: '翌日に回す',
+  consult: '期限・量を相談'
+};
+
+const screens = [...document.querySelectorAll('.screen')];
+const progressBar = document.getElementById('progressBar');
+const progressTrack = document.getElementById('progressTrack');
+const progressName = document.getElementById('progressName');
+const progressPercent = document.getElementById('progressPercent');
+const liveRegion = document.getElementById('liveRegion');
+const soundButton = document.getElementById('soundButton');
+const textSizeButton = document.getElementById('textSizeButton');
+const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+let audioContext = null;
+let soundOn = false;
+let textSizeLevel = 0;
+let lastFocused = null;
+let activeDialog = null;
+let currentReportData = null;
+
+const state = {
+  capacityId: null,
+  scenario: null,
+  cards: [],
+  cardOrder: [],
+  plan: {},
+  selectedCardId: null,
+  revisionUsed: false,
+  initialPlan: null
+};
+
+function shuffled(items) {
+  const copy = [...items];
+  for (let index = copy.length - 1; index > 0; index--) {
+    const swapIndex = Math.floor(Math.random() * (index + 1));
+    [copy[index], copy[swapIndex]] = [copy[swapIndex], copy[index]];
+  }
+  return copy;
+}
+
+function safeFocus(element) {
+  window.setTimeout(() => {
+    if (element && typeof element.focus === 'function') element.focus();
+  }, 30);
+}
+
+function announce(message) {
+  liveRegion.textContent = '';
+  window.setTimeout(() => { liveRegion.textContent = message; }, 20);
+}
+
+function setProgress(value, label) {
+  const safeValue = Math.max(0, Math.min(100, Math.round(value)));
+  progressBar.style.width = `${safeValue}%`;
+  progressPercent.textContent = `${safeValue}%`;
+  progressName.textContent = label;
+  progressTrack.setAttribute('aria-valuenow', String(safeValue));
+}
+
+function showScreen(id, progress, label) {
+  screens.forEach(screen => {
+    const active = screen.id === id;
+    screen.classList.toggle('active', active);
+    screen.setAttribute('aria-hidden', active ? 'false' : 'true');
+  });
+  setProgress(progress, label);
+  const main = document.getElementById('mainContent');
+  main.focus({ preventScroll: true });
+  window.scrollTo({ top: 0, behavior: motionQuery.matches ? 'auto' : 'smooth' });
+  announce(`${label}の画面です。`);
+}
+
+function beep() {
+  if (!soundOn) return;
+  try {
+    if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioContext.state === 'suspended') audioContext.resume();
+    const oscillator = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    oscillator.type = 'sine';
+    oscillator.frequency.value = 560;
+    gain.gain.setValueAtTime(.04, audioContext.currentTime);
+    gain.gain.exponentialRampToValueAtTime(.0001, audioContext.currentTime + .12);
+    oscillator.connect(gain);
+    gain.connect(audioContext.destination);
+    oscillator.start();
+    oscillator.stop(audioContext.currentTime + .12);
+  } catch (_) {}
+}
+
+function resetState() {
+  state.capacityId = null;
+  state.scenario = SCENARIOS[Math.floor(Math.random() * SCENARIOS.length)];
+  state.cards = [...state.scenario.workCards.map(card => ({ ...card })), ...SUPPORT_CARDS.map(card => ({ ...card }))];
+  state.cardOrder = shuffled(state.cards.map(card => card.id));
+  state.plan = Object.fromEntries(state.cards.map(card => [card.id, 'unplaced']));
+  state.selectedCardId = null;
+  state.revisionUsed = false;
+  state.initialPlan = null;
+  currentReportData = null;
+  document.getElementById('savedBanner').classList.remove('show');
+}
+
+function startGame() {
+  resetState();
+  renderCapacityOptions();
+  showScreen('capacityScreen', 18, '今の余力');
+  safeFocus(document.querySelector('#capacityGrid .capacity-card'));
+}
+
+function renderCapacityOptions() {
+  const grid = document.getElementById('capacityGrid');
+  grid.innerHTML = '';
+  Object.entries(CAPACITIES).forEach(([key, capacity]) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'capacity-card';
+    button.dataset.capacity = key;
+    button.setAttribute('aria-pressed', state.capacityId === key ? 'true' : 'false');
+    button.innerHTML = `<span class="selected-mark">選択中</span><span class="capacity-icon" aria-hidden="true">${capacity.icon}</span><strong>${capacity.name}</strong><p>${capacity.description}</p>`;
+    button.addEventListener('click', () => chooseCapacity(key));
+    grid.appendChild(button);
+  });
+  updateCapacityState();
+}
+
+function chooseCapacity(key) {
+  state.capacityId = key;
+  updateCapacityState();
+  document.getElementById('capacityMessage').textContent = `${CAPACITIES[key].name}を選びました。後から選び直せます。`;
+  beep();
+}
+
+function updateCapacityState() {
+  document.querySelectorAll('#capacityGrid .capacity-card').forEach(button => {
+    button.setAttribute('aria-pressed', button.dataset.capacity === state.capacityId ? 'true' : 'false');
+  });
+  document.getElementById('toPlannerButton').disabled = !state.capacityId;
+}
+
+function getCard(id) {
+  return state.cards.find(card => card.id === id);
+}
+
+function cardsAt(destination, plan = state.plan) {
+  return state.cardOrder.map(getCard).filter(card => plan[card.id] === destination);
+}
+
+function cardTypeLabel(type) {
+  return type === 'work' ? '仕事' : type === 'rest' ? '休憩' : '予備時間';
+}
+
+function cardMarkup(card, compact = false) {
+  const selected = state.selectedCardId === card.id;
+  return `<button class="plan-card${compact ? ' compact' : ''}" type="button" data-card-id="${card.id}" aria-pressed="${selected ? 'true' : 'false'}"><span class="selected-mark">移動する</span><span class="card-badge ${card.type}">${cardTypeLabel(card.type)}</span><span class="deadline">${card.deadline}</span><strong>${card.title}</strong><p>${card.detail}</p></button>`;
+}
+
+function renderCardGroup(containerId, destination, emptyText, compact = true) {
+  const container = document.getElementById(containerId);
+  const cards = cardsAt(destination);
+  container.innerHTML = cards.length
+    ? cards.map(card => cardMarkup(card, compact)).join('')
+    : `<div class="empty-bucket">${emptyText}</div>`;
+  container.querySelectorAll('.plan-card').forEach(button => {
+    button.addEventListener('click', () => selectCard(button.dataset.cardId));
+  });
+}
+
+function renderPlanner() {
+  document.getElementById('plannerRoundLabel').textContent = state.revisionUsed ? '組み直し（1回）' : '最初の組み立て';
+  document.getElementById('scenarioIntroduction').textContent = state.scenario.introduction;
+  renderCardGroup('unplacedCards', 'unplaced', 'すべてのカードを配置しました。', false);
+  renderCardGroup('morningCards', 'morning', 'まだカードはありません。');
+  renderCardGroup('afternoonCards', 'afternoon', 'まだカードはありません。');
+  renderCardGroup('tomorrowCards', 'tomorrow', '翌日に回す仕事はありません。');
+  renderCardGroup('consultCards', 'consult', '相談する仕事はありません。');
+  document.getElementById('morningCount').textContent = `${cardsAt('morning').length} / ${DAY_LIMIT} 枠`;
+  document.getElementById('afternoonCount').textContent = `${cardsAt('afternoon').length} / ${DAY_LIMIT} 枠`;
+  document.getElementById('morningDestinationCount').textContent = `${cardsAt('morning').length} / ${DAY_LIMIT}`;
+  document.getElementById('afternoonDestinationCount').textContent = `${cardsAt('afternoon').length} / ${DAY_LIMIT}`;
+  const remaining = cardsAt('unplaced').length;
+  const finishButton = document.getElementById('finishPlanButton');
+  finishButton.disabled = remaining !== 0;
+  finishButton.textContent = state.revisionUsed ? '組み直した見通しを見る' : 'この一日の見通しを見る';
+  document.getElementById('finishNote').textContent = remaining
+    ? `あと${remaining}枚の置き場所を決めると、見通しを確認できます。`
+    : 'すべての置き場所が決まりました。速さや仕事量の得点はありません。';
+  updatePlannerSelection();
+}
+
+function selectCard(cardId) {
+  state.selectedCardId = state.selectedCardId === cardId ? null : cardId;
+  updatePlannerSelection();
+  const card = getCard(cardId);
+  document.getElementById('selectionStatus').textContent = state.selectedCardId
+    ? `「${card.title}」を選びました。置き場所を選んでください。`
+    : `「${card.title}」の選択を外しました。`;
+  if (state.selectedCardId) beep();
+}
+
+function updatePlannerSelection() {
+  document.querySelectorAll('.plan-card[data-card-id]').forEach(button => {
+    button.setAttribute('aria-pressed', button.dataset.cardId === state.selectedCardId ? 'true' : 'false');
+  });
+  const selectedCard = state.selectedCardId ? getCard(state.selectedCardId) : null;
+  document.querySelectorAll('.destination-button').forEach(button => {
+    const destination = button.dataset.destination;
+    let disabled = !selectedCard;
+    if (selectedCard && selectedCard.type !== 'work' && (destination === 'tomorrow' || destination === 'consult')) disabled = true;
+    if (selectedCard && (destination === 'morning' || destination === 'afternoon')) {
+      const full = cardsAt(destination).length >= DAY_LIMIT;
+      const alreadyThere = state.plan[selectedCard.id] === destination;
+      if (full && !alreadyThere) disabled = true;
+    }
+    button.disabled = disabled;
+  });
+}
+
+function moveSelectedCard(destination) {
+  if (!state.selectedCardId) return;
+  const card = getCard(state.selectedCardId);
+  if (card.type !== 'work' && (destination === 'tomorrow' || destination === 'consult')) return;
+  if ((destination === 'morning' || destination === 'afternoon') && cardsAt(destination).length >= DAY_LIMIT && state.plan[card.id] !== destination) return;
+  const movedCardId = card.id;
+  state.plan[movedCardId] = destination;
+  state.selectedCardId = null;
+  renderPlanner();
+  document.getElementById('selectionStatus').textContent = `「${card.title}」を「${DESTINATIONS[destination]}」へ置きました。`;
+  announce(`「${card.title}」を「${DESTINATIONS[destination]}」へ置きました。`);
+  beep();
+  safeFocus(document.querySelector(`[data-card-id="${movedCardId}"]`));
+}
+
+function beginPlanning() {
+  renderPlanner();
+  showScreen('plannerScreen', state.revisionUsed ? 70 : 38, state.revisionUsed ? '一日の組み直し' : 'カード配置');
+  safeFocus(document.querySelector('#unplacedCards .plan-card') || document.querySelector('.plan-card'));
+}
+
+function countPlanFacts(plan) {
+  const todayCards = [...cardsAt('morning', plan), ...cardsAt('afternoon', plan)];
+  return {
+    todayWork: todayCards.filter(card => card.type === 'work').length,
+    support: todayCards.filter(card => card.type !== 'work').length,
+    open: DAY_LIMIT * 2 - todayCards.length,
+    tomorrow: cardsAt('tomorrow', plan).length,
+    consult: cardsAt('consult', plan).length
+  };
+}
+
+function listMarkup(cards, includeOpen = false) {
+  const items = cards.map(card => `<li><span class="card-badge ${card.type}">${cardTypeLabel(card.type)}</span> <strong>${card.title}</strong></li>`);
+  if (includeOpen) {
+    for (let index = cards.length; index < DAY_LIMIT; index++) items.push('<li class="open">予定を入れない余白</li>');
+  }
+  return items.join('');
+}
+
+function buildPlanObservations(plan, capacityId) {
+  const facts = countPlanFacts(plan);
+  const observations = [];
+  if (facts.support === 2) {
+    observations.push('短い休憩と予備時間の両方が、今日の予定に入っています。休憩や予備時間に減点はありません。');
+  }
+  if (facts.open > 0) {
+    observations.push(`午前・午後に、予定を入れない枠が合計${facts.open}つ残っています。空き枠も余白の一つです。`);
+  } else {
+    observations.push('6枠すべてにカードがあります。予備時間を用途未定のまま残すことで、予定のずれに対応する余地があります。');
+  }
+  if (facts.tomorrow > 0) observations.push(`仕事を${facts.tomorrow}件、翌日に回しました。期限が今日の仕事は、実際には期限確認や相談が必要な場合があります。`);
+  if (facts.consult > 0) observations.push(`仕事を${facts.consult}件、期限・量の相談へ分けました。早めに相談することも仕事の進め方の一つです。`);
+  if (capacityId === 'low' || capacityId === 'unsure') {
+    observations.push('余力を少なめ、または未定とした日は、今日抱える仕事を減らしてから様子を見る方法もあります。');
+  } else {
+    observations.push('余力があると感じる日でも、休憩と予備時間を先に予定へ入れてかまいません。');
+  }
+  return observations;
+}
+
+function renderOutlook() {
+  const revised = state.revisionUsed;
+  document.getElementById('outlookTitle').textContent = revised ? '組み直した一日の見通し' : '最初の一日の見通し';
+  document.getElementById('outlookLead').textContent = `${CAPACITIES[state.capacityId].name}として組んだ、${state.scenario.title}の予定です。これは得点表ではありません。`;
+  document.getElementById('outlookGrid').innerHTML = ['morning', 'afternoon'].map(destination => {
+    const cards = cardsAt(destination);
+    return `<section class="outlook-day"><h3>${DESTINATIONS[destination]} <small>${cards.length} / ${DAY_LIMIT}枠</small></h3><ul class="outlook-list">${listMarkup(cards, true)}</ul></section>`;
+  }).join('');
+  document.getElementById('outlookOther').innerHTML = `
+    <section class="outlook-other-card"><h3>翌日に回す</h3><ul>${cardsAt('tomorrow').length ? cardsAt('tomorrow').map(card => `<li>${card.title}</li>`).join('') : '<li>なし</li>'}</ul></section>
+    <section class="outlook-other-card consult"><h3>期限・量を相談</h3><ul>${cardsAt('consult').length ? cardsAt('consult').map(card => `<li>${card.title}</li>`).join('') : '<li>なし</li>'}</ul></section>`;
+  const facts = countPlanFacts(state.plan);
+  document.getElementById('metricGrid').innerHTML = `
+    <div class="metric-card"><strong>${facts.todayWork}</strong>今日に置いた仕事</div>
+    <div class="metric-card"><strong>${facts.support}</strong>休憩・予備時間</div>
+    <div class="metric-card"><strong>${facts.open}</strong>予定を入れない枠</div>`;
+  const observationList = document.getElementById('outlookObservations');
+  observationList.innerHTML = '';
+  buildPlanObservations(state.plan, state.capacityId).forEach(text => {
+    const item = document.createElement('li');
+    item.textContent = text;
+    observationList.appendChild(item);
+  });
+  const actions = document.getElementById('outlookActions');
+  actions.innerHTML = '';
+  if (!revised) {
+    const reviseButton = document.createElement('button');
+    reviseButton.type = 'button';
+    reviseButton.className = 'button primary';
+    reviseButton.textContent = '1回だけ組み直す';
+    reviseButton.addEventListener('click', startRevision);
+    actions.appendChild(reviseButton);
+  } else {
+    const reportButton = document.createElement('button');
+    reportButton.type = 'button';
+    reportButton.className = 'button primary';
+    reportButton.textContent = 'この組み方でメモを作る';
+    reportButton.addEventListener('click', () => renderReport(makeReportData()));
+    actions.appendChild(reportButton);
+  }
+  showScreen('outlookScreen', revised ? 88 : 68, revised ? '組み直し後の見通し' : '最初の見通し');
+  safeFocus(actions.querySelector('button'));
+}
+
+function finishPlanning() {
+  if (cardsAt('unplaced').length) return;
+  if (!state.initialPlan) state.initialPlan = { ...state.plan };
+  renderOutlook();
+}
+
+function startRevision() {
+  state.revisionUsed = true;
+  state.selectedCardId = null;
+  beginPlanning();
+  document.getElementById('selectionStatus').textContent = '組み直しはこの1回です。配置済みカードを選び、置き場所を変えられます。';
+}
+
+function makeReportData() {
+  return {
+    version: 1,
+    createdAt: new Date().toISOString(),
+    capacityId: state.capacityId,
+    scenarioId: state.scenario.id,
+    revisionUsed: state.revisionUsed,
+    plan: { ...state.plan }
+  };
+}
+
+function reportList(containerId, cards, emptyText) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = '';
+  if (!cards.length) {
+    const item = document.createElement('li');
+    item.textContent = emptyText;
+    container.appendChild(item);
+    return;
+  }
+  cards.forEach(card => {
+    const item = document.createElement('li');
+    item.textContent = `${cardTypeLabel(card.type)}：${card.title}`;
+    container.appendChild(item);
+  });
+}
+
+function planCardsForData(data, destination) {
+  const scenario = SCENARIOS.find(item => item.id === data.scenarioId);
+  const allCards = [...scenario.workCards, ...SUPPORT_CARDS];
+  return allCards.filter(card => data.plan[card.id] === destination);
+}
+
+function renderReport(data, fromSaved = false) {
+  currentReportData = data;
+  const scenario = SCENARIOS.find(item => item.id === data.scenarioId);
+  const date = new Date(data.createdAt);
+  document.getElementById('reportDate').textContent = `作成：${date.toLocaleDateString('ja-JP')} ${date.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}`;
+  document.getElementById('reportScenario').textContent = `場面：${scenario.title}${data.revisionUsed ? '（一度組み直し）' : '（最初の組み方）'}`;
+  document.getElementById('reportCapacity').innerHTML = `<strong>最初に選んだ余力：</strong> ${CAPACITIES[data.capacityId].icon} ${CAPACITIES[data.capacityId].name}<br><span class="small-note">本人がその時点で選んだ目安であり、疲労や能力の判定ではありません。</span>`;
+  reportList('reportMorning', planCardsForData(data, 'morning'), '予定を入れない余白');
+  reportList('reportAfternoon', planCardsForData(data, 'afternoon'), '予定を入れない余白');
+  reportList('reportTomorrow', planCardsForData(data, 'tomorrow'), 'なし');
+  reportList('reportConsult', planCardsForData(data, 'consult'), 'なし');
+  const observationList = document.getElementById('reportObservations');
+  observationList.innerHTML = '';
+  const reportPlanFacts = countDataPlanFacts(data);
+  const texts = [];
+  texts.push(`今日に置いた仕事は${reportPlanFacts.todayWork}件、休憩・予備時間は${reportPlanFacts.support}枠です。多い・少ないの採点はありません。`);
+  if (reportPlanFacts.open > 0) texts.push(`予定を入れない枠を${reportPlanFacts.open}つ残しました。空き枠も一日の余白として扱えます。`);
+  if (reportPlanFacts.tomorrow > 0) texts.push(`翌日に回す仕事を${reportPlanFacts.tomorrow}件に分けました。実際には期限確認が必要な場合があります。`);
+  if (reportPlanFacts.consult > 0) texts.push(`期限・量を相談する仕事を${reportPlanFacts.consult}件に分けました。相談すること自体に減点はありません。`);
+  if (data.revisionUsed) texts.push('一度見通しを確認したあと、組み直しました。計画は途中で変えてかまいません。');
+  texts.push('このメモは短い自己観察で、能力や復職可否を示すものではありません。');
+  texts.forEach(text => {
+    const item = document.createElement('li');
+    item.textContent = text;
+    observationList.appendChild(item);
+  });
+  const morningNames = planCardsForData(data, 'morning').map(card => card.title).join('、') || '予定を入れない余白';
+  const afternoonNames = planCardsForData(data, 'afternoon').map(card => card.title).join('、') || '予定を入れない余白';
+  document.getElementById('sharePhrase').textContent = `相談用の言い方例：今の余力は「${CAPACITIES[data.capacityId].name}」に近いと考え、午前は「${morningNames}」、午後は「${afternoonNames}」として、休憩や予備時間を含めて組みました。`;
+  const banner = document.getElementById('savedBanner');
+  banner.classList.toggle('show', fromSaved);
+  banner.textContent = fromSaved
+    ? 'この端末に保存されていたメモを表示しています。外部から読み込んだものではありません。'
+    : 'この端末のブラウザ内に保存しました。外部には送信していません。';
+  showScreen('reportScreen', 100, '余白のある一日メモ');
+}
+
+function countDataPlanFacts(data) {
+  const morning = planCardsForData(data, 'morning');
+  const afternoon = planCardsForData(data, 'afternoon');
+  const today = [...morning, ...afternoon];
+  return {
+    todayWork: today.filter(card => card.type === 'work').length,
+    support: today.filter(card => card.type !== 'work').length,
+    open: DAY_LIMIT * 2 - today.length,
+    tomorrow: planCardsForData(data, 'tomorrow').length,
+    consult: planCardsForData(data, 'consult').length
+  };
+}
+
+function isValidSavedData(data) {
+  if (!data || data.version !== 1 || typeof data.createdAt !== 'string' || Number.isNaN(Date.parse(data.createdAt))) return false;
+  if (!Object.hasOwn(CAPACITIES, data.capacityId) || typeof data.revisionUsed !== 'boolean') return false;
+  const scenario = SCENARIOS.find(item => item.id === data.scenarioId);
+  if (!scenario || !data.plan || typeof data.plan !== 'object' || Array.isArray(data.plan)) return false;
+  const cards = [...scenario.workCards, ...SUPPORT_CARDS];
+  const ids = cards.map(card => card.id);
+  if (!ids.every(id => Object.hasOwn(data.plan, id))) return false;
+  if (!ids.every(id => ['morning', 'afternoon', 'tomorrow', 'consult'].includes(data.plan[id]))) return false;
+  if (cards.some(card => card.type !== 'work' && !['morning', 'afternoon'].includes(data.plan[card.id]))) return false;
+  const morningCount = ids.filter(id => data.plan[id] === 'morning').length;
+  const afternoonCount = ids.filter(id => data.plan[id] === 'afternoon').length;
+  return morningCount <= DAY_LIMIT && afternoonCount <= DAY_LIMIT;
+}
+
+function saveReport() {
+  if (!currentReportData || !isValidSavedData(currentReportData)) return;
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(currentReportData));
+    const banner = document.getElementById('savedBanner');
+    banner.textContent = 'この端末のブラウザ内に保存しました。外部には送信していません。';
+    banner.classList.add('show');
+    announce('端末のブラウザ内にメモを保存しました。');
+    beep();
+  } catch (_) {
+    alert('このブラウザでは端末保存を利用できませんでした。印刷・PDF保存をご利用ください。');
+  }
+}
+
+function loadSaved() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) {
+      alert('この端末に保存された「余白のある一日メモ」はありません。');
+      return;
+    }
+    const data = JSON.parse(raw);
+    if (!isValidSavedData(data)) throw new Error('invalid saved data');
+    renderReport(data, true);
+  } catch (_) {
+    try { localStorage.removeItem(STORAGE_KEY); } catch (_) {}
+    alert('保存記録を読み込めなかったため、破損した記録を削除しました。');
+  }
+}
+
+function clearSaved() {
+  if (!confirm('この端末に保存した「余白のある一日メモ」を削除しますか？')) return;
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+    document.getElementById('savedBanner').classList.remove('show');
+    alert('端末の保存記録を削除しました。');
+  } catch (_) {
+    alert('このブラウザでは保存記録を削除できませんでした。');
+  }
+}
+
+function openDialog(dialog) {
+  if (activeDialog) closeDialog(activeDialog, false);
+  lastFocused = document.activeElement;
+  activeDialog = dialog;
+  dialog.classList.add('show');
+  dialog.setAttribute('aria-hidden', 'false');
+  safeFocus(dialog.querySelector('.dialog'));
+}
+
+function closeDialog(dialog, restoreFocus = true) {
+  dialog.classList.remove('show');
+  dialog.setAttribute('aria-hidden', 'true');
+  activeDialog = null;
+  if (restoreFocus) safeFocus(lastFocused);
+}
+
+function trapDialogFocus(event) {
+  if (!activeDialog) return;
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    closeDialog(activeDialog);
+    return;
+  }
+  if (event.key !== 'Tab') return;
+  const focusable = [...activeDialog.querySelectorAll('button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])')];
+  if (!focusable.length) return;
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+  if (event.shiftKey && document.activeElement === first) {
+    event.preventDefault();
+    last.focus();
+  } else if (!event.shiftKey && document.activeElement === last) {
+    event.preventDefault();
+    first.focus();
+  }
+}
+
+document.getElementById('startButton').addEventListener('click', startGame);
+document.getElementById('showSavedButton').addEventListener('click', loadSaved);
+document.getElementById('toPlannerButton').addEventListener('click', beginPlanning);
+document.getElementById('backToCapacityButton').addEventListener('click', () => {
+  renderCapacityOptions();
+  showScreen('capacityScreen', 18, '今の余力');
+});
+document.querySelectorAll('.destination-button').forEach(button => {
+  button.addEventListener('click', () => moveSelectedCard(button.dataset.destination));
+});
+document.getElementById('finishPlanButton').addEventListener('click', finishPlanning);
+document.getElementById('saveButton').addEventListener('click', saveReport);
+document.getElementById('printButton').addEventListener('click', () => window.print());
+document.getElementById('playAgainButton').addEventListener('click', startGame);
+document.getElementById('clearSavedButton').addEventListener('click', clearSaved);
+
+document.querySelectorAll('[data-go]').forEach(button => {
+  button.addEventListener('click', () => {
+    if (button.dataset.go === 'introScreen') showScreen('introScreen', 0, 'はじめに');
+  });
+});
+
+textSizeButton.addEventListener('click', () => {
+  textSizeLevel = (textSizeLevel + 1) % 3;
+  document.body.classList.toggle('text-large', textSizeLevel === 1);
+  document.body.classList.toggle('text-xlarge', textSizeLevel === 2);
+  const labels = ['文字を大きくする', '文字をさらに大きくする', '文字を標準サイズに戻す'];
+  textSizeButton.setAttribute('aria-label', labels[textSizeLevel]);
+  textSizeButton.title = labels[textSizeLevel];
+  announce(textSizeLevel === 0 ? '文字を標準サイズに戻しました。' : `文字サイズを${textSizeLevel === 1 ? '大きく' : 'さらに大きく'}しました。`);
+});
+
+soundButton.addEventListener('click', () => {
+  soundOn = !soundOn;
+  soundButton.textContent = soundOn ? '🔊' : '🔇';
+  soundButton.setAttribute('aria-pressed', soundOn ? 'true' : 'false');
+  soundButton.setAttribute('aria-label', soundOn ? '操作音をオフにする' : '操作音をオンにする');
+  soundButton.title = soundOn ? '操作音をオフにする' : '操作音をオンにする';
+  if (soundOn) beep();
+  announce(`操作音を${soundOn ? 'オン' : 'オフ'}にしました。`);
+});
+
+const helpDialog = document.getElementById('helpDialog');
+const pauseDialog = document.getElementById('pauseDialog');
+document.getElementById('helpButton').addEventListener('click', () => openDialog(helpDialog));
+document.getElementById('closeHelpButton').addEventListener('click', () => closeDialog(helpDialog));
+document.getElementById('pauseButton').addEventListener('click', () => openDialog(pauseDialog));
+document.getElementById('resumeButton').addEventListener('click', () => closeDialog(pauseDialog));
+document.getElementById('quitButton').addEventListener('click', () => {
+  closeDialog(pauseDialog, false);
+  resetState();
+  showScreen('introScreen', 0, 'はじめに');
+  safeFocus(document.getElementById('startButton'));
+});
+document.addEventListener('keydown', trapDialogFocus);
+
+screens.forEach(screen => screen.setAttribute('aria-hidden', screen.id === 'introScreen' ? 'false' : 'true'));
+</script>
+</body>
+</html>

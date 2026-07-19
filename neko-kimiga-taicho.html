@@ -514,6 +514,8 @@
       let timerId = null;
       let state = null;
       let pendingComm = null;
+      let resumeAfterComm = false;
+      let resumeAfterEndDialog = false;
       let lastDialogTrigger = null;
       let audioContext = null;
       let soundEnabled = false;
@@ -707,7 +709,8 @@
       function handleComm(kind, trigger) {
         if (!state || state.ended) return;
         if (kind === "end") { state.commCounts.end += 1; endSession("chosen"); return; }
-        if (kind === "rest") setPaused(true,false);
+        resumeAfterComm = !state.paused;
+        if (resumeAfterComm || kind === "rest") setPaused(true,false);
         pendingComm = kind;
         const copy = commCopy[kind];
         els.commIcon.textContent = copy.icon; els.commTitle.textContent = copy.title; els.commText.textContent = copy.text; els.commQuote.textContent = copy.quote;
@@ -723,7 +726,26 @@
         if (kind === "different") nextSkill();
         if (kind === "again") { state.promptTried = false; state.promptElapsed = 0; renderSkill(); announce("同じヒントでもう一度遊べます。"); }
         if (kind === "help") announce("助けてを受け止めました。伝え方は言葉だけではありません。");
-        pendingComm = null; tone("soft");
+        if (kind !== "rest" && resumeAfterComm && !state.ended) setPaused(false,false);
+        pendingComm = null; resumeAfterComm = false; tone("soft");
+      }
+      function cancelCommDialog() {
+        const kind = pendingComm;
+        pendingComm = null;
+        closeDialog(els.commDialog);
+        if (kind !== "rest" && resumeAfterComm && state && !state.ended) setPaused(false,false);
+        resumeAfterComm = false;
+      }
+      function openEndDialog(trigger) {
+        if (!state || state.ended) return;
+        resumeAfterEndDialog = !state.paused;
+        if (resumeAfterEndDialog) setPaused(true,false);
+        openDialog(els.endDialog,trigger);
+      }
+      function cancelEndDialog() {
+        closeDialog(els.endDialog);
+        if (resumeAfterEndDialog && state && !state.ended) setPaused(false,false);
+        resumeAfterEndDialog = false;
       }
 
       function endSession(reason) {
@@ -804,10 +826,12 @@
       els.nextSkill.addEventListener("click", () => nextSkill());
       $$(".comm-button").forEach(button => button.addEventListener("click", () => handleComm(button.dataset.comm, button)));
       els.commAccept.addEventListener("click", acceptComm);
-      els.commCancel.addEventListener("click", () => { pendingComm = null; closeDialog(els.commDialog); });
-      els.finishEarly.addEventListener("click", event => openDialog(els.endDialog,event.currentTarget));
-      els.endCancel.addEventListener("click", () => closeDialog(els.endDialog));
-      els.endNow.addEventListener("click", () => { closeDialog(els.endDialog); endSession("chosen"); });
+      els.commCancel.addEventListener("click", cancelCommDialog);
+      els.commDialog.addEventListener("cancel", event => { event.preventDefault(); cancelCommDialog(); });
+      els.finishEarly.addEventListener("click", event => openEndDialog(event.currentTarget));
+      els.endCancel.addEventListener("click", cancelEndDialog);
+      els.endDialog.addEventListener("cancel", event => { event.preventDefault(); cancelEndDialog(); });
+      els.endNow.addEventListener("click", () => { resumeAfterEndDialog = false; closeDialog(els.endDialog); endSession("chosen"); });
       $$(".moment-button").forEach(button => button.addEventListener("click", () => {
         state.moment = button.dataset.moment;
         $$(".moment-button").forEach(other => other.setAttribute("aria-pressed",String(other === button)));

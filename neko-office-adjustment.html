@@ -845,7 +845,7 @@ function beep() {
     const gain = audioContext.createGain();
     oscillator.type = 'sine';
     oscillator.frequency.value = 560;
-    gain.gain.setValueAtTime(.04, audioContext.currentTime);
+    gain.gain.setValueAtTime(.12, audioContext.currentTime);
     gain.gain.exponentialRampToValueAtTime(.0001, audioContext.currentTime + .12);
     oscillator.connect(gain);
     gain.connect(audioContext.destination);

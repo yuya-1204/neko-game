@@ -53,7 +53,8 @@ function beep(freq, dur, type, vol){
   try{
     const o = ac.createOscillator(), g = ac.createGain();
     o.type = type || 'square'; o.frequency.value = freq;
-    g.gain.setValueAtTime(vol || .06, ac.currentTime);
+    const level = Math.min((vol || .06) * 1.8, .18);
+    g.gain.setValueAtTime(level, ac.currentTime);
     g.gain.exponentialRampToValueAtTime(.0001, ac.currentTime + dur);
     o.connect(g); g.connect(ac.destination);
     o.start(); o.stop(ac.currentTime + dur);

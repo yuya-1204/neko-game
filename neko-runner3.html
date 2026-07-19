@@ -131,7 +131,8 @@ function beep(freq, dur, type, vol){
   try{
     const o = audioCtx.createOscillator(), g = audioCtx.createGain();
     o.type = type || "sine"; o.frequency.value = freq;
-    g.gain.setValueAtTime(vol || 0.08, audioCtx.currentTime);
+    const level = Math.min((vol || 0.08) * 1.8, 0.18);
+    g.gain.setValueAtTime(level, audioCtx.currentTime);
     g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + dur);
     o.connect(g); g.connect(audioCtx.destination);
     o.start(); o.stop(audioCtx.currentTime + dur);

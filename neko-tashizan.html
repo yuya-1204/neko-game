@@ -232,7 +232,7 @@ function tone(freq,start,dur,type,vol){
 }
 function popSound(){tone(660,0,0.09,'sine',0.2);tone(990,0.06,0.12,'sine',0.16);}
 function countSound(n){tone(440+n*60,0,0.1,'sine',0.15);}
-function buzzSound(){tone(160,0,0.16,'square',0.07);}
+function buzzSound(){tone(160,0,0.16,'square',0.14);}
 function fanfare(){[523,659,784,1047,1319].forEach((f,i)=>{tone(f,i*0.13,0.3,'triangle',0.15);});tone(1568,0.7,0.5,'triangle',0.12);}
 
 /* ---------- レベル ---------- */

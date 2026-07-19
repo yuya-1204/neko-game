@@ -467,7 +467,7 @@
         const osc = audioContext.createOscillator();
         const gain = audioContext.createGain();
         osc.type = type; osc.frequency.value = frequency;
-        gain.gain.setValueAtTime(.05, audioContext.currentTime);
+        gain.gain.setValueAtTime(.14, audioContext.currentTime);
         gain.gain.exponentialRampToValueAtTime(.001, audioContext.currentTime + duration);
         osc.connect(gain); gain.connect(audioContext.destination);
         osc.start(); osc.stop(audioContext.currentTime + duration);

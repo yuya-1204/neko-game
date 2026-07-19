@@ -302,7 +302,6 @@
               <div class="promise-item"><span>🚪</span>いつでも休める</div>
             </div>
             <button id="startButton" class="primary" type="button">5分の遊びをはじめる</button>
-            <p id="demoNotice" class="microcopy" hidden>先生向け短縮デモ：45秒で体験できます。</p>
             <p class="microcopy">音は最初からOFFです。子どもの正解・速さ・発語・視線は採点しません。</p>
           </div>
         </div>
@@ -465,10 +464,8 @@
     (() => {
       "use strict";
 
-      const params = new URLSearchParams(location.search);
-      const demoMode = params.get("demo") === "1";
-      const SESSION_SECONDS = demoMode ? 45 : 300;
-      const PROMPT_SECONDS = demoMode ? 7 : 48;
+      const SESSION_SECONDS = 300;
+      const PROMPT_SECONDS = 48;
       const HISTORY_KEY = "nekoKimigaTaichoHistoryV1";
       const SETTINGS_KEY = "nekoKimigaTaichoSettingsV1";
 
@@ -500,7 +497,7 @@
       const $$ = (selector, root=document) => Array.from(root.querySelectorAll(selector));
       const els = {
         home:$("#homeScreen"), play:$("#playScreen"), finish:$("#finishScreen"), main:$("#main"),
-        start:$("#startButton"), demoNotice:$("#demoNotice"), sound:$("#soundToggle"), motion:$("#motionToggle"),
+        start:$("#startButton"), sound:$("#soundToggle"), motion:$("#motionToggle"),
         timer:$("#timerText"), progress:$("#progressTrack"), progressBar:$("#progressBar"), pause:$("#pauseButton"), now:$("#nowBanner"),
         board:$("#playBoard"), boardCaption:$("#boardCaption"), boardCat:$("#boardCat"), objects:$("#sceneObjects"), items:$("#itemRow"),
         undo:$("#undoObject"), clear:$("#clearObjects"), coach:$("#coachCard"), skillLetter:$("#skillLetter"), coachTitle:$("#coachTitle"),
@@ -519,6 +516,7 @@
       let resumeAfterEndDialog = false;
       let lastDialogTrigger = null;
       let audioContext = null;
+      let audioOutput = null;
       let soundEnabled = false;
       let reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -559,19 +557,38 @@
           return audioContext.state === "running";
         } catch (_) { return false; }
       }
+      function getAudioOutput() {
+        if (audioOutput) return audioOutput;
+        const now = audioContext.currentTime;
+        const compressor = audioContext.createDynamicsCompressor();
+        const master = audioContext.createGain();
+        compressor.threshold.setValueAtTime(-8, now);
+        compressor.knee.setValueAtTime(3, now);
+        compressor.ratio.setValueAtTime(12, now);
+        compressor.attack.setValueAtTime(.003, now);
+        compressor.release.setValueAtTime(.16, now);
+        master.gain.setValueAtTime(.9, now);
+        compressor.connect(master);
+        master.connect(audioContext.destination);
+        audioOutput = compressor;
+        return audioOutput;
+      }
       async function tone(kind="soft") {
         if (!(await ensureAudio())) return;
         try {
           const now = audioContext.currentTime;
           const osc = audioContext.createOscillator();
           const gain = audioContext.createGain();
+          const isStar = kind === "star";
+          const duration = isStar ? .3 : .18;
+          const peak = isStar ? .22 : .18;
           osc.type = "sine";
-          osc.frequency.setValueAtTime(kind === "star" ? 620 : 440, now);
-          if (kind === "star") osc.frequency.exponentialRampToValueAtTime(790, now + .12);
+          osc.frequency.setValueAtTime(isStar ? 660 : 760, now);
+          osc.frequency.exponentialRampToValueAtTime(isStar ? 960 : 680, now + duration * .72);
           gain.gain.setValueAtTime(.0001, now);
-          gain.gain.exponentialRampToValueAtTime(.055, now + .015);
-          gain.gain.exponentialRampToValueAtTime(.0001, now + .22);
-          osc.connect(gain); gain.connect(audioContext.destination); osc.start(now); osc.stop(now + .24);
+          gain.gain.exponentialRampToValueAtTime(peak, now + .008);
+          gain.gain.exponentialRampToValueAtTime(.0001, now + duration);
+          osc.connect(gain); gain.connect(getAudioOutput()); osc.start(now); osc.stop(now + duration + .02);
         } catch (_) {}
       }
 
@@ -758,7 +775,6 @@
         announce("遊びを終えました。いっしょに遊べたことを振り返ります。");
       }
       function saveSession() {
-        if (demoMode) return;
         const history = safeRead(HISTORY_KEY, []);
         const total = Object.values(state.skillCounts).reduce((sum,value) => sum + value,0);
         const record = { date:new Date().toISOString(), theme:selectedTheme, total, counts:state.skillCounts, reason:state.endReason };
@@ -851,7 +867,6 @@
       });
       window.addEventListener("beforeunload", () => { if (timerId) window.clearInterval(timerId); });
 
-      if (demoMode) els.demoNotice.hidden = false;
       applySettings(); renderHistory(); selectTheme("cats");
     })();
   </script>

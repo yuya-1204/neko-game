@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>ネコのネズミたたき</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    font-family: 'Segoe UI', 'Hiragino Sans', sans-serif;
+    background: linear-gradient(180deg, #87ceeb 0%, #b8e0c8 45%, #8fce8f 100%);
+    display: flex; align-items: center; justify-content: center;
+    user-select: none; -webkit-user-select: none; touch-action: manipulation;
+  }
+  #game {
+    width: min(100vw, 480px); height: min(100vh, 800px);
+    display: flex; flex-direction: column; padding: 10px; position: relative;
+  }
+  /* ---- header ---- */
+  #hud {
+    display: flex; justify-content: space-between; align-items: center;
+    background: rgba(255,255,255,.75); border-radius: 14px;
+    padding: 8px 14px; font-weight: bold; font-size: 17px; color: #4a3320;
+    box-shadow: 0 2px 6px rgba(0,0,0,.15);
+  }
+  #hud .col { text-align: center; line-height: 1.25; }
+  #hud .label { font-size: 11px; color: #8a7156; }
+  #lives { letter-spacing: 2px; }
+  #cat-face {
+    text-align: center; font-size: 44px; height: 54px; line-height: 54px;
+    transition: transform .1s;
+  }
+  #level-bar {
+    text-align: center; font-size: 13px; color: #4a3320; font-weight: bold;
+    background: rgba(255,255,255,.55); border-radius: 10px; padding: 3px 10px;
+    margin: 4px auto; width: fit-content;
+  }
+  /* ---- board ---- */
+  #board {
+    flex: 1; display: grid;
+    grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr);
+    gap: 4%; padding: 4% 2%;
+  }
+  .hole {
+    position: relative; display: flex; align-items: flex-end; justify-content: center;
+    cursor: pointer;
+  }
+  .dirt {
+    position: absolute; bottom: 0; width: 92%; height: 34%;
+    background: radial-gradient(ellipse at center, #6b4a2b 0%, #5a3d22 60%, #4a3018 100%);
+    border-radius: 50%;
+    box-shadow: inset 0 6px 10px rgba(0,0,0,.45), 0 3px 4px rgba(0,0,0,.2);
+  }
+  .mouse {
+    position: relative; z-index: 2;
+    font-size: clamp(38px, 12vw, 60px); line-height: 1;
+    margin-bottom: 12%;
+    transform: translateY(120%) scale(.4); opacity: 0;
+    transition: transform .12s ease-out, opacity .1s;
+    pointer-events: none;
+  }
+  .hole.up .mouse { transform: translateY(0) scale(1); opacity: 1; }
+  .hole.hit .mouse { transform: translateY(10%) scale(.2) rotate(40deg); opacity: 0; transition: all .15s; }
+  /* paw effect */
+  .paw {
+    position: absolute; z-index: 5; font-size: 46px; pointer-events: none;
+    animation: pawhit .3s ease-out forwards;
+  }
+  @keyframes pawhit {
+    0%   { transform: translate(-50%,-50%) scale(1.6) rotate(-20deg); opacity: 1; }
+    100% { transform: translate(-50%,-50%) scale(.7) rotate(10deg); opacity: 0; }
+  }
+  .pop-score {
+    position: absolute; z-index: 6; font-size: 22px; font-weight: bold;
+    pointer-events: none; animation: rise .6s ease-out forwards;
+  }
+  @keyframes rise {
+    0% { transform: translate(-50%,-50%); opacity: 1; }
+    100% { transform: translate(-50%,-160%); opacity: 0; }
+  }
+  .good { color: #d35400; text-shadow: 0 1px 2px #fff; }
+  .bad  { color: #c0392b; text-shadow: 0 1px 2px #fff; }
+  .gold { color: #b8860b; text-shadow: 0 1px 2px #fff; }
+  /* combo */
+  #combo {
+    position: absolute; top: 26%; left: 50%; transform: translateX(-50%);
+    font-size: 26px; font-weight: bold; color: #e67e22;
+    text-shadow: 0 2px 3px rgba(255,255,255,.8); pointer-events: none;
+    opacity: 0; transition: opacity .2s; z-index: 7;
+  }
+  #combo.show { opacity: 1; }
+  /* ---- overlays ---- */
+  .overlay {
+    position: absolute; inset: 0; z-index: 20;
+    background: rgba(40,30,20,.55); backdrop-filter: blur(2px);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .panel {
+    background: #fffbe9; border-radius: 20px; padding: 28px 30px;
+    text-align: center; width: 82%; max-width: 340px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.35); color: #4a3320;
+  }
+  .panel h1 { font-size: 26px; margin-bottom: 10px; }
+  .panel .big { font-size: 56px; margin: 6px 0; }
+  .panel p { font-size: 14px; line-height: 1.7; margin: 10px 0; }
+  .panel .score-line { font-size: 20px; font-weight: bold; margin: 6px 0; }
+  .panel .best { color: #d35400; font-size: 15px; font-weight: bold; }
+  button {
+    font-family: inherit; font-size: 18px; font-weight: bold;
+    background: linear-gradient(180deg, #ffb347, #ff9432);
+    color: #fff; border: none; border-radius: 14px;
+    padding: 12px 34px; margin-top: 14px; cursor: pointer;
+    box-shadow: 0 4px 0 #d9741a; transition: transform .08s;
+  }
+  button:active { transform: translateY(3px); box-shadow: 0 1px 0 #d9741a; }
+  .hidden { display: none !important; }
+  .legend { font-size: 15px; text-align: left; display: inline-block; line-height: 2; }
+</style>
+</head>
+<body>
+<div id="game">
+  <div id="hud">
+    <div class="col"><div class="label">スコア</div><div id="score">0</div></div>
+    <div class="col"><div class="label">ベスト</div><div id="best">0</div></div>
+    <div class="col"><div class="label">ライフ</div><div id="lives">❤️❤️❤️</div></div>
+  </div>
+  <div id="cat-face">😺</div>
+  <div id="level-bar">レベル <span id="level">1</span></div>
+  <div id="board"></div>
+  <div id="combo"></div>
+
+  <div class="overlay" id="start-overlay">
+    <div class="panel">
+      <h1>🐱 ネコのネズミたたき 🐭</h1>
+      <div class="big">😼</div>
+      <p class="legend">
+        🐭 たたく … +10点<br>
+        🐹 すばやい金ネズミ … +30点<br>
+        🐶 たたいちゃダメ! … ライフ−1<br>
+        🐭 を逃がしても … ライフ−1
+      </p>
+      <p>だんだん速くなるよ!<br>タップ(クリック)でたたこう!</p>
+      <button id="start-btn">スタート!</button>
+    </div>
+  </div>
+
+  <div class="overlay hidden" id="over-overlay">
+    <div class="panel">
+      <h1>ゲームオーバー</h1>
+      <div class="big" id="over-face">😿</div>
+      <div class="score-line">スコア: <span id="final-score">0</span></div>
+      <div class="best" id="best-line"></div>
+      <div class="score-line" style="font-size:15px;">とうたつレベル: <span id="final-level">1</span></div>
+      <button id="retry-btn">もういちど!</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const board = document.getElementById('board');
+  const scoreEl = document.getElementById('score');
+  const bestEl = document.getElementById('best');
+  const livesEl = document.getElementById('lives');
+  const levelEl = document.getElementById('level');
+  const comboEl = document.getElementById('combo');
+  const catFace = document.getElementById('cat-face');
+  const game = document.getElementById('game');
+
+  const HOLES = 9;
+  let holes = [];
+  let score = 0, lives = 3, level = 1, combo = 0;
+  let running = false;
+  let spawnTimer = null;
+  let best = 0;
+  try { best = parseInt(localStorage.getItem('nekoNezumiBest') || '0', 10); } catch(e) {}
+  bestEl.textContent = best;
+
+  // build holes
+  for (let i = 0; i < HOLES; i++) {
+    const h = document.createElement('div');
+    h.className = 'hole';
+    h.innerHTML = '<div class="mouse"></div><div class="dirt"></div>';
+    h.dataset.idx = i;
+    board.appendChild(h);
+    holes.push({ el: h, mouseEl: h.querySelector('.mouse'), active: false, type: null, hideTO: null });
+    const handler = (ev) => { ev.preventDefault(); whack(i, ev); };
+    h.addEventListener('pointerdown', handler);
+  }
+
+  // ---- difficulty curves ----
+  const spawnInterval = () => Math.max(320, 1000 - (level - 1) * 75);
+  const upTime = (type) => {
+    const base = Math.max(500, 1400 - (level - 1) * 95);
+    return type === 'gold' ? base * 0.6 : base;
+  };
+  const levelFor = (s) => Math.min(12, Math.floor(s / 100) + 1);
+
+  function setFace(f, pop) {
+    catFace.textContent = f;
+    if (pop) {
+      catFace.style.transform = 'scale(1.25)';
+      setTimeout(() => catFace.style.transform = 'scale(1)', 110);
+    }
+  }
+
+  function spawn() {
+    if (!running) return;
+    const free = holes.filter(h => !h.active);
+    if (free.length) {
+      const h = free[Math.floor(Math.random() * free.length)];
+      const r = Math.random();
+      let type = 'mouse';
+      if (r < 0.12) type = 'gold';
+      else if (r < 0.12 + Math.min(0.28, 0.10 + level * 0.02)) type = 'dog';
+      h.type = type;
+      h.mouseEl.textContent = type === 'gold' ? '🐹' : type === 'dog' ? '🐶' : '🐭';
+      h.mouseEl.style.filter = type === 'gold' ? 'drop-shadow(0 0 8px gold)' : '';
+      h.active = true;
+      h.el.classList.remove('hit');
+      h.el.classList.add('up');
+      h.hideTO = setTimeout(() => escapeMouse(h), upTime(type));
+      // extra simultaneous spawn at higher levels
+      if (level >= 5 && Math.random() < 0.25) setTimeout(() => { if (running) spawnOne(); }, 120);
+    }
+    spawnTimer = setTimeout(spawn, spawnInterval());
+  }
+  function spawnOne() {
+    const free = holes.filter(h => !h.active);
+    if (!free.length) return;
+    const h = free[Math.floor(Math.random() * free.length)];
+    h.type = 'mouse';
+    h.mouseEl.textContent = '🐭';
+    h.mouseEl.style.filter = '';
+    h.active = true;
+    h.el.classList.remove('hit');
+    h.el.classList.add('up');
+    h.hideTO = setTimeout(() => escapeMouse(h), upTime('mouse'));
+  }
+
+  function escapeMouse(h) {
+    if (!h.active) return;
+    h.active = false;
+    h.el.classList.remove('up');
+    if (h.type !== 'dog') { // letting a mouse escape costs a life
+      combo = 0; hideCombo();
+      loseLife(h, 'にげられた!');
+    }
+  }
+
+  function whack(idx, ev) {
+    if (!running) return;
+    const h = holes[idx];
+    // paw effect at tap point
+    pawAt(ev);
+    if (!h.active) { setFace('😾', false); return; }
+    clearTimeout(h.hideTO);
+    h.active = false;
+    h.el.classList.add('hit');
+    h.el.classList.remove('up');
+    if (h.type === 'dog') {
+      combo = 0; hideCombo();
+      popText(h.el, 'ワン!! −❤️', 'bad');
+      loseLife(h);
+      return;
+    }
+    combo++;
+    const gain = (h.type === 'gold' ? 30 : 10) + (combo >= 3 ? Math.min(combo, 10) : 0);
+    score += gain;
+    scoreEl.textContent = score;
+    popText(h.el, '+' + gain, h.type === 'gold' ? 'gold' : 'good');
+    setFace(combo >= 5 ? '😻' : '😼', true);
+    if (combo >= 3) {
+      comboEl.textContent = combo + ' コンボ!';
+      comboEl.classList.add('show');
+    }
+    const newLevel = levelFor(score);
+    if (newLevel !== level) { level = newLevel; levelEl.textContent = level; }
+  }
+
+  function hideCombo() { comboEl.classList.remove('show'); }
+
+  function loseLife(h, msg) {
+    lives--;
+    livesEl.textContent = '❤️'.repeat(Math.max(0, lives)) + '🖤'.repeat(3 - Math.max(0, lives));
+    setFace('🙀', true);
+    if (msg) popText(h.el, msg, 'bad');
+    if (navigator.vibrate) navigator.vibrate(80);
+    if (lives <= 0) gameOver();
+  }
+
+  function pawAt(ev) {
+    const rect = game.getBoundingClientRect();
+    const x = (ev.clientX ?? 0) - rect.left;
+    const y = (ev.clientY ?? 0) - rect.top;
+    const p = document.createElement('div');
+    p.className = 'paw';
+    p.textContent = '🐾';
+    p.style.left = x + 'px';
+    p.style.top = y + 'px';
+    game.appendChild(p);
+    setTimeout(() => p.remove(), 320);
+  }
+
+  function popText(holeEl, text, cls) {
+    const rect = holeEl.getBoundingClientRect();
+    const grect = game.getBoundingClientRect();
+    const p = document.createElement('div');
+    p.className = 'pop-score ' + cls;
+    p.textContent = text;
+    p.style.left = (rect.left - grect.left + rect.width / 2) + 'px';
+    p.style.top = (rect.top - grect.top + rect.height / 2) + 'px';
+    game.appendChild(p);
+    setTimeout(() => p.remove(), 620);
+  }
+
+  function reset() {
+    score = 0; lives = 3; level = 1; combo = 0;
+    scoreEl.textContent = '0';
+    levelEl.textContent = '1';
+    livesEl.textContent = '❤️❤️❤️';
+    hideCombo();
+    setFace('😺', false);
+    holes.forEach(h => {
+      clearTimeout(h.hideTO);
+      h.active = false;
+      h.el.classList.remove('up', 'hit');
+    });
+  }
+
+  function start() {
+    reset();
+    document.getElementById('start-overlay').classList.add('hidden');
+    document.getElementById('over-overlay').classList.add('hidden');
+    running = true;
+    spawnTimer = setTimeout(spawn, 600);
+  }
+
+  function gameOver() {
+    running = false;
+    clearTimeout(spawnTimer);
+    holes.forEach(h => { clearTimeout(h.hideTO); h.el.classList.remove('up'); h.active = false; });
+    document.getElementById('final-score').textContent = score;
+    document.getElementById('final-level').textContent = level;
+    const bestLine = document.getElementById('best-line');
+    if (score > best) {
+      best = score;
+      try { localStorage.setItem('nekoNezumiBest', String(best)); } catch(e) {}
+      bestEl.textContent = best;
+      bestLine.textContent = '🏆 ベスト記録こうしん!';
+      document.getElementById('over-face').textContent = '😸';
+    } else {
+      bestLine.textContent = 'ベスト: ' + best;
+      document.getElementById('over-face').textContent = '😿';
+    }
+    document.getElementById('over-overlay').classList.remove('hidden');
+  }
+
+  document.getElementById('start-btn').addEventListener('click', start);
+  document.getElementById('retry-btn').addEventListener('click', start);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>にゃんこダンジョン 〜ネズミの王を追え!〜</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { height:100%; }
+  body {
+    background:#1a1226; color:#f0e8ff;
+    font-family:'Hiragino Kaku Gothic ProN','Yu Gothic',Meiryo,sans-serif;
+    display:flex; flex-direction:column; align-items:center;
+    touch-action:manipulation; overflow:hidden;
+  }
+  #wrap { width:100%; max-width:560px; height:100%; display:flex; flex-direction:column; padding:6px; }
+  #topbar {
+    display:flex; justify-content:space-between; align-items:center;
+    font-size:13px; padding:4px 6px; background:#2a1f3d; border-radius:8px; gap:6px;
+  }
+  #hpwrap { flex:1; max-width:150px; }
+  #hpbar { height:12px; background:#442; border-radius:6px; overflow:hidden; border:1px solid #665; }
+  #hpfill { height:100%; background:linear-gradient(90deg,#e05555,#f0a050); width:100%; transition:width .2s; }
+  #stats { display:flex; gap:8px; font-size:12px; padding:3px 6px; color:#c8b8e8; }
+  canvas { display:block; width:100%; background:#120c1c; border-radius:8px; margin:4px 0; flex:1; min-height:0; object-fit:contain; }
+  #log {
+    height:54px; overflow:hidden; font-size:12px; line-height:18px;
+    background:#221833; border-radius:8px; padding:2px 8px; color:#d8cbf0;
+  }
+  #log .new { color:#ffe9a0; }
+  #bottom { display:flex; align-items:center; justify-content:space-between; padding-top:4px; gap:8px; }
+  #inv { display:flex; gap:6px; flex-wrap:wrap; }
+  .invbtn {
+    width:44px; height:44px; font-size:22px; border-radius:10px; border:2px solid #5a4a7a;
+    background:#2e2246; cursor:pointer;
+  }
+  .invbtn:active { background:#4a3a6a; }
+  #pad { display:grid; grid-template-columns:repeat(3,46px); grid-template-rows:repeat(3,46px); gap:3px; }
+  .pbtn {
+    border-radius:10px; border:2px solid #5a4a7a; background:#2e2246; color:#f0e8ff;
+    font-size:20px; cursor:pointer; user-select:none;
+  }
+  .pbtn:active { background:#4a3a6a; }
+  .pbtn.empty { visibility:hidden; }
+  #overlay {
+    position:fixed; inset:0; background:rgba(10,6,20,.88); display:flex;
+    align-items:center; justify-content:center; z-index:10;
+  }
+  #panel {
+    background:#2a1f3d; border:2px solid #6a5a8a; border-radius:16px;
+    padding:24px 20px; max-width:340px; width:90%; text-align:center;
+  }
+  #panel h1 { font-size:22px; margin-bottom:10px; color:#ffd97a; }
+  #panel p { font-size:13px; line-height:1.7; margin-bottom:14px; color:#d8cbf0; }
+  .bigbtn {
+    display:block; width:100%; padding:12px; margin-top:10px; font-size:15px; font-weight:bold;
+    border-radius:12px; border:2px solid #8a7ab0; background:#4a3a6a; color:#fff; cursor:pointer;
+  }
+  .bigbtn:active { background:#6a5a8a; }
+  .upbtn { text-align:left; font-weight:normal; font-size:14px; line-height:1.5; }
+  .hidden { display:none !important; }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div id="topbar">
+    <span id="floorTxt">B1F</span>
+    <div id="hpwrap"><div id="hpbar"><div id="hpfill"></div></div></div>
+    <span id="hpTxt">30/30</span>
+    <span id="scoreTxt">🏆0</span>
+  </div>
+  <div id="stats">
+    <span id="lvTxt">Lv1</span><span id="xpTxt">XP 0/10</span>
+    <span id="atkTxt">⚔️5</span><span id="defTxt">🛡0</span><span id="buffTxt"></span>
+  </div>
+  <canvas id="cv"></canvas>
+  <div id="log"></div>
+  <div id="bottom">
+    <div id="inv"></div>
+    <div id="pad">
+      <button class="pbtn empty"></button>
+      <button class="pbtn" data-d="0,-1">▲</button>
+      <button class="pbtn empty"></button>
+      <button class="pbtn" data-d="-1,0">◀</button>
+      <button class="pbtn" data-d="0,0">💤</button>
+      <button class="pbtn" data-d="1,0">▶</button>
+      <button class="pbtn empty"></button>
+      <button class="pbtn" data-d="0,1">▼</button>
+      <button class="pbtn empty"></button>
+    </div>
+  </div>
+</div>
+
+<div id="overlay">
+  <div id="panel">
+    <h1>🐱 にゃんこダンジョン</h1>
+    <p>〜ネズミの王を追え!〜</p>
+    <p id="panelBody">
+      チーズ蔵を荒らすネズミの王👑🐀が地下5階に潜んでいる。<br>
+      ネコのあなたが退治するのだ!<br><br>
+      移動:矢印ボタン / スワイプ / 矢印キー・WASD<br>
+      ネズミにぶつかると攻撃。💤で1ターン休み(少し回復)。<br>
+      🧀=回復 🌿=またたび(攻撃2倍) 💨=ワープ
+    </p>
+    <p id="bestTxt"></p>
+    <button class="bigbtn" id="startBtn">ぼうけんに でる 🐾</button>
+  </div>
+</div>
+
+<script>
+"use strict";
+// ===== 定数 =====
+const COLS = 17, ROWS = 17;
+const T_WALL = 0, T_FLOOR = 1, T_STAIRS = 2;
+const MAX_FLOOR = 5;
+const ITEM_DEFS = {
+  cheese:  { emoji:"🧀", name:"チーズ", desc:"HPを12回復" },
+  fish:    { emoji:"🐟", name:"おさかな", desc:"HP5回復+経験値5" },
+  matatabi:{ emoji:"🌿", name:"またたび", desc:"10ターン攻撃2倍" },
+  smoke:   { emoji:"💨", name:"けむり玉", desc:"ランダムワープ" },
+};
+const UPGRADES = [
+  { id:"hp",   label:"❤️ もりもり体力", desc:"最大HP+8(全回復)" },
+  { id:"atk",  label:"⚔️ するどい爪", desc:"攻撃力+2" },
+  { id:"def",  label:"🛡 ふかふか毛皮", desc:"防御力+1" },
+  { id:"eye",  label:"👀 夜目", desc:"視界+1" },
+  { id:"heal", label:"🧀 ごちそう", desc:"HP全回復+最大HP+3" },
+];
+
+// ===== 状態 =====
+let map, seen, visible, entities, items, player, floor, score, turnCount;
+let gameState = "title"; // title / play / upgrade / over / win
+let logLines = [];
+
+// ===== ユーティリティ =====
+const ri = n => Math.floor(Math.random()*n);
+const pick = a => a[ri(a.length)];
+const key = (x,y) => x+","+y;
+const clamp = (v,a,b) => Math.max(a,Math.min(b,v));
+
+function log(msg, isNew=true){
+  logLines.push({msg,isNew});
+  if(logLines.length>3) logLines.shift();
+  const el = document.getElementById("log");
+  el.innerHTML = logLines.map((l,i)=>`<div class="${i===logLines.length-1&&l.isNew?'new':''}">${l.msg}</div>`).join("");
+}
+
+// ===== マップ生成 =====
+function genMap(){
+  map = Array.from({length:ROWS},()=>Array(COLS).fill(T_WALL));
+  const rooms = [];
+  const nRooms = 5 + ri(3);
+  for(let i=0;i<60 && rooms.length<nRooms;i++){
+    const w = 3+ri(4), h = 3+ri(3);
+    const x = 1+ri(COLS-w-2), y = 1+ri(ROWS-h-2);
+    const r = {x,y,w,h,cx:x+(w>>1),cy:y+(h>>1)};
+    if(rooms.some(o=>x<o.x+o.w+1 && o.x<x+w+1 && y<o.y+o.h+1 && o.y<y+h+1)) continue;
+    rooms.push(r);
+    for(let yy=y;yy<y+h;yy++)for(let xx=x;xx<x+w;xx++) map[yy][xx]=T_FLOOR;
+  }
+  // 廊下で接続
+  for(let i=1;i<rooms.length;i++){
+    let {cx:x1,cy:y1} = rooms[i-1], {cx:x2,cy:y2} = rooms[i];
+    if(Math.random()<.5){
+      for(let x=Math.min(x1,x2);x<=Math.max(x1,x2);x++) map[y1][x]=T_FLOOR;
+      for(let y=Math.min(y1,y2);y<=Math.max(y1,y2);y++) map[y][x2]=T_FLOOR;
+    } else {
+      for(let y=Math.min(y1,y2);y<=Math.max(y1,y2);y++) map[y][x1]=T_FLOOR;
+      for(let x=Math.min(x1,x2);x<=Math.max(x1,x2);x++) map[y2][x]=T_FLOOR;
+    }
+  }
+  return rooms;
+}
+
+function freeCell(exclude){
+  for(let i=0;i<500;i++){
+    const x=1+ri(COLS-2), y=1+ri(ROWS-2);
+    if(map[y][x]!==T_FLOOR) continue;
+    if(player && player.x===x && player.y===y) continue;
+    if(entities.some(e=>e.x===x&&e.y===y)) continue;
+    if(items.some(it=>it.x===x&&it.y===y)) continue;
+    if(exclude && Math.abs(x-exclude.x)+Math.abs(y-exclude.y)<5) continue;
+    return {x,y};
+  }
+  return null;
+}
+
+function makeEnemy(type,x,y){
+  const f = floor;
+  const defs = {
+    chibi: { emoji:"🐭", name:"ちびネズミ", hp:5+f*2, atk:2+f, xp:5+f, speed:1 },
+    dobu:  { emoji:"🐀", name:"ドブネズミ", hp:10+f*3, atk:4+f, xp:12+f*2, speed:1 },
+    hamu:  { emoji:"🐹", name:"あばれハムスター", hp:8+f*2, atk:3+f, xp:10+f*2, speed:2 },
+    boss:  { emoji:"👑", name:"ネズミの王", hp:70, atk:9, xp:0, speed:1, boss:true },
+  };
+  const d = defs[type];
+  return { type, x, y, emoji:d.emoji, name:d.name, hp:d.hp, maxHp:d.hp, atk:d.atk, xp:d.xp, speed:d.speed, boss:!!d.boss };
+}
+
+function buildFloor(){
+  entities = []; items = [];
+  const rooms = genMap();
+  const start = rooms[0];
+  player.x = start.cx; player.y = start.cy;
+  seen = new Set(); visible = new Set();
+
+  const last = rooms[rooms.length-1];
+  if(floor < MAX_FLOOR){
+    map[last.cy][last.cx] = T_STAIRS;
+  } else {
+    entities.push(makeEnemy("boss", last.cx, last.cy));
+    log("👑🐀 どこかで ネズミの王の 気配がする…!");
+  }
+  // 敵配置
+  const n = 2 + floor*2 + (floor===MAX_FLOOR?-2:0);
+  for(let i=0;i<n;i++){
+    const pool = ["chibi","chibi"];
+    if(floor>=2) pool.push("dobu");
+    if(floor>=3) pool.push("hamu","dobu");
+    const c = freeCell(player);
+    if(c) entities.push(makeEnemy(pick(pool), c.x, c.y));
+  }
+  // アイテム配置
+  const itemPool = ["cheese","cheese","fish","matatabi","smoke"];
+  for(let i=0;i<3+ri(2);i++){
+    const c = freeCell(null);
+    if(c) items.push({ x:c.x, y:c.y, kind:pick(itemPool) });
+  }
+  computeFOV();
+  log(`🏰 地下${floor}階に おりた。`);
+}
+
+// ===== 視界 =====
+function losClear(x0,y0,x1,y1){
+  let dx=Math.abs(x1-x0), dy=Math.abs(y1-y0);
+  let sx=x0<x1?1:-1, sy=y0<y1?1:-1, err=dx-dy, x=x0, y=y0;
+  while(!(x===x1&&y===y1)){
+    if(!(x===x0&&y===y0) && map[y][x]===T_WALL) return false;
+    const e2=2*err;
+    if(e2>-dy){err-=dy;x+=sx;}
+    if(e2<dx){err+=dx;y+=sy;}
+  }
+  return true;
+}
+function computeFOV(){
+  visible = new Set();
+  const r = player.vision;
+  for(let y=Math.max(0,player.y-r); y<=Math.min(ROWS-1,player.y+r); y++){
+    for(let x=Math.max(0,player.x-r); x<=Math.min(COLS-1,player.x+r); x++){
+      if((x-player.x)**2+(y-player.y)**2 > r*r+1) continue;
+      if(losClear(player.x,player.y,x,y)){ visible.add(key(x,y)); seen.add(key(x,y)); }
+    }
+  }
+}
+
+// ===== 描画 =====
+const cv = document.getElementById("cv");
+const ctx = cv.getContext("2d");
+function draw(){
+  const rect = cv.getBoundingClientRect();
+  const dpr = window.devicePixelRatio||1;
+  cv.width = rect.width*dpr; cv.height = rect.height*dpr;
+  const ts = Math.min(cv.width/COLS, cv.height/ROWS);
+  const ox = (cv.width-ts*COLS)/2, oy = (cv.height-ts*ROWS)/2;
+  ctx.fillStyle = "#120c1c"; ctx.fillRect(0,0,cv.width,cv.height);
+  ctx.textAlign="center"; ctx.textBaseline="middle";
+
+  for(let y=0;y<ROWS;y++)for(let x=0;x<COLS;x++){
+    const k = key(x,y);
+    if(!seen.has(k)) continue;
+    const vis = visible.has(k);
+    const px = ox+x*ts, py = oy+y*ts;
+    if(map[y][x]===T_WALL){
+      ctx.fillStyle = vis ? "#4a3a66" : "#2a2240";
+      ctx.fillRect(px+1,py+1,ts-2,ts-2);
+    } else {
+      ctx.fillStyle = vis ? "#241a38" : "#181226";
+      ctx.fillRect(px+1,py+1,ts-2,ts-2);
+      if(map[y][x]===T_STAIRS && vis){
+        ctx.font = (ts*.7)+"px serif";
+        ctx.fillText("🕳️", px+ts/2, py+ts/2+ts*.05);
+      }
+    }
+  }
+  ctx.font = "bold "+(Math.max(8,ts*.32))+"px sans-serif";
+  for(const it of items){
+    if(!visible.has(key(it.x,it.y))) continue;
+    ctx.font = (ts*.62)+"px serif";
+    ctx.fillText(ITEM_DEFS[it.kind].emoji, ox+it.x*ts+ts/2, oy+it.y*ts+ts/2+ts*.05);
+  }
+  for(const e of entities){
+    if(!visible.has(key(e.x,e.y))) continue;
+    const px=ox+e.x*ts, py=oy+e.y*ts;
+    ctx.font = (ts*(e.boss?.8:.68))+"px serif";
+    ctx.fillText(e.boss?"🐀":e.emoji, px+ts/2, py+ts/2+ts*.05);
+    if(e.boss){ ctx.font=(ts*.4)+"px serif"; ctx.fillText("👑", px+ts/2, py+ts*.15); }
+    // HPバー
+    const w = ts*.8*clamp(e.hp/e.maxHp,0,1);
+    ctx.fillStyle="#e05555"; ctx.fillRect(px+ts*.1, py+ts*.92, w, Math.max(2,ts*.06));
+  }
+  // プレイヤー
+  ctx.font = (ts*.72)+"px serif";
+  ctx.fillText(player.buffTurns>0?"😼":"🐱", ox+player.x*ts+ts/2, oy+player.y*ts+ts/2+ts*.05);
+
+  // UI更新
+  document.getElementById("floorTxt").textContent = "B"+floor+"F";
+  document.getElementById("hpTxt").textContent = player.hp+"/"+player.maxHp;
+  document.getElementById("hpfill").style.width = clamp(player.hp/player.maxHp*100,0,100)+"%";
+  document.getElementById("scoreTxt").textContent = "🏆"+score;
+  document.getElementById("lvTxt").textContent = "Lv"+player.lv;
+  document.getElementById("xpTxt").textContent = "XP "+player.xp+"/"+xpNeed();
+  document.getElementById("atkTxt").textContent = "⚔️"+player.atk+(player.buffTurns>0?"×2":"");
+  document.getElementById("defTxt").textContent = "🛡"+player.def;
+  document.getElementById("buffTxt").textContent = player.buffTurns>0 ? "🌿またたび残"+player.buffTurns : "";
+  renderInv();
+}
+
+function renderInv(){
+  const el = document.getElementById("inv");
+  el.innerHTML = "";
+  player.inv.forEach((kind,i)=>{
+    const b = document.createElement("button");
+    b.className = "invbtn";
+    b.textContent = ITEM_DEFS[kind].emoji;
+    b.title = ITEM_DEFS[kind].name+":"+ITEM_DEFS[kind].desc;
+    b.onclick = ()=>useItem(i);
+    el.appendChild(b);
+  });
+}
+
+// ===== プレイヤー行動 =====
+function xpNeed(){ return player.lv*10; }
+function gainXp(n){
+  player.xp += n;
+  while(player.xp >= xpNeed()){
+    player.xp -= xpNeed();
+    player.lv++;
+    player.maxHp += 5; player.atk += 1;
+    player.hp = Math.min(player.maxHp, player.hp+8);
+    log(`✨ レベルアップ! Lv${player.lv}(HP+5 攻撃+1)`);
+  }
+}
+
+function playerAct(dx,dy){
+  if(gameState!=="play") return;
+  if(dx===0&&dy===0){
+    player.hp = Math.min(player.maxHp, player.hp+1);
+    log("💤 ひとやすみ…(HP+1)", false);
+    endTurn(); return;
+  }
+  const nx = player.x+dx, ny = player.y+dy;
+  if(nx<0||ny<0||nx>=COLS||ny>=ROWS||map[ny][nx]===T_WALL) return;
+  const foe = entities.find(e=>e.x===nx&&e.y===ny);
+  if(foe){
+    const dmg = (player.buffTurns>0?player.atk*2:player.atk) + ri(3);
+    foe.hp -= dmg;
+    log(`🐾 ${foe.name}に ${dmg}ダメージ!`);
+    if(foe.hp<=0){
+      entities = entities.filter(e=>e!==foe);
+      score += foe.boss ? 500 : foe.xp*10;
+      log(`💥 ${foe.name}を たいじした!`);
+      if(foe.boss){ winGame(); return; }
+      gainXp(foe.xp);
+    }
+    endTurn(); return;
+  }
+  player.x = nx; player.y = ny;
+  // アイテム
+  const it = items.find(o=>o.x===nx&&o.y===ny);
+  if(it){
+    if(player.inv.length<5){
+      player.inv.push(it.kind);
+      items = items.filter(o=>o!==it);
+      log(`${ITEM_DEFS[it.kind].emoji} ${ITEM_DEFS[it.kind].name}を ひろった!`);
+    } else {
+      log("🎒 もちものが いっぱいだ…");
+    }
+  }
+  if(map[ny][nx]===T_STAIRS){
+    showUpgrade(); return;
+  }
+  endTurn();
+}
+
+function useItem(i){
+  if(gameState!=="play") return;
+  const kind = player.inv[i];
+  player.inv.splice(i,1);
+  if(kind==="cheese"){ player.hp=Math.min(player.maxHp,player.hp+12); log("🧀 おいしい! HP+12"); }
+  else if(kind==="fish"){ player.hp=Math.min(player.maxHp,player.hp+5); gainXp(5); log("🐟 うまうま! HP+5 XP+5"); }
+  else if(kind==="matatabi"){ player.buffTurns=10; log("🌿 またたびパワー! 10ターン攻撃2倍!"); }
+  else if(kind==="smoke"){
+    const c = freeCell(null);
+    if(c){ player.x=c.x; player.y=c.y; }
+    log("💨 けむりにまぎれて ワープ!");
+  }
+  endTurn();
+}
+
+// ===== 敵ターン =====
+function enemyTurn(){
+  for(const e of entities){
+    for(let s=0;s<e.speed;s++){
+      const dist = Math.abs(e.x-player.x)+Math.abs(e.y-player.y);
+      if(dist===1){
+        const dmg = Math.max(1, e.atk + ri(3) - player.def);
+        player.hp -= dmg;
+        log(`💢 ${e.name}の こうげき! ${dmg}ダメージ`);
+        if(e.boss && e.hp < e.maxHp*.5 && entities.length<6 && Math.random()<.3){
+          const c = freeCell(null);
+          if(c){ entities.push(makeEnemy("chibi",c.x,c.y)); log("👑 王のよびごえ! ちびネズミが あらわれた!"); }
+        }
+        break;
+      }
+      const canSee = dist <= (e.boss?9:5) && losClear(e.x,e.y,player.x,player.y);
+      let dx=0, dy=0;
+      if(canSee){
+        dx = Math.sign(player.x-e.x); dy = Math.sign(player.y-e.y);
+        if(Math.abs(e.x-player.x) >= Math.abs(e.y-player.y)) dy = (tryMove(e,dx,0)) ? 0 : dy;
+        else dx = (tryMove(e,0,dy)) ? 0 : dx;
+        if(dx!==0||dy!==0){ // 残りの軸を試す
+          if(dx!==0 && !tryMove(e,dx,0)) tryMove(e,0,dy||Math.sign(player.y-e.y));
+          else if(dy!==0) tryMove(e,0,dy);
+        }
+      } else if(Math.random()<.4){
+        const d = pick([[1,0],[-1,0],[0,1],[0,-1]]);
+        tryMove(e,d[0],d[1]);
+      }
+    }
+  }
+  if(player.hp<=0){ gameOver(); }
+}
+function tryMove(e,dx,dy){
+  const nx=e.x+dx, ny=e.y+dy;
+  if(dx===0&&dy===0) return false;
+  if(nx<0||ny<0||nx>=COLS||ny>=ROWS) return false;
+  if(map[ny][nx]===T_WALL) return false;
+  if(nx===player.x&&ny===player.y) return false;
+  if(entities.some(o=>o!==e&&o.x===nx&&o.y===ny)) return false;
+  e.x=nx; e.y=ny; return true;
+}
+
+function endTurn(){
+  turnCount++;
+  if(player.buffTurns>0) player.buffTurns--;
+  enemyTurn();
+  computeFOV();
+  draw();
+}
+
+// ===== 階層強化・進行 =====
+function showUpgrade(){
+  gameState = "upgrade";
+  score += 100;
+  const opts = [...UPGRADES].sort(()=>Math.random()-.5).slice(0,3);
+  const panel = document.getElementById("panel");
+  panel.innerHTML = `<h1>⬇️ 地下${floor+1}階へ</h1><p>ごほうびを ひとつ えらんでね</p>`;
+  for(const o of opts){
+    const b = document.createElement("button");
+    b.className = "bigbtn upbtn";
+    b.innerHTML = `${o.label}<br><small style="color:#c8b8e8">${o.desc}</small>`;
+    b.onclick = ()=>{
+      applyUpgrade(o.id);
+      floor++;
+      document.getElementById("overlay").classList.add("hidden");
+      gameState = "play";
+      buildFloor(); draw();
+    };
+    panel.appendChild(b);
+  }
+  document.getElementById("overlay").classList.remove("hidden");
+}
+function applyUpgrade(id){
+  if(id==="hp"){ player.maxHp+=8; player.hp=player.maxHp; }
+  else if(id==="atk"){ player.atk+=2; }
+  else if(id==="def"){ player.def+=1; }
+  else if(id==="eye"){ player.vision+=1; }
+  else if(id==="heal"){ player.maxHp+=3; player.hp=player.maxHp; }
+}
+
+function saveBest(){
+  try{
+    const best = +(localStorage.getItem("nyankoDungeonBest")||0);
+    if(score>best) localStorage.setItem("nyankoDungeonBest", score);
+    return Math.max(best,score);
+  }catch(e){ return score; }
+}
+
+function gameOver(){
+  gameState = "over";
+  const best = saveBest();
+  const panel = document.getElementById("panel");
+  panel.innerHTML = `<h1>😿 ゲームオーバー</h1>
+    <p>地下${floor}階で ちからつきた…<br>スコア:${score} / ベスト:${best}</p>
+    <button class="bigbtn" id="againBtn">もういちど 🐾</button>`;
+  document.getElementById("againBtn").onclick = startGame;
+  document.getElementById("overlay").classList.remove("hidden");
+}
+
+function winGame(){
+  gameState = "win";
+  score += 1000;
+  const best = saveBest();
+  const panel = document.getElementById("panel");
+  panel.innerHTML = `<h1>🎉 だいしょうり!</h1>
+    <p>ネズミの王👑🐀を たいじした!<br>チーズ蔵に へいわが もどった🧀✨<br><br>スコア:${score} / ベスト:${best}</p>
+    <button class="bigbtn" id="againBtn">もういちど あそぶ 🐾</button>`;
+  document.getElementById("againBtn").onclick = startGame;
+  document.getElementById("overlay").classList.remove("hidden");
+}
+
+function startGame(){
+  player = { x:0,y:0, hp:30, maxHp:30, atk:5, def:0, lv:1, xp:0, vision:4, inv:["cheese"], buffTurns:0 };
+  floor = 1; score = 0; turnCount = 0; logLines = [];
+  gameState = "play";
+  document.getElementById("overlay").classList.add("hidden");
+  buildFloor();
+  log("🐱 ネズミの王を さがしに いこう!");
+  draw();
+}
+
+// ===== 入力 =====
+document.querySelectorAll(".pbtn[data-d]").forEach(b=>{
+  b.addEventListener("click",()=>{
+    const [dx,dy] = b.dataset.d.split(",").map(Number);
+    playerAct(dx,dy);
+  });
+});
+document.addEventListener("keydown",e=>{
+  const m = {ArrowUp:[0,-1],ArrowDown:[0,1],ArrowLeft:[-1,0],ArrowRight:[1,0],
+             w:[0,-1],s:[0,1],a:[-1,0],d:[1,0]," ":[0,0]};
+  if(m[e.key]){ e.preventDefault(); playerAct(m[e.key][0], m[e.key][1]); }
+});
+// スワイプ
+let touchStart = null;
+cv.addEventListener("touchstart",e=>{ touchStart = e.touches[0]; },{passive:true});
+cv.addEventListener("touchend",e=>{
+  if(!touchStart) return;
+  const t = e.changedTouches[0];
+  const dx = t.clientX-touchStart.clientX, dy = t.clientY-touchStart.clientY;
+  touchStart = null;
+  if(Math.abs(dx)<24 && Math.abs(dy)<24) return;
+  if(Math.abs(dx)>Math.abs(dy)) playerAct(Math.sign(dx),0);
+  else playerAct(0,Math.sign(dy));
+},{passive:true});
+
+window.addEventListener("resize",()=>{ if(gameState==="play") draw(); });
+
+// タイトル
+(function(){
+  try{
+    const best = +(localStorage.getItem("nyankoDungeonBest")||0);
+    if(best>0) document.getElementById("bestTxt").textContent = "🏆 ベストスコア:"+best;
+  }catch(e){}
+  document.getElementById("startBtn").onclick = startGame;
+})();
+</script>
+</body>
+</html>

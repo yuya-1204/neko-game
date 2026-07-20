@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="仕事を進めやすくする工夫を短い場面で試せる、成人向けのネコオフィスゲーム一覧です。">
+  <title>ネコオフィス ゲーム一覧</title>
+  <style>
+    :root {
+      --ink: #2f3b4a;
+      --heading: #24364f;
+      --green: #2f8f87;
+      --green-dark: #26776f;
+      --line: #dbe4e8;
+      --soft: #f3f7f7;
+      --page: #f8fbfa;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--page);
+      font-family: -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif;
+      line-height: 1.8;
+    }
+
+    main {
+      width: min(900px, calc(100% - 28px));
+      margin: 0 auto;
+      padding: 28px 0 44px;
+    }
+
+    .back-link,
+    .game-link {
+      display: inline-block;
+      border-radius: 9px;
+      background: var(--green);
+      color: #fff;
+      font-weight: 700;
+      text-decoration: none;
+      transition: background .18s ease, transform .18s ease;
+    }
+
+    .back-link:hover,
+    .game-link:hover {
+      background: var(--green-dark);
+      transform: translateY(-1px);
+    }
+
+    .back-link:focus-visible,
+    .game-link:focus-visible {
+      outline: 3px solid #9bd7cf;
+      outline-offset: 3px;
+    }
+
+    .back-link {
+      margin-bottom: 22px;
+      padding: 8px 15px;
+      font-size: 14px;
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      color: var(--heading);
+      font-size: clamp(27px, 5vw, 36px);
+      line-height: 1.4;
+    }
+
+    .lead { margin: 0 0 28px; }
+
+    .game-card {
+      margin: 0 0 28px;
+      padding: 22px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: #fff;
+      box-shadow: 0 8px 22px rgba(36, 54, 79, .08);
+    }
+
+    .game-card h2 {
+      margin: 0 0 14px;
+      color: var(--heading);
+      font-size: clamp(20px, 4vw, 23px);
+      line-height: 1.5;
+    }
+
+    .game-card img {
+      display: block;
+      width: 100%;
+      height: auto;
+      aspect-ratio: 1265 / 712;
+      object-fit: contain;
+      margin: 0 0 16px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #f6f8f9;
+    }
+
+    .game-card p { margin: 0 0 16px; }
+
+    .game-link {
+      min-height: 44px;
+      padding: 10px 18px;
+    }
+
+    .note {
+      margin: 4px 0 0;
+      padding: 16px;
+      border-radius: 10px;
+      background: var(--soft);
+      font-size: 14px;
+    }
+
+    @media (max-width: 540px) {
+      main { width: min(100% - 20px, 900px); padding-top: 18px; }
+      .game-card { padding: 16px; border-radius: 14px; }
+      .game-link { display: block; width: 100%; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <a class="back-link" href="https://yamayu-sangyoui-oyama.localinfo.jp/pages/9891792/page_202607192003">← ネコゲーム一覧に戻る</a>
+
+    <h1>ネコオフィス ゲーム一覧</h1>
+    <p class="lead">ゲーム画面の例と内容をご紹介します。各ゲームは、仕事を進めやすくする工夫を短い場面で試す成人向けの練習ゲームです。</p>
+
+    <section class="game-card">
+      <h2>ネコオフィス：わりこみから戻ろう</h2>
+      <img src="00-recovery.png" alt="わりこみから戻ろうの仕事選択画面" width="1265" height="712">
+      <p>割り込み前の目印、一つずつ表示、再開前チェックを試し、割り込みの前後で感じる負担を比べます。</p>
+      <a class="game-link" href="neko-office-recovery.html">▶ ゲームを開く</a>
+    </section>
+
+    <section class="game-card">
+      <h2>ネコオフィス：ねこオフィス調整室</h2>
+      <img src="01-adjustment.png" alt="ねこオフィス調整室の環境調整カード選択画面" width="1265" height="712">
+      <p>音、通知、照明、席、机上の情報量などを調整し、自分に合いそうな仕事環境の工夫を見つけます。</p>
+      <a class="game-link" href="neko-office-adjustment.html">▶ ねこオフィス調整室を開く</a>
+    </section>
+
+    <section class="game-card">
+      <h2>ネコオフィス：ふわっと依頼をほどこう</h2>
+      <img src="02-clarify.png" alt="ふわっと依頼をほどこうの確認質問選択画面" width="1265" height="712">
+      <p>曖昧な依頼に対して、期限、目的、完成形、優先順位の確認質問を選び、短い確認メモを作ります。</p>
+      <a class="game-link" href="neko-office-clarify.html">▶ ふわっと依頼をほどこうを開く</a>
+    </section>
+
+    <section class="game-card">
+      <h2>ネコオフィス：ミスのあとにできること</h2>
+      <img src="03-repair.png" alt="ミスのあとにできることの回復行動並べ替え画面" width="1265" height="712">
+      <p>小さなミスに気づいたあと、影響拡大を止める、確かめる、伝える、直すという立て直しの流れを練習します。</p>
+      <a class="game-link" href="neko-office-repair.html">▶ ミスのあとにできることを開く</a>
+    </section>
+
+    <section class="game-card">
+      <h2>ネコオフィス：きょうの余白をつくろう</h2>
+      <img src="04-margin.png" alt="きょうの余白をつくろうの余力選択画面" width="1265" height="712">
+      <p>今日の余力に合わせ、仕事、休憩、予備時間を並べて、無理の少ない一日の組み方を試します。</p>
+      <a class="game-link" href="neko-office-margin.html">▶ きょうの余白をつくろうを開く</a>
+    </section>
+
+    <section class="game-card">
+      <h2>ネコオフィス：相談メモをつくろう</h2>
+      <img src="05-consult.png" alt="相談メモをつくろうの事実整理画面" width="1265" height="712">
+      <p>事実、仕事への影響、具体的なお願いを整理し、困ったときに短く伝えられる相談文を作ります。</p>
+      <a class="game-link" href="neko-office-consult.html">▶ 相談メモをつくろうを開く</a>
+    </section>
+
+    <p class="note">※いずれのゲームも、疾病の診断・治療、能力評価、復職可否の判定を行うものではありません。負担を感じたときは、いつでも中断してください。</p>
+  </main>
+</body>
+</html>

@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>むこうがわの一週間</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg1:#f7f3ec; --bg2:#ece7f2;
+    --ink:#4a4a58; --ink-soft:#8a8896;
+    --mind:#9a93ad;
+    --card:#fffdf9; --accent:#a8927c;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    font-family:'Zen Maru Gothic','Hiragino Maru Gothic ProN','Yu Gothic',sans-serif;
+    background:linear-gradient(160deg,var(--bg1) 0%,var(--bg2) 100%);
+    color:var(--ink); line-height:1.9; letter-spacing:.04em;
+    display:flex; align-items:flex-start; justify-content:center;
+    min-height:100vh; padding:16px;
+  }
+  #app{width:100%;max-width:640px;margin:auto;}
+
+  .screen{display:none;animation:fadein .5s ease;}
+  .screen.active{display:block;}
+  @keyframes fadein{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
+
+  .title{text-align:center;margin:20px 0 6px;font-size:1.65em;font-weight:700;}
+  .subtitle{text-align:center;color:var(--ink-soft);font-size:.92em;margin-bottom:24px;}
+  .cards{display:flex;flex-direction:column;gap:13px;}
+  .card{
+    background:var(--card);border-radius:22px;padding:16px 20px;
+    box-shadow:0 4px 16px rgba(90,80,110,.08);
+    display:flex;align-items:center;gap:15px;cursor:pointer;
+    border:2px solid transparent;transition:transform .18s ease,border-color .18s ease;
+  }
+  .card:not(.locked):hover{transform:translateY(-2px);border-color:rgba(168,146,124,.35);}
+  .card.locked{opacity:.5;cursor:default;}
+  .avatar{width:50px;height:50px;border-radius:50%;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:1em;}
+  .card h3{font-size:1.02em;font-weight:700;}
+  .card p{font-size:.8em;color:var(--ink-soft);line-height:1.6;}
+  .epdots{display:flex;gap:4px;margin-left:auto;flex-shrink:0;}
+  .epdot{width:8px;height:8px;border-radius:50%;background:rgba(74,74,88,.14);}
+  .epdot.on{background:#8fae94;}
+  .badge{font-size:.7em;background:#e8efe6;color:#5f7d63;border-radius:999px;padding:2px 10px;margin-left:8px;vertical-align:middle;}
+
+  .menu-note{text-align:center;font-size:.8em;color:var(--ink-soft);margin-top:20px;line-height:1.8;}
+  .toolrow{display:flex;gap:10px;justify-content:center;margin-top:18px;flex-wrap:wrap;}
+  .tool-btn{background:none;border:1.5px solid rgba(154,147,173,.5);
+    color:var(--ink-soft);border-radius:999px;padding:8px 20px;font-family:inherit;font-size:.85em;cursor:pointer;transition:background .2s;}
+  .tool-btn:hover{background:rgba(154,147,173,.12);}
+
+  .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:13px;}
+  .back-btn{background:none;border:none;color:var(--ink-soft);font-family:inherit;font-size:.85em;cursor:pointer;padding:6px 10px;border-radius:10px;}
+  .back-btn:hover{background:rgba(0,0,0,.05);}
+  .scene-label{font-size:.8em;color:var(--ink-soft);}
+  #stage{
+    background:var(--card);border-radius:24px;min-height:330px;
+    box-shadow:0 6px 22px rgba(90,80,110,.10);
+    padding:26px 28px 22px;display:flex;flex-direction:column;cursor:pointer;
+  }
+  .speaker{font-size:.8em;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:8px;}
+  .speaker .dot{width:10px;height:10px;border-radius:50%;}
+  .line{font-size:1.02em;animation:fadein .4s ease;white-space:pre-wrap;}
+  .line.mind{color:var(--mind);font-size:.97em;}
+  .line.note{color:var(--ink-soft);font-size:.86em;background:rgba(154,147,173,.1);
+    border-radius:14px;padding:12px 16px;margin-top:4px;line-height:1.8;}
+  .next-hint{margin-top:auto;text-align:right;color:var(--ink-soft);font-size:.8em;padding-top:18px;animation:blink 1.6s ease infinite;}
+  @keyframes blink{0%,100%{opacity:.25;}50%{opacity:.85;}}
+  .choices{margin-top:auto;padding-top:20px;display:flex;flex-direction:column;gap:10px;}
+  .choice-btn{
+    background:#f4efe8;border:1.5px solid rgba(168,146,124,.3);border-radius:16px;
+    padding:12px 16px;font-family:inherit;font-size:.95em;color:var(--ink);
+    cursor:pointer;text-align:left;transition:background .18s,transform .18s;line-height:1.7;
+  }
+  .choice-btn:hover{background:#ede4d8;transform:translateY(-1px);}
+  .choice-note{font-size:.75em;color:var(--ink-soft);text-align:center;margin-top:4px;}
+  .progress{display:flex;gap:5px;justify-content:center;margin-top:13px;}
+  .pdot{width:6px;height:6px;border-radius:50%;background:rgba(74,74,88,.15);}
+  .pdot.on{background:rgba(168,146,124,.7);}
+
+  .end-actions{display:flex;flex-direction:column;gap:10px;margin-top:22px;}
+  .primary-btn{
+    background:var(--accent);color:#fff;border:none;border-radius:999px;
+    padding:12px 24px;font-family:inherit;font-size:.93em;font-weight:500;cursor:pointer;
+    box-shadow:0 4px 12px rgba(168,146,124,.35);transition:transform .18s;
+  }
+  .primary-btn:hover{transform:translateY(-1px);}
+  .primary-btn.soft{background:var(--ink-soft);}
+
+  /* memo */
+  .memo-box{margin-top:18px;text-align:left;}
+  .memo-box label{font-size:.82em;color:var(--ink-soft);}
+  .memo-box textarea{
+    width:100%;min-height:70px;border:1.5px solid rgba(168,146,124,.35);border-radius:14px;
+    padding:10px 14px;font-family:inherit;font-size:.92em;color:var(--ink);
+    background:#fdfaf4;resize:vertical;margin-top:6px;line-height:1.7;
+  }
+  .memo-box textarea:focus{outline:none;border-color:var(--accent);}
+
+  /* record screen */
+  .rec-list{display:flex;flex-direction:column;gap:9px;margin-top:16px;}
+  .rec-item{background:var(--card);border-radius:16px;padding:11px 16px;
+    box-shadow:0 2px 10px rgba(90,80,110,.06);font-size:.9em;display:flex;gap:12px;align-items:baseline;}
+  .rec-date{color:var(--ink-soft);font-size:.82em;flex-shrink:0;}
+  .rec-tag{font-size:.72em;border-radius:999px;padding:1px 9px;flex-shrink:0;}
+  .rec-tag.feel{background:#f3e6e4;color:#a3675f;}
+  .rec-tag.memo{background:#e6ebf3;color:#5f75a3;}
+  .rec-tag.read{background:#e8efe6;color:#5f7d63;}
+  .rec-empty{text-align:center;color:var(--ink-soft);font-size:.88em;margin-top:30px;line-height:1.9;}
+
+  /* breathing */
+  #breath-overlay{
+    position:fixed;inset:0;background:rgba(60,55,75,.55);backdrop-filter:blur(3px);
+    display:none;align-items:center;justify-content:center;z-index:50;flex-direction:column;gap:26px;
+  }
+  #breath-overlay.active{display:flex;}
+  .breath-circle{
+    width:130px;height:130px;border-radius:50%;
+    background:radial-gradient(circle at 35% 35%, #fdfaf4, #d9cbe8);
+    box-shadow:0 0 50px rgba(255,255,255,.35);
+    animation:breathe 8s ease-in-out infinite;
+  }
+  @keyframes breathe{0%,100%{transform:scale(.72);}50%{transform:scale(1.15);}}
+  #breath-text{color:#f5f2fa;font-size:1.05em;letter-spacing:.1em;}
+  .breath-close{background:none;border:1.5px solid rgba(255,255,255,.6);color:#fff;
+    border-radius:999px;padding:8px 26px;font-family:inherit;cursor:pointer;font-size:.9em;}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ===== WEEK MENU ===== -->
+  <div class="screen active" id="scr-week">
+    <h1 class="title">むこうがわの一週間</h1>
+    <p class="subtitle">おなじ一日を、いくつもの視点で。<br>いそがなくて、だいじょうぶ。</p>
+    <div class="cards" id="week-cards"></div>
+    <div class="toolrow">
+      <button class="tool-btn" onclick="openRecord()">きろくを見る</button>
+      <button class="tool-btn" onclick="openBreath()">ひとやすみ（1分のこきゅう）</button>
+    </div>
+    <p class="menu-note">このゲームに、失敗も、時間制限も、点数もありません。<br>とちゅうでやめても、いつでもつづきから読めます。<br>きろくは、この端末の中にだけ保存されます。</p>
+  </div>
+
+  <!-- ===== EPISODE MENU ===== -->
+  <div class="screen" id="scr-ep">
+    <div class="topbar">
+      <button class="back-btn" onclick="toWeek()">← 一週間にもどる</button>
+      <span class="scene-label" id="ep-label"></span>
+    </div>
+    <h1 class="title" id="ep-title"></h1>
+    <p class="subtitle" id="ep-sub"></p>
+    <div class="cards" id="ep-cards"></div>
+  </div>
+
+  <!-- ===== PLAY ===== -->
+  <div class="screen" id="scr-play">
+    <div class="topbar">
+      <button class="back-btn" onclick="backFromPlay()">← もどる</button>
+      <span class="scene-label" id="scene-label"></span>
+    </div>
+    <div id="stage" onclick="advance()"></div>
+    <div class="progress" id="progress"></div>
+  </div>
+
+  <!-- ===== RECORD ===== -->
+  <div class="screen" id="scr-rec">
+    <div class="topbar">
+      <button class="back-btn" onclick="toWeek()">← 一週間にもどる</button>
+      <span class="scene-label">きろく</span>
+    </div>
+    <h1 class="title">きろく</h1>
+    <p class="subtitle">読んだ日と、そのときのきもち。<br>ふりかえりや面談のときに、そっと役立ちます。</p>
+    <div class="memo-box">
+      <label>きょうのひとこと（自由に。書かなくてもだいじょうぶ）</label>
+      <textarea id="rec-memo" placeholder="たとえば：きょうは月曜日の話をよんだ。すこし気がらくになった。"></textarea>
+      <div class="end-actions" style="margin-top:10px;">
+        <button class="primary-btn" onclick="saveMemoFromRecord()">ひとことを保存する</button>
+      </div>
+    </div>
+    <div class="rec-list" id="rec-list"></div>
+    <div class="toolrow">
+      <button class="tool-btn" onclick="exportCSV()">CSVで書き出す</button>
+      <button class="tool-btn" onclick="clearLog()">きろくを全部けす</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===== BREATH ===== -->
+<div id="breath-overlay">
+  <div class="breath-circle"></div>
+  <div id="breath-text">すって……</div>
+  <button class="breath-close" onclick="closeBreath()">もどる</button>
+</div>
+
+<script>
+/* =========================================================
+   むこうがわの一週間
+   おなじ一日を複数の視点で再体験するノベルゲーム（全5話）
+   設計原則: 失敗なし / 時間制限なし / 比較なし / いつでも中断可
+   きろく: 端末内(localStorage)にのみ保存。外部送信なし。
+========================================================= */
+
+const SPEAKERS = {
+  narr:{name:'',color:''},
+  me:{name:'わたし',color:'#c98f88'},
+  boss:{name:'田中課長',color:'#7e93bb'},
+  sato:{name:'佐藤さん',color:'#7fa287'},
+  bucho:{name:'部長',color:'#a58bb0'},
+  takahashi:{name:'高橋さん',color:'#6fa3a0'},
+  okada:{name:'岡田さん',color:'#b08e6a'},
+  tamura:{name:'田村さん',color:'#9aa66f'},
+  yamaguchi:{name:'山口さん',color:'#c3a05e'},
+  kimura:{name:'木村さん',color:'#8f7fb0'},
+  hayashi:{name:'林さん',color:'#7f9db5'},
+  mind:{name:'心の声',color:'#9a93ad'},
+};
+
+/* ---------- helpers ---------- */
+function L(sp,t){ return {sp,t}; }
+function N(t){ return {sp:'narr',t}; }
+function Note(t){ return {sp:'narr',t,cls:'note'}; }
+function Mind(sp,t){ return {sp:'mind',t,cls:'mind',asMindOf:sp}; }
+
+/* ---------- state ---------- */
+let state = { seen:{}, choices:{}, log:[] };
+try{
+  const s = localStorage.getItem('mukougawa_week_state');
+  if(s){ state = Object.assign({seen:{},choices:{},log:[]}, JSON.parse(s)); }
+  else{
+    // 旧「むこうがわの水曜日」からの引きつぎ
+    const old = localStorage.getItem('mukougawa_state');
+    if(old){
+      const o = JSON.parse(old);
+      if(o.seen){ ['me','boss','sato','refl'].forEach(k=>{ if(o.seen[k]) state.seen['wed:'+k]=true; }); }
+      if(o.choices){ Object.keys(o.choices).forEach(k=>{ state.choices['wed:'+k]=o.choices[k]; }); }
+    }
+  }
+}catch(e){}
+function save(){ try{ localStorage.setItem('mukougawa_week_state', JSON.stringify(state)); }catch(e){} }
+function today(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function variant(key, map, fallback){
+  const c = state.choices[key];
+  return (c!=null && map[c]) ? map[c] : (fallback||[]);
+}
+function feelChoice(epKey, q, opts){
+  // opts: [{label, lines}]
+  return {choice:{key:epKey+':feel', q, feel:true, note:'きもちに、正解はありません。', opts}};
+}
+
+/* =========================================================
+   脚本
+========================================================= */
+
+/* ---------- 月曜日「会議のすきま」 ---------- */
+function mon_me(){ return [
+  N('月曜日の朝。週のはじまりは、すこし緊張する。'),
+  N('きょうの定例会議で、あたためてきた改善案を話すつもりだった。'),
+  N('会議室。議題がふたつ進んで、すこし間があいた。——いまだ。'),
+  L('me','「あの、先日の件で、ひとつ提案が——」'),
+  L('takahashi','「あ、ごめん。それより先に、こっちの締切の件だけ決めさせて」'),
+  N('話は、そちらへ流れていった。\nそのまま時間切れ。わたしの案は、出せずじまいだった。'),
+  {choice:{key:'mon:cut', q:'言いかけた言葉が、宙にういている。', opts:[
+    {label:'「あとで個別に話せばいい」と切りかえる', lines:[
+      Mind('me','会議だけが、伝える場所じゃないし。'),
+      N('そう思いながらも、胸のおくは、すこしざらついていた。'),
+    ]},
+    {label:'会議のさいごに、もういちど手をあげてみる', lines:[
+      L('me','「すみません、さっきの提案、ひとことだけ」'),
+      L('boss','「お、ごめん時間だ。来週あたま、最初に聞かせて。メモしとくよ」'),
+      N('議題には、なれなかった。でも、来週の約束には、なった。'),
+    ]},
+    {label:'「わたしの話は、重要じゃないのかな」としぼむ', lines:[
+      Mind('me','タイミングが悪かった？ それとも、わたしの話だから？'),
+      Note('そんなふうに感じてしまうのも、自然なことです。'),
+    ]},
+  ]}},
+  N('昼休み。おべんとうの味が、いつもよりうすい気がした。'),
+  feelChoice('mon','胸のあたりにあるきもちに、いちばん近いのは。',[
+    {label:'くやしい', lines:[ N('準備してきた時間を思うと、ぎゅっとにぎった手に力が入った。'), Note('そう感じるのは、自然なことです。') ]},
+    {label:'はずかしい', lines:[ N('言いかけて止まった自分の声が、耳にのこっている。'), Note('そう感じるのは、自然なことです。') ]},
+    {label:'もやもや', lines:[ N('だれが悪いわけでもない。だからこそ、行き場がない。'), Note('そう感じるのは、自然なことです。') ]},
+    {label:'よくわからない', lines:[ N('きもちに名前がつかない日も、ある。'), Note('それも、自然なことです。') ]},
+  ]),
+  N('午後。高橋さんからチャットが届いた。'),
+  L('takahashi','「さっきはごめん！ 話そうとしてたよね。おれ、進行のことで頭いっぱいで……」'),
+  N('画面の文字を、二回、読んだ。'),
+  N('月曜日が、終わっていく。'),
+  Note('「月曜日のわたし」は、これでおしまいです。\nおなじ月曜日を、べつの目で見てみませんか。'),
+];}
+
+function mon_takahashi(){ return [
+  N('おなじ月曜日。高橋さんの朝は、部長のひとことからはじまった。'),
+  L('bucho','「定例、さいきん のびすぎ。30分で切って。決めることだけ決めて」'),
+  Mind('takahashi','30分……。議題、五つもあるのに。'),
+  N('会議室。高橋さんは、ちらちらと時計を見ながら進行していた。'),
+  L('me','「あの、先日の件で、ひとつ提案が——」'),
+  Mind('takahashi','まずい、締切の件がまだだ。これを逃すと、きょうじゅうに決められない——'),
+  L('takahashi','「あ、ごめん。それより先に、こっちの締切の件だけ決めさせて」'),
+  Mind('takahashi','……言ってから、気づいた。いま、さえぎった。'),
+  ...variant('mon:cut',{
+    1:[ N('会議のさいご、「ひとことだけ」と手があがった。'),
+        Mind('takahashi','言いなおしてくれて、助かった……。来週、ちゃんと枠をとろう。') ],
+  },[ Mind('takahashi','嫌な顔ひとつ、しなかったな。……あとで、ちゃんと謝ろう。') ]),
+  N('午後。チャットの文面を、10分かけて、書いては消した。'),
+  L('takahashi','「さっきはごめん！ 話そうとしてたよね。おれ、進行のことで頭いっぱいで……」'),
+  Mind('takahashi','送信。……こういうの、口で言えるといいんだけどな。'),
+  Note('さえぎったのは、あなたの話の価値のせいではなく、\n「30分で切れ」という、時計の事情でした。'),
+];}
+
+function mon_boss(){ return [
+  N('おなじ月曜日。課長の手もとには、会議用のノートがある。'),
+  N('課長は会議のあいだ、みんなの発言を書きとめていた。'),
+  Mind('boss','……いま、言いかけて止まったな。「先日の件」——たぶん、例の改善の話だ。'),
+  N('ノートのすみに、小さく書いた。\n「来週の議題：あの提案（先週から準備している様子）」'),
+  ...variant('mon:cut',{
+    1:[ N('会議のさいごの「ひとことだけ」に、内心、うれしくなった。'),
+        Mind('boss','ああいう粘りは、ちゃんと拾わないとな。') ],
+  },[ Mind('boss','流れてしまった発言を拾いなおすのも、会議の仕事だな。\n高橋にも、時間の余裕をもたせないと。') ]),
+  N('会議のやりかたを、すこし変えようと思った、月曜日だった。'),
+  Note('あなたの準備は、見ていた人が、ちゃんと見ていました。'),
+];}
+
+function mon_refl(){ return [
+  N('さえぎられた言葉のむこうには、「30分で切れ」という時計の事情がありました。'),
+  N('出せなかった提案は、消えたのではなく、来週へつながっていました。'),
+  N('発言が流れることと、あなたの価値は、べつのものです。'),
+  Note('月曜日は、これでおしまい。'),
+];}
+
+/* ---------- 火曜日「赤いペンのあと」 ---------- */
+function tue_me(){ return [
+  N('火曜日。朝いちばんに、先週つくった書類をチェックに出していた。'),
+  N('昼まえ。先輩の岡田さんに呼ばれた。\n机の上に、わたしの書類。赤いペンの丸が、ひとつ。'),
+  L('okada','「ここ、数字ちがう。転記ミス。……前も言ったよね」'),
+  N('「前も」という言葉が、胸のまんなかに、こつんと当たった。'),
+  {choice:{key:'tue:mistake', q:'のどのおくが、きゅっとなる。', opts:[
+    {label:'「すみません、すぐ直します」', lines:[
+      L('me','「すみません、すぐ直します」'),
+      N('声が、すこしだけ小さくなった。'),
+    ]},
+    {label:'「確認のしかたを変えてみます」と対策を話す', lines:[
+      L('me','「すみません。転記のあとに、指差しで確認する手順にしてみます」'),
+      L('okada','「……ん。それが、いいと思う」'),
+      N('岡田さんの声が、すこしやわらかくなった気がした。'),
+    ]},
+    {label:'頭が白くなって、うまく言葉が出ない', lines:[
+      N('「すみません」のさきが、つづかなかった。'),
+      L('okada','「……まあ、直せばいいから」'),
+      Note('言葉が出なくなるのは、こわかったから。自然な反応です。'),
+    ]},
+  ]}},
+  feelChoice('tue','机にもどる、みじかい廊下で。きもちに近いのは。',[
+    {label:'こわい', lines:[ N('つぎにミスをしたら、と考えると、指さきがつめたくなった。'), Note('そう感じるのは、自然なことです。') ]},
+    {label:'なさけない', lines:[ N('「前も」の三文字が、なんどもリピートした。'), Note('そう感じるのは、自然なことです。') ]},
+    {label:'むっとする', lines:[ N('あの言いかたは、ないんじゃないか。そんな声も、胸の中にいた。'), Note('そう感じるのも、自然なことです。') ]},
+    {label:'よくわからない', lines:[ N('いろんなきもちが、まざっていた。'), Note('まざったままでも、だいじょうぶです。') ]},
+  ]),
+  N('午後。修正した書類を、もういちど岡田さんへ。'),
+  L('okada','「うん、OK。……この書式さ、まちがえやすいんだよな、実は」'),
+  N('岡田さんは、赤ペンをくるりと回して、そう言った。'),
+  N('火曜日が、終わっていく。'),
+  Note('「火曜日のわたし」は、これでおしまいです。\nあの赤ペンの、むこうがわへ。'),
+];}
+
+function tue_okada(){ return [
+  N('おなじ火曜日。岡田さんには、思い出したくない書式がある。'),
+  N('5年まえ。おなじ書式の、おなじ欄で、岡田さんは転記ミスをした。\n取引先に迷惑がかかり、当時の上司は、みんなの前で岡田さんを叱った。'),
+  Mind('okada','あの欄を見ると、いまでも、あのときの空気を思い出す。'),
+  N('昼まえ。後輩の書類の、あの欄に、みおぼえのある種類のミス。'),
+  L('okada','「ここ、数字ちがう。転記ミス。……前も言ったよね」'),
+  Mind('okada','——言ってから、後悔した。\n「前も言ったよね」。あのときの上司と、おなじ言いかたじゃないか。'),
+  ...variant('tue:mistake',{
+    1:[ Mind('okada','対策まで考えて返してくるのか。……おれより、冷静だな。') ],
+    2:[ Mind('okada','かたまってた。……おれの言いかたの、せいだよな。') ],
+  },[ Mind('okada','すぐ「直します」と言える人に、きつい言いかたをする必要は、なかったな。') ]),
+  N('午後。直った書類をながめながら、岡田さんは考えていた。'),
+  Mind('okada','そもそも、この書式がまちがえやすいんだ。\nおれも、あの子も、先週の田村も、おなじ場所でひっかかった。'),
+  Mind('okada','……総務に、書式の改善案を出してみるか。'),
+  Note('「前も言ったよね」は、あなたに向けられた刃ではなく、\n岡田さん自身の、古い傷から出た言葉でした。'),
+];}
+
+function tue_tamura(){ return [
+  N('おなじ火曜日。となりの席の田村さんには、小さなひみつがある。'),
+  Mind('tamura','……あの書式、おれも先週、おなじとこ まちがえたんだよな。\n岡田さんに、こっそり直してもらった。'),
+  N('昼まえ。岡田さんの席のほうから、「数字ちがう」という声が聞こえた。'),
+  Mind('tamura','あ、あの書式だ。……先輩でも、まちがえるんだ。'),
+  Mind('tamura','……って、ほっとしたら失礼かな。でも、ちょっと、気が楽になった。'),
+  N('午後。田村さんは、こっそりメモをつくりはじめた。\n「あの書式で気をつける、3つの欄」。'),
+  Mind('tamura','こんど、それとなく共有しよう。おれがまちがえた話も、つけて。'),
+  Note('あなたのミスは、「あなただけがだめ」の証拠ではありませんでした。\nおなじ場所で、みんな、つまずいていました。'),
+];}
+
+function tue_refl(){ return [
+  N('赤いペンのむこうには、古い傷と、まちがえやすい書式がありました。'),
+  N('きつい言葉の理由は、あなたの価値ではなく、相手の過去にありました。'),
+  N('そして、あなたのつまずきに、ひそかに救われた人もいました。'),
+  Note('火曜日は、これでおしまい。'),
+];}
+
+/* ---------- 水曜日「いい感じの資料」 ---------- */
+function wed_me(){ return [
+  N('水曜日の朝。空は、うすいくもり。'),
+  N('いつもの時間の電車に乗って、いつもの駅で降りた。'),
+  N('オフィスの入り口で、先輩の佐藤さんといっしょになった。'),
+  L('me','「おはようございます」'),
+  L('sato','「……ああ、おはよう」'),
+  N('佐藤さんはこちらを見ないまま、足早にデスクへ向かっていった。\nいつもより、そっけない気がする。'),
+  {choice:{key:'wed:morning', q:'胸の中に、小さなざわつき。', opts:[
+    {label:'「たまたま、かも」と思って席につく', lines:[
+      Mind('me','たまたま、かもしれない。'),
+      N('そう思うことにして、パソコンを立ち上げた。それでも、ざわつきは胸のすみに残っている。'),
+    ]},
+    {label:'「何かありました？」と声をかけてみる', lines:[
+      L('me','「佐藤さん、何かありました？」'),
+      L('sato','「え？ ……ああ、ごめん。ちょっと寝不足でさ」'),
+      N('佐藤さんは小さく笑ったけれど、その笑顔はどこか疲れて見えた。'),
+    ]},
+    {label:'「わたし、何かしたかな……」と考えてしまう', lines:[
+      Mind('me','昨日の報告のしかた、まずかったかな。それとも……。'),
+      N('心あたりを探しはじめると、きりがなかった。'),
+      Note('どんなふうに受けとるのも、自然なことです。'),
+    ]},
+  ]}},
+  N('午前10時。田中課長に呼ばれた。'),
+  L('boss','「例の企画資料なんだけどさ、方向性、ちょっと変えたいんだよね」'),
+  L('boss','「うまく言えないんだけど……もっと、いい感じにまとめといてくれる？ 今日中に」'),
+  {choice:{key:'wed:vague', q:'「いい感じ」。手がかりが、すくない。', opts:[
+    {label:'「いい感じ、というと……？」とその場で聞いてみる', lines:[
+      L('me','「いい感じ、というと……？」'),
+      L('boss','「うーん、そうだなあ。もう少し数字を前に出す感じ、かな。あとは任せるよ」'),
+      N('すこしだけ、輪郭が見えた。完全ではないけれど。'),
+    ]},
+    {label:'「わかりました」と受けて、自分なりに考えてみる', lines:[
+      L('me','「わかりました。やってみます」'),
+      Mind('me','前回の会議の流れからすると、たぶん、こういうことだと思う。'),
+      N('自分の解釈を信じて、手を動かしはじめた。'),
+    ]},
+    {label:'あとで整理して、メールで質問する', lines:[
+      N('席にもどり、確認したいことを3つに整理してメールを送った。'),
+      L('boss','（メール）「2番の理解で合ってる。助かるよ」'),
+      N('文字にしてみると、聞きたいことがはっきりした。'),
+    ]},
+  ]}},
+  N('午後3時。できあがった資料を、課長に見せた。'),
+  L('boss','「うーん……なんか、思ってたのと違うんだよなあ」'),
+  N('課長は資料をめくりながら、眉を寄せた。'),
+  L('boss','「ここの構成だけ、前のにもどしてくれる？ あとは、いいと思う」'),
+  feelChoice('wed','このとき胸にあったきもちに、いちばん近いのは。',[
+    {label:'かなしい', lines:[ N('がんばった時間を思うと、すこししぼむような気持ちになった。'), Note('そう感じるのは、自然なことです。') ]},
+    {label:'あせり', lines:[ N('「今日中」という言葉が、頭の中でちくちくと鳴った。'), Note('そう感じるのは、自然なことです。') ]},
+    {label:'もやもや', lines:[ Mind('me','「思ってたのと違う」なら、最初から言ってほしかったな……。'), Note('そんな声が胸の中でするのも、自然なことです。') ]},
+    {label:'よくわからない', lines:[ N('きもちに名前がつかないときも、ある。'), Note('それも、自然なことです。') ]},
+  ]),
+  N('夕方5時前。修正を終えたころ、佐藤さんがふらりとやってきた。'),
+  L('sato','「課長の『思ってたのと違う』、出たでしょ。あの人、考えながらしゃべるからさ」'),
+  L('sato','「私も前に、おなじこと言われたよ。資料、ちょっと見せて」'),
+  N('佐藤さんは画面をのぞきこんで、「うん、いいんじゃない」と言った。\n朝のそっけなさが、すこしだけ遠くなった。'),
+  N('定時。パソコンを閉じて、オフィスを出る。'),
+  N('帰り道の空は、朝よりもすこし明るかった。'),
+  N('きょう一日、あなたはあなたなりに、ちゃんとやりました。'),
+  Note('「水曜日のわたし」は、これでおしまいです。\nおなじ一日を、こんどは別のだれかの目で。'),
+];}
+
+function wed_boss(){ return [
+  N('おなじ水曜日の、朝。こんどは、田中課長の一日。'),
+  N('出社してすぐ、部長に呼びとめられた。'),
+  L('bucho','「田中くん、例の企画ね。役員の意向で、方向転換することになった。今日中に形にしておいて」'),
+  Mind('boss','今日中……！？ まだ何も固まってないのに。'),
+  N('席にもどっても、頭の中は整理がつかないままだった。'),
+  N('午前10時。とにかく、資料の担当に声をかけることにした。'),
+  L('boss','「例の企画資料なんだけどさ、方向性、ちょっと変えたいんだよね」'),
+  Mind('boss','……って、おれ自身が、まだうまく説明できないんだよな。'),
+  L('boss','「うまく言えないんだけど……もっと、いい感じにまとめといてくれる？ 今日中に」'),
+  Mind('boss','「いい感じ」って何だよ、と自分でも思う。丸投げみたいで、悪いな……。'),
+  ...variant('wed:vague',{
+    0:[ N('「いい感じ、というと……？」と聞きかえされて、課長は内心、すこしほっとした。'),
+        Mind('boss','そうか、数字か。聞かれたおかげで、おれの頭もすこし整理された。') ],
+    1:[ Mind('boss','「わかりました」って言ってくれたけど、あの説明で伝わったかな……。') ],
+    2:[ N('昼前、質問を3つに整理したメールが届いた。'),
+        Mind('boss','助かる……。おれより整理されてるな。') ],
+  }),
+  N('午後は役員会の準備と電話に追われて、昼ごはんを食べそこねた。'),
+  N('午後3時。できあがった資料を受けとる。'),
+  L('boss','「うーん……なんか、思ってたのと違うんだよなあ」'),
+  Mind('boss','……言ってから、気づいた。\n「思ってたもの」なんて、今朝の時点ではおれの中にも無かったのに。'),
+  Mind('boss','言いかた、きつかったかな。おれも昔、あいまいな指示のたびに胃が痛くなってたのにな。'),
+  N('夕方、修正された資料が届いた。この構成なら、役員会に出せる。'),
+  Mind('boss','助かった。……「ありがとう」、ちゃんと言えてなかった気がする。あした、言おう。'),
+  Note('「思ってたのと違う」のむこうがわには、\n課長自身のあせりと、つたえそびれた事情がありました。'),
+];}
+
+function wed_sato(){ return [
+  N('おなじ水曜日。佐藤さんの一日は、前の夜からはじまっていた。'),
+  N('火曜の深夜。子どもが熱を出して、ほとんど眠れないまま朝になった。'),
+  N('夫と交代で看病をして、なんとか出社。頭のしんが、ぼんやりと重い。'),
+  N('オフィスの入り口で、後輩といっしょになった。'),
+  L('me','「おはようございます」'),
+  L('sato','「……ああ、おはよう」'),
+  Mind('sato','……あ。いまの、感じわるかったかな。ちゃんと顔も見られなかった。'),
+  ...variant('wed:morning',{
+    1:[ N('「何かありました？」と声をかけられて、佐藤さんはすこしだけ肩の力がぬけた。'),
+        Mind('sato','気づいてくれたんだ。……「寝不足」って、言えてよかった。') ],
+  },[ Mind('sato','あとで、ちゃんと話そう。いまはとにかく、午前を乗りきらないと。') ]),
+  N('午前中は、会議と、保育園からの電話で、あっというまに過ぎた。\n熱は、すこし下がったらしい。'),
+  N('昼すぎ。コーヒーを飲んで、ようやくひと心地がついた。'),
+  Mind('sato','そういえばあの子、課長の例の案件やってたな。\nあの「いい感じに」ってやつ、私もむかし苦労したんだよね。'),
+  N('夕方5時前。すこし余裕ができたので、後輩の席へ向かった。'),
+  L('sato','「課長の『思ってたのと違う』、出たでしょ。あの人、考えながらしゃべるからさ」'),
+  Mind('sato','朝のそっけなさの、おわびの代わりみたいなものだけど。……元気そうで、よかった。'),
+  Note('朝のそっけないあいさつは、あなたのせいでは、ありませんでした。'),
+];}
+
+function wed_refl(){ return [
+  N('そっけないあいさつのむこうには、眠れなかった夜がありました。'),
+  N('あいまいな指示のむこうには、指示する人自身のあせりがありました。'),
+  N('「思ってたのと違う」のむこうには、言いそびれた「ありがとう」がありました。'),
+  Note('水曜日は、これでおしまい。'),
+];}
+
+/* ---------- 木曜日「たのまれごとの重さ」 ---------- */
+function thu_me(){ return [
+  N('木曜日。じぶんの締切が、あしたの朝にせまっている。'),
+  N('午後2時。後輩の山口さんが、もうしわけなさそうに立っていた。'),
+  L('yamaguchi','「あの……このデータのまとめかた、手伝ってもらえませんか。あしたの昼までで……」'),
+  N('画面には、途中まで格闘したあとのある表。\nじぶんの締切が、頭のすみで、ちかちかする。'),
+  {choice:{key:'thu:request', q:'さて、どうしよう。', note:'ことわるのも、うけるのも、まちがいではありません。', opts:[
+    {label:'「今日はむずかしいから、あしたの朝なら」と条件をつける', lines:[
+      L('me','「今日はじぶんの締切があって……あしたの朝9時からなら、いっしょにできるよ」'),
+      L('yamaguchi','「！！ じゅうぶんです。ありがとうございます！」'),
+      N('じぶんの都合を言うのは、すこし勇気が要った。でも、言えた。'),
+    ]},
+    {label:'ひきうけて、じぶんの作業をうしろにずらす', lines:[
+      L('me','「いいよ、見せて」'),
+      N('30分のつもりが、1時間になった。じぶんの作業は、夜にずれこんだ。'),
+      Note('だれかを助けたい気持ちも、ほんものです。\nそのぶん、じぶんの荷物が重くなっていないかだけ、ときどき確かめて。'),
+    ]},
+    {label:'「ごめん、今回はむずかしい」とことわる', lines:[
+      L('me','「ごめん、今日はじぶんの締切で手いっぱいで……。課長に相談してみるのは、どうかな」'),
+      L('yamaguchi','「そう……ですよね！ 聞いてみます」'),
+      Note('ことわることも、仕事をまわす方法のひとつです。'),
+    ]},
+  ]}},
+  feelChoice('thu','そのあと、胸にのこったきもちに近いのは。',[
+    {label:'ずっしり', lines:[ N('じぶんの締切と、たのまれごと。両方の重さが、肩にのっていた。'), Note('そう感じるのは、自然なことです。') ]},
+    {label:'ほっとした', lines:[ N('なんとか、かたちになりそうだ。息をひとつ、はいた。'), Note('ほっとできたなら、それはよい選択だった、ということです。') ]},
+    {label:'もうしわけない', lines:[ N('もっとできたんじゃないか。そんな声が、小さく聞こえた。'), Note('その声は、あなたのやさしさの音です。責める声にしなくて、だいじょうぶ。') ]},
+    {label:'よくわからない', lines:[ N('いそがしさの中で、きもちはあとまわしになっていた。'), Note('あとから名前をつけても、いいのです。') ]},
+  ]),
+  N('夕方。山口さんと、廊下ですれちがった。'),
+  ...[],
+  {choice:null},
+];}
+/* thu_me の夕方部分は variant を使うため生成時に組み立てる */
+function thu_me_full(){
+  const base = thu_me().filter(n=>n && n.choice!==null);
+  const evening = variant('thu:request',{
+    2:[ L('yamaguchi','「課長に相談したら、田村さんが手伝ってくれることになりました！」'),
+        N('その顔は、昼間よりも、ずっと明るかった。') ],
+  },[ L('yamaguchi','「さっきは、ありがとうございました。なんとかなりそうです」') ]);
+  return [...base, ...evening,
+    N('木曜日が、終わっていく。'),
+    Note('「木曜日のわたし」は、これでおしまいです。\nあのたのまれごとの、むこうがわへ。'),
+  ];
+}
+
+function thu_yamaguchi(){ return [
+  N('おなじ木曜日。山口さんのなやみは、じつは2日まえからはじまっていた。'),
+  N('はじめて任された集計。やりかたのわからない場所で、\n火曜から、ずっと、ひとりで止まっていた。'),
+  Mind('yamaguchi','「わからない」って、いつ言えばいいんだろう。\nもう2日たってる。いまさら、聞きにくい……。'),
+  N('木曜の午後2時。締切まで、あと1日。ついに、意を決して席を立った。'),
+  Mind('yamaguchi','心臓が、どきどきする。いそがしいのに、迷惑だよな……。'),
+  L('yamaguchi','「あの……このデータのまとめかた、手伝ってもらえませんか」'),
+  ...variant('thu:request',{
+    0:[ Mind('yamaguchi','「あしたの朝なら」……！ そうか。\nぜんぶ か ゼロ かじゃなくて、そういう受けかたがあるんだ。'),
+        N('山口さんはその夜、「じぶんもいつか、あの言いかたをまねしよう」と思った。') ],
+    1:[ Mind('yamaguchi','ひきうけてくれた……！ ……でも、あの人のじぶんの仕事、だいじょうぶかな。'),
+        N('助けられた安心のよこに、小さな心配が、のこった。') ],
+    2:[ Mind('yamaguchi','ことわられて、一瞬ひやっとした。\nでも、「課長に相談してみたら」って、道を教えてもらえた。'),
+        N('課長に話すと、あっさり人をつけてくれた。\n「ためこむ前に言ってくれよ」と、笑って。') ],
+  }),
+  Mind('yamaguchi','たのむのって、勇気がいるんだな。……もっと早く言えば、よかった。'),
+  Note('たのまれごとの重さのむこうには、\n2日ぶんの、「たのむ勇気」がありました。'),
+];}
+
+function thu_kacho(){ return [
+  N('おなじ木曜日。課長は、山口さんの様子を気にしていた。'),
+  Mind('boss','はじめての集計、すこし重すぎたか。火曜あたりから、画面の前で止まってるな。'),
+  N('「じぶんから助けを求める練習も、仕事のうち」。\nそう思って、あえて、声をかけずにいた。'),
+  ...variant('thu:request',{
+    2:[ N('夕方、山口さんが相談に来た。'),
+        Mind('boss','よし、言えたな。それでいい。'),
+        N('田村さんをつけて、締切も半日うしろにずらした。') ],
+  },[ N('夕方、山口さんが先輩に助けてもらえたと知った。'),
+      Mind('boss','助けを求められる人と、受けとめかたを選べる人。いいチームだ。') ]),
+  Mind('boss','ことわるのも、条件をつけるのも、ひきうけるのも——\nぜんぶ、正しい仕事のまわしかただ。'),
+  Note('あなたがどの答えをえらんでも、\nチームのどこかが受けとめられるように、なっていました。'),
+];}
+
+function thu_refl(){ return [
+  N('たのまれごとのむこうには、たのむ側の、2日ぶんの勇気がありました。'),
+  N('ことわっても、条件をつけても、ひきうけても——関係は、こわれませんでした。'),
+  N('「ノー」は拒絶ではなく、情報です。チームは、それを使って動けます。'),
+  Note('木曜日は、これでおしまい。'),
+];}
+
+/* ---------- 金曜日「ひそひそ声のゆくえ」 ---------- */
+function fri_me(){ return [
+  N('金曜日の午後。コーヒーをいれに、給湯室へ向かうと——'),
+  N('入り口の手前で、木村さんと林さんの、小さな声が聞こえた。'),
+  L('kimura','「……さんがさ、あれはちょっと、ね……」'),
+  N('じぶんの名前に、聞こえた気がした。'),
+  N('入っていくと、ふたりは、ふっと話をやめた。'),
+  {choice:{key:'fri:whisper', q:'コーヒーの湯気のむこうで、心がざわざわする。', opts:[
+    {label:'「気のせいかも」と、ふつうにコーヒーをいれる', lines:[
+      Mind('me','にた名前の人、ほかにもいるし。'),
+      N('そう思っても、耳のおくに、さっきの声がのこっていた。'),
+    ]},
+    {label:'「なんの話ですか？」と、かるく聞いてみる', lines:[
+      L('me','「なんの話ですか？」'),
+      L('kimura','「え！？ あ、いや、なんでもない、なんでもない」'),
+      N('木村さんは、へんに あわてていた。……よけいに、気になる。'),
+    ]},
+    {label:'その日いちにち、気になってしまう', lines:[
+      Mind('me','さっきの「あれはちょっと」って、わたしの、なんのこと？'),
+      N('午後の仕事のあいまに、なんども、その声がもどってきた。'),
+      Note('いちど気になると、はなれない。\nそれは、心があなたを守ろうとしている動きです。'),
+    ]},
+  ]}},
+  feelChoice('fri','午後の胸のうちに、いちばん近いのは。',[
+    {label:'ふあん', lines:[ N('じぶんの知らないところで、なにかが決まっていくような感じがした。'), Note('そう感じるのは、自然なことです。') ]},
+    {label:'かなしい', lines:[ N('もし本当にわたしの話なら——と思うと、胸のおくが、すっと冷えた。'), Note('そう感じるのは、自然なことです。') ]},
+    {label:'いやなかんじ', lines:[ N('名前のつけにくい、ざらっとしたものが、のこった。'), Note('そう感じるのも、自然なことです。') ]},
+    {label:'よくわからない', lines:[ N('気にしないでおこう、と思うことと、気になることは、両立していた。'), Note('それも、自然なことです。') ]},
+  ]),
+  N('夕方。かえりじたくをしていると、木村さんが、いつものトーンで話しかけてきた。'),
+  L('kimura','「おつかれ！ 週末、どこか行くの？」'),
+  N('その声は、ひそひそ声とは、まるでべつのものだった。'),
+  N('金曜日が、終わっていく。'),
+  Note('「金曜日のわたし」は、これでおしまいです。\nあのひそひそ声の、むこうがわへ。'),
+];}
+
+function fri_kimura(){ return [
+  N('おなじ金曜日。木村さんには、だれにも言えない心配ごとがあった。'),
+  N('きのう、課長にそっと言われた。\n「来月の異動案に、きみの名前が出ている。まだ確定じゃないから、内密に」'),
+  Mind('kimura','異動……。いまのチーム、好きなんだけどな。'),
+  N('午後。がまんできず、仲のいい林さんに、給湯室で相談していた。'),
+  L('kimura','「——上田さんがさ、異動になるかもって。あれはちょっと、ね……。\nおれも、名前が出てるらしくて」'),
+  N('※上田さん——べつの部署の人。'),
+  N('そこへ、人が入ってきた。'),
+  Mind('kimura','まずい！ 確定前の話、聞かれちゃまずい——'),
+  N('とっさに、話をやめた。'),
+  ...variant('fri:whisper',{
+    1:[ L('me','「なんの話ですか？」'),
+        Mind('kimura','「なんでもない」って、あわてすぎた……。ぜったい、へんに思われたよな。') ],
+  },[ Mind('kimura','急にだまったの、感じわるかったよな……。') ]),
+  N('夕方。せめて、いつもどおりに話しかけようと思った。'),
+  L('kimura','「おつかれ！ 週末、どこか行くの？」'),
+  Mind('kimura','この話が できるようになったら、ちゃんと話そう。'),
+  Note('ひそひそ声の中身は、あなたの話ではなく、\n木村さん自身の、たしかめようのない不安でした。'),
+];}
+
+function fri_hayashi(){ return [
+  N('おなじ金曜日。林さんは、聞き役だった。'),
+  N('給湯室で、木村さんから「異動かもしれない」と打ちあけられた。'),
+  Mind('hayashi','木村さん、ずっと不安そうだったな。\nわたしにできるのは、聞くことくらいだけど。'),
+  N('人が入ってきて、木村さんが急にだまったとき——'),
+  Mind('hayashi','あ。この止まりかた、ぜったい誤解される……。'),
+  Mind('hayashi','でも、「あなたの話じゃないですよ」って言うのも、へんだし。\n異動の話は、出せないし。'),
+  N('なにも言えないまま、コーヒーだけが、おちていった。'),
+  Mind('hayashi','ああいうとき、どうするのが正解なんだろうね。'),
+  Note('あの気まずさは、あなたひとりのものではありませんでした。\nその場の全員が、すこしずつ、こまっていました。'),
+];}
+
+function fri_refl(){ return [
+  N('聞こえた気がした名前は、べつの人のものでした。'),
+  N('急にとまった会話のむこうには、あなたと関係のない、\nたしかめようのない不安がありました。'),
+  N('「わたしのことかも」と感じる心は、あなたを守ろうとする、まじめな見はり番です。\nただ、見はり番は、すこし心配性です。'),
+  Note('金曜日は、これでおしまい。'),
+];}
+
+/* ---------- 一週間のむすび ---------- */
+function week_final(){ return [
+  N('月曜日から金曜日まで。五つの一日を、たくさんの目で見てきました。'),
+  N('さえぎられた発言のむこうには、時計を気にする あせりがありました。'),
+  N('赤いペンのむこうには、古い傷と、まちがえやすい書式がありました。'),
+  N('「いい感じに」のむこうには、指示する人自身のとまどいがありました。'),
+  N('たのまれごとのむこうには、たのむ側の勇気がありました。'),
+  N('ひそひそ声のむこうには、あなたとは関係のない不安がありました。'),
+  N('人のふるまいの理由は、たいてい、その人の側の事情です。\n「あなたのせい」であることは、思っているより、ずっとすくない。'),
+  N('そして、あなたのふるまいにも、だれかからは見えない事情があります。\nおたがいさま、です。'),
+  Note('一週間、おつかれさまでした。\nこの感覚を、ポケットに入れて。また、いつでも。'),
+];}
+
+/* =========================================================
+   エピソード定義
+========================================================= */
+const EPISODES = [
+  {id:'mon', day:'月曜日', title:'会議のすきま', desc:'言いかけた提案と、30分の壁。',
+   persp:[
+     {id:'me', label:'わたしの月曜日', desc:'あたためてきた提案の、ゆくえ。', script:mon_me},
+     {id:'takahashi', label:'高橋さんの月曜日', desc:'さえぎった側の、時計の事情。', script:mon_takahashi},
+     {id:'boss', label:'課長の月曜日', desc:'会議ノートの、すみのメモ。', script:mon_boss},
+   ], refl:mon_refl},
+  {id:'tue', day:'火曜日', title:'赤いペンのあと', desc:'「前も言ったよね」の、むこうがわ。',
+   persp:[
+     {id:'me', label:'わたしの火曜日', desc:'赤い丸が、ひとつ。', script:tue_me},
+     {id:'okada', label:'岡田さんの火曜日', desc:'5年まえの、おなじ書式。', script:tue_okada},
+     {id:'tamura', label:'田村さんの火曜日', desc:'となりの席の、小さなひみつ。', script:tue_tamura},
+   ], refl:tue_refl},
+  {id:'wed', day:'水曜日', title:'いい感じの資料', desc:'そっけない朝と、あいまいな指示。',
+   persp:[
+     {id:'me', label:'わたしの水曜日', desc:'いつもどおりの、すこしざわつく一日。', script:wed_me},
+     {id:'boss', label:'田中課長の水曜日', desc:'あの「いい感じに」の、むこうがわ。', script:wed_boss},
+     {id:'sato', label:'佐藤さんの水曜日', desc:'あのそっけない朝の、むこうがわ。', script:wed_sato},
+   ], refl:wed_refl},
+  {id:'thu', day:'木曜日', title:'たのまれごとの重さ', desc:'じぶんの締切と、たのむ勇気。',
+   persp:[
+     {id:'me', label:'わたしの木曜日', desc:'締切前日の、たのまれごと。', script:thu_me_full},
+     {id:'yamaguchi', label:'山口さんの木曜日', desc:'2日まえから、はじまっていた。', script:thu_yamaguchi},
+     {id:'boss', label:'課長の木曜日', desc:'あえて、声をかけなかった理由。', script:thu_kacho},
+   ], refl:thu_refl},
+  {id:'fri', day:'金曜日', title:'ひそひそ声のゆくえ', desc:'聞こえた気がした、じぶんの名前。',
+   persp:[
+     {id:'me', label:'わたしの金曜日', desc:'給湯室の、小さな声。', script:fri_me},
+     {id:'kimura', label:'木村さんの金曜日', desc:'だれにも言えない、心配ごと。', script:fri_kimura},
+     {id:'hayashi', label:'林さんの金曜日', desc:'聞き役の、こまりごと。', script:fri_hayashi},
+   ], refl:fri_refl},
+];
+function epById(id){ return EPISODES.find(e=>e.id===id); }
+
+/* =========================================================
+   きろく（ログ）
+========================================================= */
+function addLog(entry){
+  entry.d = today();
+  if(entry.t==='feel'){
+    // おなじ日・おなじ話の きもちは上書き
+    state.log = state.log.filter(x=>!(x.t==='feel' && x.d===entry.d && x.ep===entry.ep));
+  }
+  if(entry.t==='read'){
+    if(state.log.some(x=>x.t==='read' && x.d===entry.d && x.ep===entry.ep && x.p===entry.p)) return;
+  }
+  state.log.push(entry);
+  save();
+}
+
+function logLabel(x){
+  const ep = x.ep ? epById(x.ep) : null;
+  if(x.t==='feel') return (ep?ep.day:'')+'のきもち：'+x.label;
+  if(x.t==='read') return '「'+x.p+'」を読みました';
+  if(x.t==='memo') return x.text;
+  return '';
+}
+
+function openRecord(){
+  showScreen('scr-rec');
+  const list = document.getElementById('rec-list');
+  list.innerHTML='';
+  if(!state.log.length){
+    list.innerHTML='<p class="rec-empty">まだ、きろくはありません。<br>お話を読むと、ここに すこしずつ たまっていきます。</p>';
+    return;
+  }
+  const tags = {feel:['feel','きもち'], read:['read','読了'], memo:['memo','メモ']};
+  [...state.log].reverse().forEach(x=>{
+    const div=document.createElement('div'); div.className='rec-item';
+    const tg = tags[x.t]||['read',''];
+    div.innerHTML='<span class="rec-date">'+esc(x.d)+'</span>'+
+      '<span class="rec-tag '+tg[0]+'">'+tg[1]+'</span>'+
+      '<span style="white-space:pre-wrap;">'+esc(logLabel(x))+'</span>';
+    list.appendChild(div);
+  });
+}
+
+function saveMemoFromRecord(){
+  const ta = document.getElementById('rec-memo');
+  const text = ta.value.trim();
+  if(!text) return;
+  addLog({t:'memo', text});
+  ta.value='';
+  openRecord();
+}
+
+function exportCSV(){
+  let csv='\uFEFF'+'日付,種類,内容\n';
+  const names={feel:'きもち',read:'読了',memo:'メモ'};
+  state.log.forEach(x=>{
+    const content = logLabel(x).replace(/"/g,'""').replace(/\n/g,' ');
+    csv += x.d+','+(names[x.t]||'')+',"'+content+'"\n';
+  });
+  const blob=new Blob([csv],{type:'text/csv'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='mukougawa_kiroku_'+today()+'.csv';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function clearLog(){
+  if(confirm('きろくを全部けします。よろしいですか？\n（お話の進みぐあいは、のこります）')){
+    state.log=[]; save(); openRecord();
+  }
+}
+
+/* =========================================================
+   画面あそび（エンジン）
+========================================================= */
+let curEp=null, curPersp=null, nodes=[], idx=0, waitingChoice=false;
+const stage=document.getElementById('stage');
+
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function toWeek(){ showScreen('scr-week'); renderWeek(); }
+function toEp(id){
+  curEp=id;
+  const ep=epById(id);
+  document.getElementById('ep-label').textContent=ep.day;
+  document.getElementById('ep-title').textContent=ep.day+'「'+ep.title+'」';
+  document.getElementById('ep-sub').textContent=ep.desc;
+  showScreen('scr-ep');
+  renderEp();
+}
+function backFromPlay(){ if(curEp==='week') toWeek(); else toEp(curEp); }
+
+function renderWeek(){
+  const wrap=document.getElementById('week-cards');
+  wrap.innerHTML='';
+  const dayColors={mon:'#6fa3a0',tue:'#b08e6a',wed:'#7e93bb',thu:'#c3a05e',fri:'#8f7fb0'};
+  EPISODES.forEach(ep=>{
+    const doneCount=ep.persp.filter(p=>state.seen[ep.id+':'+p.id]).length + (state.seen[ep.id+':refl']?1:0);
+    const card=document.createElement('div'); card.className='card';
+    card.onclick=()=>toEp(ep.id);
+    let dots='';
+    for(let i=0;i<4;i++) dots+='<div class="epdot'+(i<doneCount?' on':'')+'"></div>';
+    card.innerHTML='<div class="avatar" style="background:'+dayColors[ep.id]+'">'+ep.day[0]+'</div>'+
+      '<div><h3>'+esc(ep.day)+'「'+esc(ep.title)+'」</h3><p>'+esc(ep.desc)+'</p></div>'+
+      '<div class="epdots">'+dots+'</div>';
+    wrap.appendChild(card);
+  });
+  // 一週間のむすび
+  const allDone = EPISODES.every(ep=>state.seen[ep.id+':refl']);
+  const fin=document.createElement('div');
+  fin.className='card'+(allDone?'':' locked');
+  fin.onclick=()=>{ if(allDone) startPlay('week','final'); };
+  fin.innerHTML='<div class="avatar" style="background:#9a93ad">✦</div>'+
+    '<div><h3>一週間を見おえて'+(state.seen['week:final']?'<span class="badge">読みました</span>':'')+'</h3>'+
+    '<p>'+(allDone?'みじかい、むすびの時間。':'五つの一日を見おえると、ひらきます。')+'</p></div>';
+  wrap.appendChild(fin);
+}
+
+function renderEp(){
+  const ep=epById(curEp);
+  const wrap=document.getElementById('ep-cards');
+  wrap.innerHTML='';
+  const meDone=state.seen[ep.id+':me'];
+  ep.persp.forEach(p=>{
+    const unlocked = p.id==='me' || meDone;
+    const done = state.seen[ep.id+':'+p.id];
+    const card=document.createElement('div');
+    card.className='card'+(unlocked?'':' locked');
+    card.onclick=()=>{ if(unlocked) startPlay(ep.id, p.id); };
+    const sp=SPEAKERS[p.id==='me'?'me':p.id]||SPEAKERS.me;
+    card.innerHTML='<div class="avatar" style="background:'+sp.color+'">'+esc((sp.name||'私')[0])+'</div>'+
+      '<div><h3>'+esc(p.label)+(done?'<span class="badge">読みました</span>':'')+'</h3>'+
+      '<p>'+esc(unlocked?p.desc:'まずは「わたし」の一日から。')+'</p></div>';
+    wrap.appendChild(card);
+  });
+  const allP=ep.persp.every(p=>state.seen[ep.id+':'+p.id]);
+  const rf=document.createElement('div');
+  rf.className='card'+(allP?'':' locked');
+  rf.onclick=()=>{ if(allP) startPlay(ep.id,'refl'); };
+  rf.innerHTML='<div class="avatar" style="background:#9a93ad">✦</div>'+
+    '<div><h3>'+esc(ep.day)+'を見おえて'+(state.seen[ep.id+':refl']?'<span class="badge">読みました</span>':'')+'</h3>'+
+    '<p>'+(allP?'みじかい、振りかえりの時間。':'三人の一日を見おえると、ひらきます。')+'</p></div>';
+  wrap.appendChild(rf);
+}
+
+function startPlay(epId, perspId){
+  curEp=epId; curPersp=perspId;
+  let label, script;
+  if(epId==='week'){ label='一週間を見おえて'; script=week_final; }
+  else{
+    const ep=epById(epId);
+    if(perspId==='refl'){ label=ep.day+'を見おえて'; script=ep.refl; }
+    else{ const p=ep.persp.find(x=>x.id===perspId); label=p.label; script=p.script; }
+  }
+  nodes=script(); idx=0; waitingChoice=false;
+  document.getElementById('scene-label').textContent=label;
+  showScreen('scr-play');
+  showNode();
+}
+
+function renderProgress(){
+  const total=nodes.filter(n=>!n.choice).length;
+  const done=nodes.slice(0,idx).filter(n=>!n.choice).length;
+  const p=document.getElementById('progress');
+  const dots=Math.min(total,24);
+  let html='';
+  for(let i=0;i<dots;i++) html+='<div class="pdot'+((i/dots)<(done/Math.max(total,1))?' on':'')+'"></div>';
+  p.innerHTML=html;
+}
+
+function showNode(){
+  renderProgress();
+  if(idx>=nodes.length){ endScene(); return; }
+  const n=nodes[idx];
+  stage.innerHTML='';
+
+  if(n.choice){
+    waitingChoice=true;
+    const c=n.choice;
+    const wrap=document.createElement('div');
+    wrap.style.cssText='display:flex;flex-direction:column;flex:1;';
+    wrap.innerHTML='<p class="line">'+esc(c.q)+'</p>';
+    const box=document.createElement('div'); box.className='choices';
+    c.opts.forEach((o,i)=>{
+      const b=document.createElement('button'); b.className='choice-btn'; b.textContent=o.label;
+      b.onclick=(ev)=>{ ev.stopPropagation(); pickChoice(c,i); };
+      box.appendChild(b);
+    });
+    wrap.appendChild(box);
+    const note=document.createElement('p'); note.className='choice-note';
+    note.textContent=c.note||'どれをえらんでも、まちがいではありません。';
+    wrap.appendChild(note);
+    stage.appendChild(wrap);
+    return;
+  }
+
+  waitingChoice=false;
+  const sp=SPEAKERS[n.sp]||SPEAKERS.narr;
+  if(n.sp==='mind'){
+    const owner=n.asMindOf?SPEAKERS[n.asMindOf]:null;
+    const label=document.createElement('div'); label.className='speaker'; label.style.color='var(--mind)';
+    label.innerHTML='<span class="dot" style="background:'+(owner?owner.color:'#9a93ad')+'"></span>心の声'+(owner&&owner.name!=='わたし'?'（'+esc(owner.name)+'）':'');
+    stage.appendChild(label);
+  }else if(sp.name){
+    const label=document.createElement('div'); label.className='speaker'; label.style.color=sp.color;
+    label.innerHTML='<span class="dot" style="background:'+sp.color+'"></span>'+esc(sp.name);
+    stage.appendChild(label);
+  }
+  const p=document.createElement('p');
+  p.className='line'+(n.cls?' '+n.cls:'');
+  p.textContent=n.t;
+  stage.appendChild(p);
+  const hint=document.createElement('div'); hint.className='next-hint'; hint.textContent='タップ / クリックでつづく ▾';
+  stage.appendChild(hint);
+}
+
+function pickChoice(c,i){
+  state.choices[c.key]=i;
+  if(c.feel){ addLog({t:'feel', ep:curEp, label:c.opts[i].label}); }
+  save();
+  nodes.splice(idx,1,...(c.opts[i].lines||[]));
+  waitingChoice=false;
+  showNode();
+}
+
+function advance(){
+  if(waitingChoice) return;
+  idx++;
+  showNode();
+}
+
+function endScene(){
+  const key=(curEp==='week')?'week:final':curEp+':'+curPersp;
+  state.seen[key]=true; save();
+  const sceneLabel=document.getElementById('scene-label').textContent;
+  addLog({t:'read', ep:(curEp==='week'?null:curEp), p:sceneLabel});
+
+  stage.innerHTML='';
+  const wrap=document.createElement('div');
+  wrap.style.cssText='margin:auto;text-align:center;width:100%;';
+  const p=document.createElement('p'); p.className='line'; p.style.whiteSpace='pre-wrap';
+  p.textContent='「'+sceneLabel+'」を、読みおえました。';
+  wrap.appendChild(p);
+
+  // ひとことメモ（任意）
+  const memo=document.createElement('div'); memo.className='memo-box';
+  memo.onclick=(ev)=>ev.stopPropagation();
+  memo.innerHTML='<label>いまのきもちを、ひとことだけ（書かなくても だいじょうぶ）</label>';
+  const ta=document.createElement('textarea'); ta.placeholder='たとえば：課長にも事情があったんだな、とすこし思えた。';
+  memo.appendChild(ta);
+  wrap.appendChild(memo);
+
+  const actions=document.createElement('div'); actions.className='end-actions';
+  const saveBtn=document.createElement('button'); saveBtn.className='primary-btn';
+  saveBtn.textContent='ひとことを きろくして もどる';
+  saveBtn.onclick=(ev)=>{ ev.stopPropagation();
+    const t=ta.value.trim(); if(t) addLog({t:'memo', text:t});
+    afterSceneNav();
+  };
+  actions.appendChild(saveBtn);
+  const skipBtn=document.createElement('button'); skipBtn.className='primary-btn soft';
+  skipBtn.textContent='そのまま もどる';
+  skipBtn.onclick=(ev)=>{ ev.stopPropagation(); afterSceneNav(); };
+  actions.appendChild(skipBtn);
+  wrap.appendChild(actions);
+  stage.appendChild(wrap);
+}
+
+function afterSceneNav(){
+  if(curEp==='week'){ toWeek(); return; }
+  toEp(curEp);
+}
+
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+/* ---------- 呼吸 ---------- */
+let breathTimer=null;
+function openBreath(){
+  document.getElementById('breath-overlay').classList.add('active');
+  const txt=document.getElementById('breath-text');
+  let phase=0; txt.textContent='すって……';
+  breathTimer=setInterval(()=>{ phase=1-phase; txt.textContent=phase?'はいて……':'すって……'; },4000);
+}
+function closeBreath(){
+  document.getElementById('breath-overlay').classList.remove('active');
+  if(breathTimer) clearInterval(breathTimer);
+}
+
+renderWeek();
+</script>
+</body>
+</html>

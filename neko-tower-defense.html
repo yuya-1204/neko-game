@@ -40,6 +40,10 @@
     border:none; border-radius:18px; padding:6px 14px; cursor:pointer; box-shadow:0 2px 0 #4a8cc0;
     font-family:inherit; }
   #wavebtn:disabled { opacity:.4; box-shadow:none; }
+  #soundbtn { font-size:13px; font-weight:bold; color:#7a5a3a; background:#fffdf7;
+    border:2px solid #e8d5b0; border-radius:18px; padding:5px 10px; cursor:pointer;
+    box-shadow:0 2px 0 #d8c090; font-family:inherit; white-space:nowrap; }
+  #soundbtn.off { color:#aaa; background:#f0f0f0; border-color:#ccc; box-shadow:0 2px 0 #bbb; }
   #sellbtn { position:absolute; display:none; z-index:5; font-size:13px; font-weight:bold; color:#fff;
     background:linear-gradient(180deg,#ffb080,#f08050); border:none; border-radius:16px;
     padding:6px 12px; cursor:pointer; box-shadow:0 2px 0 #c86840; font-family:inherit; }
@@ -52,6 +56,7 @@
     <span>🧀 <b id="lives">9</b></span>
     <span>ウェーブ <b id="wave">0</b></span>
     <span>スコア <b id="score">0</b></span>
+    <button id="soundbtn">🔊 音 ON</button>
     <button id="wavebtn">▶ スタート</button>
   </div>
   <canvas id="cv"></canvas>
@@ -117,7 +122,15 @@ function pointAt(s){
 
 // ---------- サウンド ----------
 let AC=null;
+let soundOn=true;
+try{ soundOn = localStorage.getItem('nekoTDSound')!=='off'; }catch(e){}
+function initAudio(){
+  if(!AC){ try{ AC=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} }
+  if(AC && AC.state==='suspended') AC.resume(); // ブラウザの自動再生制限を解除
+}
 function beep(freq,dur,type='sine',vol=0.12){
+  if(!soundOn) return;
+  initAudio();
   if(!AC) return;
   const o=AC.createOscillator(), g=AC.createGain();
   o.type=type; o.frequency.value=freq;
@@ -126,7 +139,18 @@ function beep(freq,dur,type='sine',vol=0.12){
   o.connect(g); g.connect(AC.destination);
   o.start(); o.stop(AC.currentTime+dur);
 }
-function initAudio(){ if(!AC){ try{ AC=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } }
+const soundBtn=document.getElementById('soundbtn');
+function updateSoundBtn(){
+  soundBtn.textContent = soundOn ? '🔊 音 ON' : '🔇 音 OFF';
+  soundBtn.classList.toggle('off', !soundOn);
+}
+soundBtn.addEventListener('click',()=>{
+  soundOn=!soundOn;
+  try{ localStorage.setItem('nekoTDSound', soundOn?'on':'off'); }catch(e){}
+  updateSoundBtn();
+  if(soundOn){ initAudio(); beep(880,.08,'triangle'); }
+});
+updateSoundBtn();
 
 // ---------- ネコ定義 ----------
 const CAT_TYPES = {

@@ -37,11 +37,19 @@
   .hidden { display: none !important; }
   #newRecord { color: #ffe14d; font-weight: bold; animation: pop .5s ease infinite alternate; }
   @keyframes pop { from { transform: scale(1); } to { transform: scale(1.12); } }
+  #soundBtn {
+    position: absolute; top: 44px; right: 10px; z-index: 30;
+    font-size: 14px; font-weight: bold; padding: 8px 12px; border-radius: 12px;
+    background: rgba(255,255,255,.92); color: #333;
+    box-shadow: 0 3px 0 #aaa; white-space: nowrap;
+  }
+  #soundBtn.off { background: rgba(190,190,190,.88); color: #666; }
 </style>
 </head>
 <body>
 <div id="wrap">
   <canvas id="game"></canvas>
+  <button id="soundBtn">🔊 音 ON</button>
 
   <div id="titleScreen" class="overlay">
     <h1>🐱 ネコレーシング 🏁</h1>
@@ -49,7 +57,8 @@
       ネコカートで爆走!<br>
       🚧 障害物をよけて 🐟 おさかなを集めよう!<br><br>
       <b>操作</b>:← → キー / A・Dキー<br>
-      スマホは画面の左右をタップ(スワイプもOK)
+      スマホは画面の左右をタップ(スワイプもOK)<br>
+      🔊 効果音つき(右上のボタンで ON/OFF)
     </p>
     <button id="startBtn">スタート!</button>
   </div>
@@ -70,6 +79,49 @@
 (() => {
   const canvas = document.getElementById('game');
   const ctx = canvas.getContext('2d');
+
+  // ===== サウンド (Web Audio・ファイル不要) =====
+  let sndCtx = null;
+  let soundOn = true;
+  try { soundOn = localStorage.getItem('nekoRacingSound') !== 'off'; } catch (e) {}
+  function sndAC() {
+    if (!sndCtx) { try { sndCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} }
+    if (sndCtx && sndCtx.state === 'suspended') sndCtx.resume();
+    return sndCtx;
+  }
+  function tone(freq, dur, type, vol, delay) {
+    if (!soundOn) return;
+    const a = sndAC(); if (!a) return;
+    const t = a.currentTime + (delay || 0);
+    const o = a.createOscillator(), g = a.createGain();
+    o.type = type || 'sine';
+    o.frequency.setValueAtTime(freq, t);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol || 0.15, t + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(a.destination);
+    o.start(t); o.stop(t + dur + 0.05);
+  }
+  const sfx = {
+    start()  { tone(523,.09,'triangle',.15); tone(659,.09,'triangle',.15,.09); tone(784,.12,'triangle',.15,.18); },
+    move()   { tone(480,.04,'sine',.07); },
+    fish(cb) { const up = Math.min(cb || 0, 10) * 30;
+               tone(660 + up,.07,'sine',.16); tone(990 + up,.09,'sine',.13,.05); },
+    crash()  { tone(300,.15,'sawtooth',.18); tone(180,.20,'sawtooth',.16,.08); tone(90,.35,'sawtooth',.15,.16); },
+    record() { [523,659,784,1046].forEach((f,i)=>tone(f,.14,'triangle',.15,i*.10)); },
+  };
+  const soundBtn = document.getElementById('soundBtn');
+  function updateSoundBtn() {
+    soundBtn.textContent = soundOn ? '🔊 音 ON' : '🔇 音 OFF';
+    soundBtn.classList.toggle('off', !soundOn);
+  }
+  soundBtn.addEventListener('click', () => {
+    soundOn = !soundOn;
+    try { localStorage.setItem('nekoRacingSound', soundOn ? 'on' : 'off'); } catch (e) {}
+    updateSoundBtn();
+    if (soundOn) sfx.fish(0);
+  });
+  updateSoundBtn();
 
   // --- レイアウト ---
   let W, H, roadX, roadW, laneW;
@@ -120,7 +172,7 @@
   function move(dir) {
     if (state !== S.PLAY || !player.alive) return;
     const nl = player.lane + dir;
-    if (nl >= 0 && nl < LANES) { player.lane = nl; player.tilt = dir * 0.35; }
+    if (nl >= 0 && nl < LANES) { player.lane = nl; player.tilt = dir * 0.35; sfx.move(); }
   }
   window.addEventListener('keydown', e => {
     if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') move(-1);
@@ -129,8 +181,12 @@
   });
 
   let touchX = null;
-  window.addEventListener('touchstart', e => { touchX = e.touches[0].clientX; }, { passive: true });
+  window.addEventListener('touchstart', e => {
+    if (e.target && e.target.closest && e.target.closest('#soundBtn')) { touchX = null; return; }
+    touchX = e.touches[0].clientX;
+  }, { passive: true });
   window.addEventListener('touchend', e => {
+    if (e.target && e.target.closest && e.target.closest('#soundBtn')) { touchX = null; return; }
     if (state !== S.PLAY || touchX === null) return;
     const dx = e.changedTouches[0].clientX - touchX;
     if (Math.abs(dx) > 30) move(dx > 0 ? 1 : -1);          // スワイプ
@@ -145,10 +201,12 @@
   document.getElementById('retryBtn').onclick = start;
 
   function start() {
+    sndAC(); // ユーザー操作のタイミングでオーディオを有効化
     reset();
     state = S.PLAY;
     titleScreen.classList.add('hidden');
     overScreen.classList.add('hidden');
+    sfx.start();
   }
 
   function gameOver() {
@@ -156,6 +214,7 @@
     state = S.OVER;
     shake = 12;
     burst(player.x, player.y, '#ff6b35', 24);
+    sfx.crash();
     const isNew = score > best;
     if (isNew) {
       best = score;
@@ -166,6 +225,7 @@
     document.getElementById('finalFish').textContent = fishCount;
     document.getElementById('bestScore').textContent = best;
     document.getElementById('newRecord').classList.toggle('hidden', !isNew);
+    if (isNew) setTimeout(() => sfx.record(), 650);
     setTimeout(() => overScreen.classList.remove('hidden'), 600);
   }
 
@@ -224,6 +284,7 @@
           fishes.splice(i, 1);
           fishCount++;
           combo++; comboTimer = 2;
+          sfx.fish(combo);
           burst(f.x || laneX(f.lane), f.y, '#4fc3f7', 10);
         }
       }

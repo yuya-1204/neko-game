@@ -27,6 +27,13 @@
   #hud .col { text-align: center; line-height: 1.25; }
   #hud .label { font-size: 11px; color: #8a7156; }
   #lives { letter-spacing: 2px; }
+  #sound-btn {
+    font-family: inherit; font-size: 13px; font-weight: bold;
+    background: #fff; color: #4a3320; border: 2px solid #e0c9a0;
+    border-radius: 10px; padding: 8px 10px; cursor: pointer;
+    margin: 0; box-shadow: 0 2px 0 #d9b98a; line-height: 1; white-space: nowrap;
+  }
+  #sound-btn.off { background: #eee; color: #999; border-color: #ccc; box-shadow: 0 2px 0 #bbb; }
   #cat-face {
     text-align: center; font-size: 44px; height: 54px; line-height: 54px;
     transition: transform .1s;
@@ -124,6 +131,7 @@
     <div class="col"><div class="label">スコア</div><div id="score">0</div></div>
     <div class="col"><div class="label">ベスト</div><div id="best">0</div></div>
     <div class="col"><div class="label">ライフ</div><div id="lives">❤️❤️❤️</div></div>
+    <button id="sound-btn">🔊 音 ON</button>
   </div>
   <div id="cat-face">😺</div>
   <div id="level-bar">レベル <span id="level">1</span></div>
@@ -140,7 +148,7 @@
         🐶 たたいちゃダメ! … ライフ−1<br>
         🐭 を逃がしても … ライフ−1
       </p>
-      <p>だんだん速くなるよ!<br>タップ(クリック)でたたこう!</p>
+      <p>だんだん速くなるよ!<br>タップ(クリック)でたたこう!<br>🔊 効果音つき(右上のボタンで ON/OFF)</p>
       <button id="start-btn">スタート!</button>
     </div>
   </div>
@@ -167,6 +175,52 @@
   const comboEl = document.getElementById('combo');
   const catFace = document.getElementById('cat-face');
   const game = document.getElementById('game');
+
+  // ===== サウンド (Web Audio・ファイル不要) =====
+  let sndCtx = null;
+  let soundOn = true;
+  try { soundOn = localStorage.getItem('nekoNezumiSound') !== 'off'; } catch(e) {}
+  function sndAC() {
+    if (!sndCtx) { try { sndCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {} }
+    if (sndCtx && sndCtx.state === 'suspended') sndCtx.resume();
+    return sndCtx;
+  }
+  function tone(freq, dur, type, vol, delay) {
+    if (!soundOn) return;
+    const a = sndAC(); if (!a) return;
+    const t = a.currentTime + (delay || 0);
+    const o = a.createOscillator(), g = a.createGain();
+    o.type = type || 'sine';
+    o.frequency.setValueAtTime(freq, t);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol || 0.15, t + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(a.destination);
+    o.start(t); o.stop(t + dur + 0.05);
+  }
+  const sfx = {
+    start()  { tone(523,.09,'triangle',.15); tone(659,.09,'triangle',.15,.09); tone(784,.12,'triangle',.15,.18); },
+    hit()    { tone(600,.05,'square',.10); tone(900,.08,'sine',.15,.03); },
+    gold()   { tone(880,.07,'triangle',.14); tone(1320,.09,'triangle',.13,.06); tone(1760,.10,'triangle',.11,.12); },
+    dog()    { tone(160,.20,'sawtooth',.16); tone(120,.24,'sawtooth',.14,.10); },
+    escape() { tone(420,.10,'square',.09); tone(260,.16,'square',.09,.08); },
+    whiff()  { tone(220,.05,'sine',.06); },
+    level()  { tone(660,.07,'triangle',.13); tone(880,.09,'triangle',.13,.07); },
+    over()   { tone(392,.18,'triangle',.14); tone(330,.18,'triangle',.13,.16); tone(262,.30,'triangle',.13,.32); },
+    best()   { [523,659,784,1046].forEach((f,i)=>tone(f,.14,'triangle',.15,i*.10)); },
+  };
+  const soundBtn = document.getElementById('sound-btn');
+  function updateSoundBtn() {
+    soundBtn.textContent = soundOn ? '🔊 音 ON' : '🔇 音 OFF';
+    soundBtn.classList.toggle('off', !soundOn);
+  }
+  soundBtn.addEventListener('click', () => {
+    soundOn = !soundOn;
+    try { localStorage.setItem('nekoNezumiSound', soundOn ? 'on' : 'off'); } catch(e) {}
+    updateSoundBtn();
+    if (soundOn) sfx.hit();
+  });
+  updateSoundBtn();
 
   const HOLES = 9;
   let holes = [];
@@ -245,6 +299,7 @@
     h.el.classList.remove('up');
     if (h.type !== 'dog') { // letting a mouse escape costs a life
       combo = 0; hideCombo();
+      sfx.escape();
       loseLife(h, 'にげられた!');
     }
   }
@@ -254,7 +309,7 @@
     const h = holes[idx];
     // paw effect at tap point
     pawAt(ev);
-    if (!h.active) { setFace('😾', false); return; }
+    if (!h.active) { setFace('😾', false); sfx.whiff(); return; }
     clearTimeout(h.hideTO);
     h.active = false;
     h.el.classList.add('hit');
@@ -262,6 +317,7 @@
     if (h.type === 'dog') {
       combo = 0; hideCombo();
       popText(h.el, 'ワン!! −❤️', 'bad');
+      sfx.dog();
       loseLife(h);
       return;
     }
@@ -270,13 +326,14 @@
     score += gain;
     scoreEl.textContent = score;
     popText(h.el, '+' + gain, h.type === 'gold' ? 'gold' : 'good');
+    if (h.type === 'gold') sfx.gold(); else sfx.hit();
     setFace(combo >= 5 ? '😻' : '😼', true);
     if (combo >= 3) {
       comboEl.textContent = combo + ' コンボ!';
       comboEl.classList.add('show');
     }
     const newLevel = levelFor(score);
-    if (newLevel !== level) { level = newLevel; levelEl.textContent = level; }
+    if (newLevel !== level) { level = newLevel; levelEl.textContent = level; sfx.level(); }
   }
 
   function hideCombo() { comboEl.classList.remove('show'); }
@@ -330,10 +387,12 @@
   }
 
   function start() {
+    sndAC(); // ユーザー操作のタイミングでオーディオを有効化
     reset();
     document.getElementById('start-overlay').classList.add('hidden');
     document.getElementById('over-overlay').classList.add('hidden');
     running = true;
+    sfx.start();
     spawnTimer = setTimeout(spawn, 600);
   }
 
@@ -350,9 +409,11 @@
       bestEl.textContent = best;
       bestLine.textContent = '🏆 ベスト記録こうしん!';
       document.getElementById('over-face').textContent = '😸';
+      sfx.best();
     } else {
       bestLine.textContent = 'ベスト: ' + best;
       document.getElementById('over-face').textContent = '😿';
+      sfx.over();
     }
     document.getElementById('over-overlay').classList.remove('hidden');
   }

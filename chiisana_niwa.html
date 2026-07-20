@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>ちいさな庭</title>
+<style>
+  :root{
+    --bg-sky-1:#cfe8f5; --bg-sky-2:#f4ead9;
+    --grass:#b8d8a8; --soil:#c9a888; --soil-dark:#b09070;
+    --card:#fffdf7; --ink:#6b5d4f; --ink-light:#9a8b7a;
+    --accent:#e8a87c; --accent-soft:#f5d5bc;
+    --shadow:0 4px 14px rgba(107,93,79,.12);
+    --radius:20px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{
+    font-family:"Hiragino Maru Gothic ProN","BIZ UDGothic","Yu Gothic UI",-apple-system,sans-serif;
+    color:var(--ink);
+    background:linear-gradient(var(--bg-sky-1),var(--bg-sky-2));
+    display:flex;justify-content:center;
+    min-height:100dvh;
+    transition:background 2s;
+  }
+  body.evening{--bg-sky-1:#f5cfb8;--bg-sky-2:#e8d5e8}
+  body.night{--bg-sky-1:#8a92b8;--bg-sky-2:#c5b8d5}
+  #app{width:100%;max-width:480px;padding:14px 14px 30px;position:relative}
+
+  /* ---------- 共通 ---------- */
+  .hidden{display:none!important}
+  h1{font-size:1.25rem;font-weight:600;letter-spacing:.15em}
+  .soft-btn{
+    border:none;cursor:pointer;font-family:inherit;color:var(--ink);
+    background:var(--card);border-radius:999px;padding:10px 20px;
+    font-size:.95rem;box-shadow:var(--shadow);transition:transform .15s;
+  }
+  .soft-btn:active{transform:scale(.95)}
+  .soft-btn.primary{background:var(--accent-soft)}
+
+  /* ---------- チェックイン画面 ---------- */
+  #checkin{
+    position:fixed;inset:0;z-index:50;
+    background:linear-gradient(#e9f2ea,#fbf3e4);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:26px;padding:24px;text-align:center;
+    animation:fadein .8s;
+  }
+  @keyframes fadein{from{opacity:0}to{opacity:1}}
+  #checkin .greeting{font-size:1.15rem;line-height:2}
+  #checkin .note{font-size:.85rem;color:var(--ink-light);line-height:1.9}
+  .mood-row{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+  .mood-btn{
+    border:none;background:var(--card);cursor:pointer;font-family:inherit;
+    width:86px;padding:14px 6px 10px;border-radius:var(--radius);
+    box-shadow:var(--shadow);color:var(--ink);font-size:.8rem;
+    display:flex;flex-direction:column;align-items:center;gap:8px;
+    transition:transform .15s;
+  }
+  .mood-btn:active{transform:scale(.92)}
+  .mood-btn svg{width:44px;height:44px}
+
+  /* ---------- ヘッダー ---------- */
+  #top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+  #top .date{font-size:.8rem;color:var(--ink-light)}
+  #top .right{display:flex;gap:8px}
+  .icon-btn{
+    border:none;background:var(--card);cursor:pointer;width:40px;height:40px;
+    border-radius:50%;box-shadow:var(--shadow);font-size:1.05rem;color:var(--ink);
+  }
+
+  /* ---------- メッセージ ---------- */
+  #speech{
+    display:flex;align-items:flex-start;gap:10px;margin-bottom:12px;min-height:64px;
+  }
+  #snail{flex:0 0 52px}
+  #bubble{
+    background:var(--card);border-radius:16px;padding:10px 14px;
+    box-shadow:var(--shadow);font-size:.88rem;line-height:1.8;flex:1;
+    animation:pop .3s;
+  }
+  @keyframes pop{from{transform:scale(.96);opacity:.4}to{transform:scale(1);opacity:1}}
+
+  /* ---------- 庭 ---------- */
+  #garden-wrap{
+    background:linear-gradient(#a8cf98,#b8d8a8 30%,#c2dcae);
+    border-radius:26px;padding:18px 12px 22px;box-shadow:var(--shadow);
+    position:relative;overflow:hidden;
+  }
+  #garden{
+    display:grid;grid-template-columns:repeat(3,1fr);gap:10px;position:relative;z-index:2;
+  }
+  .plot{
+    aspect-ratio:1/1.05;border-radius:16px;cursor:pointer;position:relative;
+    background:radial-gradient(ellipse at 50% 78%,var(--soil) 0 52%,transparent 53%),
+               linear-gradient(#adcf9c,#a5c894);
+    display:flex;align-items:flex-end;justify-content:center;
+    transition:transform .15s;
+  }
+  .plot:active{transform:scale(.94)}
+  .plot svg{width:82%;height:88%;display:block}
+  .plot .tag{
+    position:absolute;top:5px;right:7px;font-size:.68rem;color:#fff;
+    background:rgba(107,93,79,.35);padding:1px 7px;border-radius:99px;
+  }
+  .sparkle{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    font-size:1.5rem;animation:sparkle .8s forwards;pointer-events:none;z-index:5}
+  @keyframes sparkle{0%{opacity:0;transform:scale(.4)}40%{opacity:1;transform:scale(1.15)}100%{opacity:0;transform:scale(1.3) translateY(-14px)}}
+  .drop-anim{position:absolute;top:2px;left:50%;transform:translateX(-50%);font-size:1.1rem;
+    animation:drop .7s forwards;pointer-events:none;z-index:5}
+  @keyframes drop{from{opacity:1;transform:translate(-50%,-4px)}to{opacity:0;transform:translate(-50%,16px)}}
+
+  /* ---------- 下部 ---------- */
+  #footer{margin-top:14px;text-align:center;font-size:.8rem;color:var(--ink-light);line-height:1.9}
+
+  /* ---------- モーダル ---------- */
+  .modal-bg{
+    position:fixed;inset:0;background:rgba(107,93,79,.28);z-index:60;
+    display:flex;align-items:center;justify-content:center;padding:20px;
+    animation:fadein .25s;
+  }
+  .modal{
+    background:var(--card);border-radius:24px;padding:22px;width:100%;max-width:420px;
+    max-height:82dvh;overflow-y:auto;box-shadow:0 10px 30px rgba(107,93,79,.25);
+  }
+  .modal h2{font-size:1.02rem;margin-bottom:14px;letter-spacing:.08em}
+  .modal .close-row{text-align:center;margin-top:18px}
+
+  /* 種選び */
+  .seed-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+  .seed-card{
+    border:none;background:#faf5ea;border-radius:16px;padding:12px 8px;cursor:pointer;
+    font-family:inherit;color:var(--ink);font-size:.82rem;
+    display:flex;flex-direction:column;align-items:center;gap:6px;transition:transform .15s;
+  }
+  .seed-card:active{transform:scale(.94)}
+  .seed-card svg{width:52px;height:52px}
+  .seed-card small{color:var(--ink-light);font-size:.7rem}
+
+  /* きろく */
+  .cal{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin:10px 0 16px}
+  .cal .cell{
+    aspect-ratio:1;border-radius:10px;background:#f2ece0;
+    display:flex;align-items:center;justify-content:center;font-size:.62rem;color:var(--ink-light);
+    position:relative;
+  }
+  .cal .cell.visited{color:#fff;font-weight:600}
+  .log-list{list-style:none;font-size:.82rem;line-height:2.1;color:var(--ink)}
+  .log-list .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:8px}
+  .rec-summary{font-size:.85rem;line-height:2;background:#faf5ea;border-radius:14px;padding:12px 14px;margin-bottom:14px}
+
+  /* 設定 */
+  .settings-row{display:flex;flex-direction:column;gap:10px}
+  .settings-note{font-size:.75rem;color:var(--ink-light);line-height:1.8}
+</style>
+</head>
+<body>
+
+<!-- ======== チェックイン ======== -->
+<div id="checkin">
+  <div id="checkin-art"></div>
+  <div class="greeting" id="greeting">こんにちは。<br>きょうも 庭に きてくれて ありがとう。</div>
+  <div class="note">いまの気分に ちかいものを ひとつ えらんでね。<br>どんな気分でも だいじょうぶ。</div>
+  <div class="mood-row" id="mood-row"></div>
+</div>
+
+<!-- ======== 本体 ======== -->
+<div id="app" class="hidden">
+  <div id="top">
+    <div>
+      <h1>ちいさな庭</h1>
+      <div class="date" id="date-label"></div>
+    </div>
+    <div class="right">
+      <button class="icon-btn" id="btn-log" title="きろく">📖</button>
+      <button class="icon-btn" id="btn-settings" title="設定">⚙</button>
+    </div>
+  </div>
+
+  <div id="speech">
+    <div id="snail"></div>
+    <div id="bubble">…</div>
+  </div>
+
+  <div id="garden-wrap"><div id="garden"></div></div>
+
+  <div id="footer">あいたところを タップすると 種をまけるよ。<br>草や 花を タップして おせわしてね。</div>
+</div>
+
+<!-- ======== モーダル置き場 ======== -->
+<div id="modal-root"></div>
+
+<script>
+"use strict";
+
+/* ================= 基本データ ================= */
+const MOODS = [
+  {id:"genki",  label:"げんき",     color:"#f2b56b", mouth:"M16 30 Q24 37 32 30"},
+  {id:"maa",    label:"まあまあ",   color:"#a8cf98", mouth:"M16 31 Q24 35 32 31"},
+  {id:"futsuu", label:"ふつう",     color:"#9ec5d8", mouth:"M17 32 L31 32"},
+  {id:"tsukare",label:"つかれ気味", color:"#b8a8d8", mouth:"M16 34 Q24 30 32 34"},
+  {id:"shindoi",label:"しんどい",   color:"#d8a8b0", mouth:"M16 35 Q24 30 32 35"},
+];
+
+const SPECIES = {
+  nemophila:{name:"ネモフィラ", petal:"#8fb8e8", center:"#f5f0dc", need:[1,2,4,6], desc:"そらいろの小花"},
+  cosmos:   {name:"コスモス",   petal:"#eeb0c8", center:"#f2c96b", need:[1,2,4,6], desc:"ゆれるピンク"},
+  marguerite:{name:"マーガレット",petal:"#fbf7ee", center:"#f2c96b", need:[1,2,4,6], desc:"しろい花"},
+  lavender: {name:"ラベンダー", petal:"#a89ad0", center:"#a89ad0", need:[1,2,4,6], desc:"やさしい香り"},
+};
+
+const PLOTS = 9;
+
+const LINES = {
+  welcomeFirst:["はじめまして。ぼくは つむり。<br>この庭を いっしょに 育てていこうね。<br>あせらなくて いいからね。"],
+  welcome:["きょうも きてくれて うれしいな。","庭が すこし 明るくなった気がするよ。","ゆっくりで だいじょうぶだよ。","風が きもちいいね。"],
+  welcomeShindoi:["しんどい日に きてくれて ありがとう。<br>きょうは ながめるだけでも いいんだよ。","むりしないでね。<br>庭は どこにも いかないから。"],
+  water:["はっぱが よろこんでる みたい。","つち が うるおったね。","ごくごく のんでるよ。","ありがとう。いい おみずだ。"],
+  watered:["きょうは もう おみずを あげたよ。<br>あとは おひさまに おまかせ。"],
+  weed:["すっきりしたね。","ちいさな 草も がんばって 生きてたんだね。","地面が ひろびろ したよ。"],
+  seed:["たのしみだね。めが 出るのを まとう。","いい場所を えらんだね。","土のなかで ゆっくり 準備してるよ。"],
+  bloom:["わあ…! 咲いたよ!<br>毎日の おせわの おかげだね。"],
+  grow:["すこし 大きくなってる!","ちゃんと 育ってるよ。"],
+  alldone:["きょうの おせわは おしまい。<br>あとは ゆっくり してね。","ぜんぶ おわったよ。えらい えらい。<br>のこりの時間は 自分のために つかってね。"],
+  idle:["急がなくて いいんだよ。","くもが ゆっくり ながれてる。","めが 出るのは 早くて あした。ゆっくりだね。"],
+};
+
+/* ================= 状態 ================= */
+const KEY="chiisananiwa_v1";
+let mem=null; // localStorage不可時のフォールバック
+function loadState(){
+  try{const s=localStorage.getItem(KEY); if(s) return JSON.parse(s);}catch(e){}
+  return mem;
+}
+function saveState(st){
+  try{localStorage.setItem(KEY,JSON.stringify(st));}catch(e){}
+  mem=st;
+}
+function newState(){
+  return {
+    plots:Array.from({length:PLOTS},()=>({type:null})),
+    visits:[],          // {date,time,mood}
+    lastDate:null,
+    devOffset:0,
+    blooms:0,
+  };
+}
+let S = loadState() || newState();
+
+/* ================= 日付 ================= */
+function today(){
+  const d=new Date(); d.setDate(d.getDate()+(S.devOffset||0));
+  return d.toISOString().slice(0,10);
+}
+function jpDate(iso){
+  const [y,m,d]=iso.split("-");
+  return `${y}年${+m}月${+d}日`;
+}
+
+/* ================= SVG部品 ================= */
+function faceSVG(m){
+  return `<svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="21" fill="${m.color}" opacity=".85"/>
+    <circle cx="17" cy="20" r="2.4" fill="#6b5d4f"/><circle cx="31" cy="20" r="2.4" fill="#6b5d4f"/>
+    <path d="${m.mouth}" stroke="#6b5d4f" stroke-width="2.4" fill="none" stroke-linecap="round"/></svg>`;
+}
+function snailSVG(){
+  return `<svg viewBox="0 0 64 52" width="52" height="44">
+    <ellipse cx="32" cy="47" rx="24" ry="4" fill="rgba(107,93,79,.12)"/>
+    <path d="M10 44 Q8 34 18 33 L46 33 Q56 34 54 44 Z" fill="#d8c8a8"/>
+    <circle cx="38" cy="28" r="15" fill="#e8a87c"/>
+    <circle cx="38" cy="28" r="9.5" fill="#f5d5bc"/>
+    <circle cx="38" cy="28" r="4.5" fill="#e8a87c"/>
+    <path d="M14 36 Q12 22 17 15" stroke="#d8c8a8" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <circle cx="17" cy="13" r="3" fill="#d8c8a8"/>
+    <circle cx="21" cy="24" r="2" fill="#6b5d4f"/>
+    <path d="M17 29 Q20 31 23 29" stroke="#6b5d4f" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+  </svg>`;
+}
+function stemSVG(inner,h){ // 共通:土から生える形
+  return `<svg viewBox="0 0 60 64">${inner}</svg>`;
+}
+function plantSVG(sp,stage,witheredNone){
+  const s=SPECIES[sp];
+  if(stage===0) // たね
+    return stemSVG(`<ellipse cx="30" cy="55" rx="14" ry="5" fill="#b09070"/>
+      <ellipse cx="30" cy="54" rx="4" ry="3" fill="#8a6f52"/>`);
+  if(stage===1) // め
+    return stemSVG(`<path d="M30 58 Q30 48 30 44" stroke="#7aa860" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <path d="M30 46 Q22 42 20 34 Q30 36 30 46" fill="#8fbf72"/>`);
+  if(stage===2) // ふたば
+    return stemSVG(`<path d="M30 58 Q30 44 30 36" stroke="#7aa860" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+      <path d="M30 40 Q18 36 15 26 Q28 28 30 40" fill="#8fbf72"/>
+      <path d="M30 40 Q42 36 45 26 Q32 28 30 40" fill="#9ecf82"/>`);
+  if(stage===3) // つぼみ
+    return stemSVG(`<path d="M30 58 Q30 40 30 26" stroke="#7aa860" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+      <path d="M30 44 Q18 40 15 30 Q28 32 30 44" fill="#8fbf72"/>
+      <path d="M30 44 Q42 40 45 30 Q32 32 30 44" fill="#9ecf82"/>
+      <ellipse cx="30" cy="20" rx="8" ry="10" fill="${s.petal}" opacity=".8"/>
+      <path d="M24 24 Q30 10 36 24" fill="#8fbf72" opacity=".6"/>`);
+  // stage 4: 花
+  if(sp==="lavender")
+    return stemSVG(`<path d="M30 58 Q30 38 30 22" stroke="#7aa860" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+      <path d="M30 46 Q18 42 15 32 Q28 34 30 46" fill="#8fbf72"/>
+      ${[8,14,20,26].map(y=>`<ellipse cx="26" cy="${y+2}" rx="4" ry="3" fill="${s.petal}"/><ellipse cx="34" cy="${y}" rx="4" ry="3" fill="#b8aade"/>`).join("")}`);
+  const petals=[0,60,120,180,240,300].map(a=>
+    `<ellipse cx="30" cy="8" rx="5.5" ry="9" fill="${s.petal}" transform="rotate(${a} 30 16)"/>`).join("");
+  return stemSVG(`<path d="M30 58 Q30 42 30 26" stroke="#7aa860" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+    <path d="M30 46 Q18 42 15 32 Q28 34 30 46" fill="#8fbf72"/>
+    <path d="M30 46 Q42 42 45 32 Q32 34 30 46" fill="#9ecf82"/>
+    ${petals}<circle cx="30" cy="16" r="6" fill="${s.center}"/>`);
+}
+function weedSVG(){
+  return stemSVG(`<path d="M24 58 Q20 46 14 42 M30 58 Q30 44 30 38 M36 58 Q40 46 46 42 M27 58 Q23 50 22 46 M33 58 Q37 50 38 46"
+     stroke="#7a9a5e" stroke-width="3" fill="none" stroke-linecap="round"/>`);
+}
+function seedIconSVG(sp){
+  return `<svg viewBox="0 0 60 64">${plantSVG(sp,4).replace(/<\/?svg[^>]*>/g,"")}</svg>`;
+}
+
+/* ================= 発話 ================= */
+function say(key){
+  const arr = Array.isArray(key)?key:LINES[key];
+  const t = arr[Math.floor(Math.random()*arr.length)];
+  document.getElementById("bubble").innerHTML=t;
+}
+
+/* ================= 新しい日の処理 ================= */
+function processNewDay(){
+  const t=today();
+  if(S.lastDate===t) return false;
+  // 前日以前に水やり済みの株を成長させる
+  S.plots.forEach(p=>{
+    if(p.type==="plant"){
+      p.wateredToday=false;
+    }
+  });
+  // 雑草(最大3つ・植えてない区画に控えめに生える)
+  const weedCount=S.plots.filter(p=>p.type==="weed").length;
+  if(weedCount<3 && Math.random()<0.65){
+    const empties=S.plots.map((p,i)=>p.type===null?i:-1).filter(i=>i>=0);
+    if(empties.length>1){ // 最後の1マスは残す
+      const i=empties[Math.floor(Math.random()*empties.length)];
+      S.plots[i]={type:"weed"};
+    }
+  }
+  S.lastDate=t;
+  return true;
+}
+
+/* ================= チェックイン ================= */
+function showCheckin(){
+  const row=document.getElementById("mood-row");
+  row.innerHTML="";
+  const visited=S.visits.length>0;
+  document.getElementById("greeting").innerHTML = visited
+    ? "こんにちは。<br>きょうも 庭に きてくれて ありがとう。"
+    : "はじめまして。ここは あなたの<br>「ちいさな庭」です。";
+  MOODS.forEach(m=>{
+    const b=document.createElement("button");
+    b.className="mood-btn";
+    b.innerHTML=faceSVG(m)+`<span>${m.label}</span>`;
+    b.onclick=()=>{
+      const now=new Date();
+      S.visits.push({date:today(),time:now.toTimeString().slice(0,5),mood:m.id});
+      saveState(S);
+      document.getElementById("checkin").classList.add("hidden");
+      document.getElementById("app").classList.remove("hidden");
+      if(S.visits.length===1) say("welcomeFirst");
+      else if(m.id==="shindoi"||m.id==="tsukare") say("welcomeShindoi");
+      else say("welcome");
+    };
+    row.appendChild(b);
+  });
+}
+
+/* ================= 庭の描画 ================= */
+function render(){
+  const g=document.getElementById("garden");
+  g.innerHTML="";
+  S.plots.forEach((p,i)=>{
+    const div=document.createElement("div");
+    div.className="plot";
+    if(p.type==="plant"){
+      div.innerHTML=plantSVG(p.sp,p.stage);
+      if(p.stage<4 && !p.wateredToday) div.innerHTML+=`<span class="tag">💧</span>`;
+      div.onclick=()=>waterPlant(i,div);
+    }else if(p.type==="weed"){
+      div.innerHTML=weedSVG();
+      div.onclick=()=>pullWeed(i,div);
+    }else{
+      div.onclick=()=>openSeedModal(i);
+    }
+    g.appendChild(div);
+  });
+  document.getElementById("date-label").textContent=jpDate(today())+(S.devOffset?`(開発モード +${S.devOffset}日)`:"");
+}
+
+/* ================= アクション ================= */
+function fx(div,html){
+  const s=document.createElement("div");
+  s.className="sparkle"; s.innerHTML=html;
+  div.appendChild(s); setTimeout(()=>s.remove(),850);
+}
+function checkAllDone(){
+  const done = S.plots.every(p=>{
+    if(p.type==="weed") return false;
+    if(p.type==="plant" && p.stage<4 && !p.wateredToday) return false;
+    return true;
+  });
+  const hasCare=S.plots.some(p=>p.type==="plant"||p.type==="weed");
+  if(done&&hasCare) setTimeout(()=>say("alldone"),900);
+}
+function waterPlant(i,div){
+  const p=S.plots[i];
+  if(p.stage>=4){ fx(div,"🌸"); say("idle"); return; }
+  if(p.wateredToday){ say("watered"); return; }
+  p.wateredToday=true;
+  p.water=(p.water||0)+1;
+  const need=SPECIES[p.sp].need;
+  let grew=false, bloomed=false;
+  let ns=p.stage;
+  while(ns<4 && p.water>=need[ns]) ns++;
+  if(ns!==p.stage){ grew=true; if(ns===4){bloomed=true; S.blooms++;} p.stage=ns; }
+  saveState(S);
+  const d=document.createElement("div"); d.className="drop-anim"; d.textContent="💧";
+  div.appendChild(d); setTimeout(()=>d.remove(),750);
+  setTimeout(()=>{ render(); },400);
+  if(bloomed){ say("bloom"); setTimeout(()=>fxAt(i,"✨"),450); }
+  else if(grew){ say("grow"); }
+  else say("water");
+  checkAllDone();
+}
+function fxAt(i,html){
+  const div=document.getElementById("garden").children[i];
+  if(div) fx(div,html);
+}
+function pullWeed(i,div){
+  S.plots[i]={type:null};
+  saveState(S);
+  fx(div,"✨");
+  setTimeout(render,500);
+  say("weed");
+  checkAllDone();
+}
+
+/* ================= 種まき ================= */
+function openSeedModal(i){
+  const root=document.getElementById("modal-root");
+  root.innerHTML=`<div class="modal-bg" id="mbg"><div class="modal">
+    <h2>🌱 どの種を まく?</h2>
+    <div class="seed-grid">${Object.entries(SPECIES).map(([k,s])=>
+      `<button class="seed-card" data-sp="${k}">${seedIconSVG(k)}<span>${s.name}</span><small>${s.desc}</small></button>`).join("")}
+    </div>
+    <div class="close-row"><button class="soft-btn" id="mclose">やめておく</button></div>
+  </div></div>`;
+  root.querySelectorAll(".seed-card").forEach(b=>b.onclick=()=>{
+    S.plots[i]={type:"plant",sp:b.dataset.sp,stage:0,water:0,wateredToday:false,planted:today()};
+    saveState(S); root.innerHTML=""; render(); say("seed");
+  });
+  document.getElementById("mclose").onclick=()=>root.innerHTML="";
+  document.getElementById("mbg").onclick=e=>{if(e.target.id==="mbg")root.innerHTML="";};
+}
+
+/* ================= きろく ================= */
+function openLog(){
+  const root=document.getElementById("modal-root");
+  const t=new Date(); t.setDate(t.getDate()+(S.devOffset||0));
+  // 直近28日
+  const cells=[];
+  for(let k=27;k>=0;k--){
+    const d=new Date(t); d.setDate(d.getDate()-k);
+    const iso=d.toISOString().slice(0,10);
+    const v=S.visits.filter(x=>x.date===iso).pop();
+    cells.push({day:d.getDate(),v});
+  }
+  const monthIso=t.toISOString().slice(0,7);
+  const monthDays=new Set(S.visits.filter(v=>v.date.startsWith(monthIso)).map(v=>v.date)).size;
+  const morning=S.visits.filter(v=>{const h=+v.time.slice(0,2);return h>=5&&h<10;}).length;
+  const recent=S.visits.slice(-7).reverse();
+  root.innerHTML=`<div class="modal-bg" id="mbg"><div class="modal">
+    <h2>📖 庭のきろく</h2>
+    <div class="rec-summary">
+      今月は <b>${monthDays}日</b>、庭に来ました。<br>
+      咲いた花: <b>${S.blooms}輪</b> / 朝(5〜10時)のお世話: <b>${morning}回</b>
+    </div>
+    <div style="font-size:.78rem;color:var(--ink-light)">直近28日 (色=その日の気分)</div>
+    <div class="cal">${cells.map(c=>{
+      const m=c.v?MOODS.find(x=>x.id===c.v.mood):null;
+      return `<div class="cell${c.v?" visited":""}"${m?` style="background:${m.color}"`:""}>${c.day}</div>`;
+    }).join("")}</div>
+    <div style="font-size:.78rem;color:var(--ink-light);margin-bottom:6px">さいきんの記録</div>
+    <ul class="log-list">${recent.map(v=>{
+      const m=MOODS.find(x=>x.id===v.mood);
+      return `<li><span class="dot" style="background:${m.color}"></span>${jpDate(v.date)} ${v.time} — ${m.label}</li>`;
+    }).join("")||"<li>まだ記録がありません</li>"}</ul>
+    <div class="settings-note" style="margin-top:12px">※この記録は、生活リズムをふり返るためのものです。<br>来られない日があっても、庭は枯れません。だいじょうぶ。</div>
+    <div class="close-row"><button class="soft-btn primary" id="mclose">とじる</button></div>
+  </div></div>`;
+  document.getElementById("mclose").onclick=()=>root.innerHTML="";
+  document.getElementById("mbg").onclick=e=>{if(e.target.id==="mbg")root.innerHTML="";};
+}
+
+/* ================= 設定 ================= */
+function openSettings(){
+  const root=document.getElementById("modal-root");
+  root.innerHTML=`<div class="modal-bg" id="mbg"><div class="modal">
+    <h2>⚙ 設定</h2>
+    <div class="settings-row">
+      <button class="soft-btn" id="dev-day">開発用: 1日すすめる</button>
+      <button class="soft-btn" id="dev-reset">はじめから やりなおす</button>
+      <div class="settings-note">「1日すすめる」は動作確認用です。翌日扱いになり、水やりや成長を試せます。<br><br>このゲームに「失敗」はありません。時間制限も、枯れることも、ランキングもありません。1日5分、庭とすごすだけです。</div>
+    </div>
+    <div class="close-row"><button class="soft-btn primary" id="mclose">とじる</button></div>
+  </div></div>`;
+  document.getElementById("dev-day").onclick=()=>{
+    S.devOffset=(S.devOffset||0)+1; saveState(S);
+    root.innerHTML="";
+    processNewDay(); saveState(S); render();
+    showCheckin();
+    document.getElementById("checkin").classList.remove("hidden");
+    document.getElementById("app").classList.add("hidden");
+  };
+  document.getElementById("dev-reset").onclick=()=>{
+    if(confirm("庭の記録をすべて消して、はじめからにしますか?")){
+      S=newState(); saveState(S); root.innerHTML="";
+      init();
+    }
+  };
+  document.getElementById("mclose").onclick=()=>root.innerHTML="";
+  document.getElementById("mbg").onclick=e=>{if(e.target.id==="mbg")root.innerHTML="";};
+}
+
+/* ================= 起動 ================= */
+function setSky(){
+  const h=new Date().getHours();
+  document.body.classList.remove("evening","night");
+  if(h>=17&&h<20) document.body.classList.add("evening");
+  else if(h>=20||h<5) document.body.classList.add("night");
+}
+function init(){
+  setSky();
+  document.getElementById("snail").innerHTML=snailSVG();
+  document.getElementById("checkin-art").innerHTML=snailSVG().replace('width="52" height="44"','width="90" height="76"');
+  processNewDay();
+  saveState(S);
+  render();
+  const visitedToday=S.visits.some(v=>v.date===today());
+  if(visitedToday){
+    document.getElementById("checkin").classList.add("hidden");
+    document.getElementById("app").classList.remove("hidden");
+    say("welcome");
+  }else{
+    document.getElementById("checkin").classList.remove("hidden");
+    document.getElementById("app").classList.add("hidden");
+    showCheckin();
+  }
+  document.getElementById("btn-log").onclick=openLog;
+  document.getElementById("btn-settings").onclick=openSettings;
+}
+init();
+</script>
+</body>
+</html>

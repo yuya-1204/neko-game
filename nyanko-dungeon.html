@@ -127,6 +127,53 @@ const UPGRADES = [
   { id:"heal", label:"🧀 ごちそう", desc:"HP全回復+最大HP+3" },
 ];
 
+// ===== サウンド =====
+let audioCtx = null;
+function ac(){
+  if(!audioCtx){ try{ audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ return null; } }
+  if(audioCtx && audioCtx.state==="suspended") audioCtx.resume();
+  return audioCtx;
+}
+function tone(freq, dur, type, vol, delay, slide){
+  const c = ac(); if(!c) return;
+  const t0 = c.currentTime + (delay||0);
+  const o = c.createOscillator(), g = c.createGain();
+  o.type = type||"square";
+  o.frequency.setValueAtTime(freq, t0);
+  if(slide!=null) o.frequency.exponentialRampToValueAtTime(Math.max(30,slide), t0+dur);
+  g.gain.setValueAtTime(vol||0.15, t0);
+  g.gain.exponentialRampToValueAtTime(0.001, t0+dur);
+  o.connect(g); g.connect(c.destination);
+  o.start(t0); o.stop(t0+dur+0.02);
+}
+function noiseFx(dur, vol, delay){
+  const c = ac(); if(!c) return;
+  const t0 = c.currentTime + (delay||0);
+  const n = Math.floor(c.sampleRate*dur), buf = c.createBuffer(1,n,c.sampleRate), d = buf.getChannelData(0);
+  for(let i=0;i<n;i++) d[i] = (Math.random()*2-1)*(1-i/n);
+  const s = c.createBufferSource(); s.buffer = buf;
+  const f = c.createBiquadFilter(); f.type="lowpass"; f.frequency.value=1400;
+  const g = c.createGain();
+  g.gain.setValueAtTime(vol||0.2, t0);
+  g.gain.exponentialRampToValueAtTime(0.001, t0+dur);
+  s.connect(f); f.connect(g); g.connect(c.destination); s.start(t0);
+}
+const SFX = {
+  attack(){ tone(260,0.09,"square",0.18,0,120); noiseFx(0.05,0.08); },            // 攻撃:パンチ音
+  kill(){ tone(320,0.08,"square",0.16,0,160); tone(160,0.14,"square",0.16,0.06,60); },
+  hurt(){ tone(180,0.22,"sawtooth",0.2,0,70); },                                   // 被弾:低い唸り
+  cheese(){ tone(520,0.1,"sine",0.2); tone(780,0.16,"sine",0.2,0.09); },           // チーズ:やわらか2音
+  fish(){ tone(420,0.07,"sine",0.18); tone(620,0.07,"sine",0.18,0.07); tone(920,0.1,"sine",0.18,0.14); }, // 魚:3音ぷくぷく
+  matatabi(){ tone(600,0.08,"triangle",0.18); tone(900,0.08,"triangle",0.18,0.07); tone(1350,0.16,"triangle",0.18,0.14); }, // またたび:キラキラ上昇
+  smoke(){ noiseFx(0.32,0.25); tone(850,0.28,"sine",0.1,0,160); },                 // けむり玉:シュッ(下降)
+  pickup(){ tone(700,0.06,"sine",0.14); tone(1000,0.08,"sine",0.14,0.05); },
+  levelup(){ [440,554,659,880].forEach((f,i)=>tone(f,0.12,"square",0.13,i*0.08)); },
+  stairs(){ tone(500,0.1,"triangle",0.15,0,300); tone(350,0.14,"triangle",0.15,0.1,180); },
+  over(){ [300,250,200,120].forEach((f,i)=>tone(f,0.22,"sawtooth",0.15,i*0.16)); },
+  win(){ [523,659,784,1046,1318].forEach((f,i)=>tone(f,0.16,"square",0.14,i*0.11)); },
+};
+const ITEM_SFX = { cheese:()=>SFX.cheese(), fish:()=>SFX.fish(), matatabi:()=>SFX.matatabi(), smoke:()=>SFX.smoke() };
+
 // ===== 状態 =====
 let map, seen, visible, entities, items, player, floor, score, turnCount;
 let gameState = "title"; // title / play / upgrade / over / win
@@ -271,14 +318,26 @@ function draw(){
     const vis = visible.has(k);
     const px = ox+x*ts, py = oy+y*ts;
     if(map[y][x]===T_WALL){
-      ctx.fillStyle = vis ? "#4a3a66" : "#2a2240";
+      // 視界内=暖色パープル / 視界外=寒色ブルーグレー
+      ctx.fillStyle = vis ? "#6a4a7e" : "#25304e";
       ctx.fillRect(px+1,py+1,ts-2,ts-2);
     } else {
-      ctx.fillStyle = vis ? "#241a38" : "#181226";
+      ctx.fillStyle = vis ? "#332046" : "#131c2e";
       ctx.fillRect(px+1,py+1,ts-2,ts-2);
-      if(map[y][x]===T_STAIRS && vis){
-        ctx.font = (ts*.7)+"px serif";
-        ctx.fillText("🕳️", px+ts/2, py+ts/2+ts*.05);
+      if(map[y][x]===T_STAIRS){
+        // 階段:金の枠+降りていく3段+下矢印(見つけたら視界外でも薄く表示)
+        ctx.globalAlpha = vis ? 1 : 0.45;
+        ctx.fillStyle = "#0b0816"; ctx.fillRect(px+1,py+1,ts-2,ts-2);
+        ctx.strokeStyle = "#ffd97a"; ctx.lineWidth = Math.max(1.5, ts*0.06);
+        ctx.strokeRect(px+2.5,py+2.5,ts-5,ts-5);
+        const st = ts/6;
+        ctx.fillStyle="#ffd97a"; ctx.fillRect(px+st,     py+st*1.6, st*1.7, st*0.9);
+        ctx.fillStyle="#d9ae55"; ctx.fillRect(px+st*2.2, py+st*2.8, st*1.7, st*0.9);
+        ctx.fillStyle="#a87f35"; ctx.fillRect(px+st*3.4, py+st*4.0, st*1.7, st*0.9);
+        ctx.fillStyle="#ffffff";
+        ctx.font = "bold "+(ts*.36)+"px sans-serif";
+        ctx.fillText("⬇", px+ts*.72, py+ts*.28);
+        ctx.globalAlpha = 1;
       }
     }
   }
@@ -337,6 +396,7 @@ function gainXp(n){
     player.lv++;
     player.maxHp += 5; player.atk += 1;
     player.hp = Math.min(player.maxHp, player.hp+8);
+    SFX.levelup();
     log(`✨ レベルアップ! Lv${player.lv}(HP+5 攻撃+1)`);
   }
 }
@@ -356,11 +416,14 @@ function playerAct(dx,dy){
     foe.hp -= dmg;
     log(`🐾 ${foe.name}に ${dmg}ダメージ!`);
     if(foe.hp<=0){
+      SFX.kill();
       entities = entities.filter(e=>e!==foe);
       score += foe.boss ? 500 : foe.xp*10;
       log(`💥 ${foe.name}を たいじした!`);
       if(foe.boss){ winGame(); return; }
       gainXp(foe.xp);
+    } else {
+      SFX.attack();
     }
     endTurn(); return;
   }
@@ -371,6 +434,7 @@ function playerAct(dx,dy){
     if(player.inv.length<5){
       player.inv.push(it.kind);
       items = items.filter(o=>o!==it);
+      SFX.pickup();
       log(`${ITEM_DEFS[it.kind].emoji} ${ITEM_DEFS[it.kind].name}を ひろった!`);
     } else {
       log("🎒 もちものが いっぱいだ…");
@@ -386,6 +450,7 @@ function useItem(i){
   if(gameState!=="play") return;
   const kind = player.inv[i];
   player.inv.splice(i,1);
+  if(ITEM_SFX[kind]) ITEM_SFX[kind]();
   if(kind==="cheese"){ player.hp=Math.min(player.maxHp,player.hp+12); log("🧀 おいしい! HP+12"); }
   else if(kind==="fish"){ player.hp=Math.min(player.maxHp,player.hp+5); gainXp(5); log("🐟 うまうま! HP+5 XP+5"); }
   else if(kind==="matatabi"){ player.buffTurns=10; log("🌿 またたびパワー! 10ターン攻撃2倍!"); }
@@ -405,6 +470,7 @@ function enemyTurn(){
       if(dist===1){
         const dmg = Math.max(1, e.atk + ri(3) - player.def);
         player.hp -= dmg;
+        SFX.hurt();
         log(`💢 ${e.name}の こうげき! ${dmg}ダメージ`);
         if(e.boss && e.hp < e.maxHp*.5 && entities.length<6 && Math.random()<.3){
           const c = freeCell(null);
@@ -451,6 +517,7 @@ function endTurn(){
 // ===== 階層強化・進行 =====
 function showUpgrade(){
   gameState = "upgrade";
+  SFX.stairs();
   score += 100;
   const opts = [...UPGRADES].sort(()=>Math.random()-.5).slice(0,3);
   const panel = document.getElementById("panel");
@@ -488,6 +555,7 @@ function saveBest(){
 
 function gameOver(){
   gameState = "over";
+  SFX.over();
   const best = saveBest();
   const panel = document.getElementById("panel");
   panel.innerHTML = `<h1>😿 ゲームオーバー</h1>
@@ -499,6 +567,7 @@ function gameOver(){
 
 function winGame(){
   gameState = "win";
+  SFX.win();
   score += 1000;
   const best = saveBest();
   const panel = document.getElementById("panel");

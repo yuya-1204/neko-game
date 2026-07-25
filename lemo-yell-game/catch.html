@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#38bdf8">
+  <meta name="description" content="レモエール君とレモミィちゃんを動かしてレモンとエールを集める無料ブラウザゲーム。">
+  <title>レモンキャッチ｜レモエールくんゲーム</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="app-page catch-page">
+  <a class="skip-link" href="#main">ゲーム画面へ</a>
+
+  <header class="compact-header">
+    <a class="back-link" href="index.html" aria-label="ゲーム選択へ戻る">←</a>
+    <div>
+      <p class="eyebrow">レモエールくんゲーム</p>
+      <h1>レモンキャッチ</h1>
+    </div>
+    <button class="sound-button" id="catchSoundButton" type="button" aria-pressed="true">音 ON</button>
+  </header>
+
+  <main id="main" class="app-shell catch-shell">
+    <section id="catchSetup" class="catch-setup" aria-labelledby="catchTitle">
+      <div class="catch-intro">
+        <img src="assets/seasons.png" alt="春夏秋冬のレモエール君とレモミィちゃん">
+        <div>
+          <span class="pill">60秒・スマホ対応</span>
+          <h2 id="catchTitle">だれとキャッチする？</h2>
+          <p>レモンは10点、ハートは20点、星は30点。くもに当たっても少し休めば大丈夫！</p>
+        </div>
+      </div>
+
+      <div class="character-choice" role="radiogroup" aria-label="キャラクター選択">
+        <button class="character-choice-button selected" type="button" data-character="lemo" role="radio" aria-checked="true">
+          <img src="assets/lemo-yell.png" alt="">
+          <strong>レモエール君</strong>
+        </button>
+        <button class="character-choice-button" type="button" data-character="lemomy" role="radio" aria-checked="false">
+          <img src="assets/lemomy.png" alt="">
+          <strong>レモミィちゃん</strong>
+        </button>
+      </div>
+
+      <div class="difficulty-choice">
+        <label for="catchDifficulty">むずかしさ</label>
+        <select id="catchDifficulty">
+          <option value="easy">やさしい</option>
+          <option value="normal">ふつう</option>
+          <option value="challenge">チャレンジ</option>
+        </select>
+      </div>
+
+      <button id="startCatch" class="primary-button big-button" type="button">ゲームスタート！</button>
+      <p class="keyboard-note">パソコンでは ← → キーでも動かせます。</p>
+    </section>
+
+    <section id="catchGame" class="catch-game" hidden aria-label="レモンキャッチのゲーム画面">
+      <div class="catch-hud">
+        <span>スコア <strong id="catchScore">0</strong></span>
+        <span>のこり <strong id="catchTime">60</strong>秒</span>
+        <span>ベスト <strong id="catchBest">0</strong></span>
+      </div>
+      <div class="canvas-wrap">
+        <canvas id="catchCanvas" width="720" height="900" aria-label="落ちてくるレモンやハートを集めるゲーム"></canvas>
+      </div>
+      <div class="touch-controls" aria-label="移動ボタン">
+        <button id="moveLeft" type="button" aria-label="左へ動く">←</button>
+        <button id="pauseCatch" type="button" aria-label="一時停止">Ⅱ</button>
+        <button id="moveRight" type="button" aria-label="右へ動く">→</button>
+      </div>
+      <button id="quitCatch" class="text-button" type="button">ゲームをやめる</button>
+    </section>
+  </main>
+
+  <dialog id="catchResult" class="clear-dialog">
+    <div class="clear-burst" aria-hidden="true">🍋</div>
+    <h2 id="resultTitle">すごい！</h2>
+    <p id="resultText">たくさんのエールを集めたね。</p>
+    <strong class="result-score" id="resultScore">0点</strong>
+    <div class="dialog-actions">
+      <button id="retryCatch" class="primary-button" type="button">もう一度</button>
+      <button id="catchHome" class="secondary-button" type="button">キャラクター選択へ</button>
+    </div>
+  </dialog>
+
+  <img id="lemoSprite" src="assets/lemo-yell.png" alt="" hidden>
+  <img id="lemomySprite" src="assets/lemomy.png" alt="" hidden>
+  <script src="catch.js"></script>
+</body>
+</html>

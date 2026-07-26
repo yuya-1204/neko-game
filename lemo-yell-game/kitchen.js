@@ -290,7 +290,7 @@
     return `<span class="drink-picture drink-picture--${drink.id}" aria-hidden="true"><i></i></span>`;
   }
 
-  function makeDraggableDrink(buttonElement, drink, trayElement, onDrop) {
+  function makeDraggableItem(buttonElement, item, dropElement, onDrop, picture = drinkPicture) {
     let dragGhost = null;
     let activePointer = null;
     let suppressClick = false;
@@ -303,15 +303,15 @@
 
     const finishDrag = (event, cancelled = false) => {
       if (activePointer !== event.pointerId) return;
-      const trayRect = trayElement.getBoundingClientRect();
+      const dropRect = dropElement.getBoundingClientRect();
       const isOverTray = !cancelled
-        && event.clientX >= trayRect.left
-        && event.clientX <= trayRect.right
-        && event.clientY >= trayRect.top
-        && event.clientY <= trayRect.bottom;
+        && event.clientX >= dropRect.left
+        && event.clientX <= dropRect.right
+        && event.clientY >= dropRect.top
+        && event.clientY <= dropRect.bottom;
 
       buttonElement.classList.remove("is-dragging");
-      trayElement.classList.remove("is-drop-target");
+      dropElement.classList.remove("is-drop-target");
       dragGhost?.remove();
       dragGhost = null;
       activePointer = null;
@@ -320,7 +320,7 @@
       }, 0);
 
       if (isOverTray) {
-        onDrop(drink);
+        onDrop(item);
       }
     };
 
@@ -331,10 +331,10 @@
       activePointer = event.pointerId;
       buttonElement.setPointerCapture(event.pointerId);
       buttonElement.classList.add("is-dragging");
-      trayElement.classList.add("is-drop-target");
+      dropElement.classList.add("is-drop-target");
       dragGhost = document.createElement("div");
-      dragGhost.className = "drink-drag-ghost";
-      dragGhost.innerHTML = `${drinkPicture(drink)}<strong>${drink.name}</strong>`;
+      dragGhost.className = "item-drag-ghost";
+      dragGhost.innerHTML = `${picture(item)}<strong>${item.name}</strong>`;
       document.body.append(dragGhost);
       moveGhost(event.clientX, event.clientY);
     });
@@ -348,23 +348,23 @@
       } else if (event.clientY < 70) {
         window.scrollBy({ top: -18, behavior: "auto" });
       }
-      const trayRect = trayElement.getBoundingClientRect();
-      trayElement.classList.toggle(
+      const dropRect = dropElement.getBoundingClientRect();
+      dropElement.classList.toggle(
         "is-drag-over",
-        event.clientX >= trayRect.left
-          && event.clientX <= trayRect.right
-          && event.clientY >= trayRect.top
-          && event.clientY <= trayRect.bottom
+        event.clientX >= dropRect.left
+          && event.clientX <= dropRect.right
+          && event.clientY >= dropRect.top
+          && event.clientY <= dropRect.bottom
       );
     });
 
     buttonElement.addEventListener("pointerup", (event) => {
-      trayElement.classList.remove("is-drag-over");
+      dropElement.classList.remove("is-drag-over");
       finishDrag(event);
     });
 
     buttonElement.addEventListener("pointercancel", (event) => {
-      trayElement.classList.remove("is-drag-over");
+      dropElement.classList.remove("is-drag-over");
       finishDrag(event, true);
     });
 
@@ -374,7 +374,55 @@
         event.preventDefault();
         return;
       }
-      onDrop(drink);
+      onDrop(item);
+    });
+  }
+
+  function createCustomerTray(title = "② お客さんのトレイにのせよう", speech = "おねがいします♪") {
+    const customerArea = document.createElement("section");
+    customerArea.className = "customer-tray-area";
+    const titleId = `tray-title-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    customerArea.setAttribute("aria-labelledby", titleId);
+    customerArea.innerHTML = `
+      <h3 id="${titleId}">${title}</h3>
+      <div class="customer-picture">
+        <img src="assets/lemomy.png" alt="トレイを持って待っているレモミィちゃん">
+        <span>${speech}</span>
+      </div>`;
+    const tray = document.createElement("div");
+    tray.className = "serving-tray";
+    tray.setAttribute("role", "group");
+    tray.setAttribute("aria-label", "お客さんのトレイ。まだ飲み物はありません");
+    const trayItems = document.createElement("div");
+    trayItems.className = "serving-tray__items";
+    tray.append(trayItems);
+    customerArea.append(tray);
+    return { customerArea, tray, trayItems };
+  }
+
+  function renderCustomerTray(tray, trayItems, drinks, onRemove) {
+    trayItems.innerHTML = "";
+    tray.classList.toggle("is-empty", drinks.length === 0);
+    tray.setAttribute(
+      "aria-label",
+      drinks.length
+        ? `お客さんのトレイ。飲み物が${drinks.length}杯あります`
+        : "お客さんのトレイ。まだ飲み物はありません"
+    );
+
+    if (!drinks.length) {
+      trayItems.innerHTML = '<p class="tray-empty-message">ここに運んでね</p>';
+      return;
+    }
+
+    drinks.forEach((drink, index) => {
+      const trayDrink = document.createElement("button");
+      trayDrink.type = "button";
+      trayDrink.className = "tray-drink";
+      trayDrink.setAttribute("aria-label", `${drink.name}をトレイから戻す`);
+      trayDrink.innerHTML = `${drinkPicture(drink)}<span>${drink.name}</span>`;
+      trayDrink.addEventListener("click", () => onRemove(drink, index));
+      trayItems.append(trayDrink);
     });
   }
 
@@ -412,50 +460,13 @@
     const drinkSources = document.createElement("div");
     drinkSources.className = "drink-sources";
 
-    const customerArea = document.createElement("section");
-    customerArea.className = "customer-tray-area";
-    customerArea.setAttribute("aria-labelledby", "trayTitle");
-    customerArea.innerHTML = `
-      <h3 id="trayTitle">② お客さんのトレイにのせよう</h3>
-      <div class="customer-picture">
-        <img src="assets/lemomy.png" alt="トレイを持って待っているレモミィちゃん">
-        <span>おねがいします♪</span>
-      </div>`;
-    const tray = document.createElement("div");
-    tray.className = "serving-tray";
-    tray.setAttribute("role", "group");
-    tray.setAttribute("aria-label", "お客さんのトレイ。まだ飲み物はありません");
-    const trayItems = document.createElement("div");
-    trayItems.className = "serving-tray__items";
-    tray.append(trayItems);
+    const { customerArea, tray, trayItems } = createCustomerTray();
 
     const renderTray = () => {
-      trayItems.innerHTML = "";
-      tray.classList.toggle("is-empty", placedDrinks.length === 0);
-      tray.setAttribute(
-        "aria-label",
-        placedDrinks.length
-          ? `お客さんのトレイ。飲み物が${placedDrinks.length}杯あります`
-          : "お客さんのトレイ。まだ飲み物はありません"
-      );
-
-      if (!placedDrinks.length) {
-        trayItems.innerHTML = '<p class="tray-empty-message">ここに運んでね</p>';
-        return;
-      }
-
-      placedDrinks.forEach((drink, index) => {
-        const trayDrink = document.createElement("button");
-        trayDrink.type = "button";
-        trayDrink.className = "tray-drink";
-        trayDrink.setAttribute("aria-label", `${drink.name}をトレイから戻す`);
-        trayDrink.innerHTML = `${drinkPicture(drink)}<span>${drink.name}</span>`;
-        trayDrink.addEventListener("click", () => {
+      renderCustomerTray(tray, trayItems, placedDrinks, (drink, index) => {
           placedDrinks.splice(index, 1);
           renderTray();
           setMessage(`${drink.name}をトレイから戻したよ。`, "hint");
-        });
-        trayItems.append(trayDrink);
       });
     };
 
@@ -465,7 +476,7 @@
       drinkButton.className = "draggable-drink";
       drinkButton.setAttribute("aria-label", `${drink.name}をトレイへ運ぶ`);
       drinkButton.innerHTML = `${drinkPicture(drink)}<strong>${drink.name}</strong><span>つかんで運ぶ</span>`;
-      makeDraggableDrink(drinkButton, drink, tray, (droppedDrink) => {
+      makeDraggableItem(drinkButton, drink, tray, (droppedDrink) => {
         if (placedDrinks.length >= 10) {
           wrong("トレイがいっぱいだよ。いらない飲み物をタッチして戻そう！");
           return;
@@ -499,6 +510,20 @@
     });
   }
 
+  const INGREDIENT_ICONS = {
+    "レモン2枚": "🍋",
+    "お水1杯": "💧",
+    "さとう1さじ": "🥄",
+    "炭酸水1杯": "🫧",
+    "氷2こ": "🧊",
+    "お湯1杯": "♨️",
+    "はちみつ1さじ": "🍯"
+  };
+
+  function recipeItemPicture(item) {
+    return `<span class="recipe-item-picture recipe-item-picture--${item.type}" aria-hidden="true">${item.icon}</span>`;
+  }
+
   function startDrinkRecipe() {
     const drink = randomItem(DRINKS);
     const memorySeconds = currentLevel >= 6 ? (currentLevel === 6 ? 6 : 4) : null;
@@ -507,7 +532,7 @@
 
     const runRound = () => {
       const targetDrink = round === 1 ? drink : randomItem(DRINKS.filter((item) => item.id !== drink.id));
-      let selectedVessel = "";
+      let selectedVessel = null;
       const selectedIngredients = new Set();
       const recipeId = `recipe-${Date.now()}`;
       refs.stage.innerHTML = makeOrder(
@@ -530,66 +555,231 @@
         }, memorySeconds * 1000);
       }
 
-      const vesselTitle = document.createElement("h3");
-      vesselTitle.textContent = "① 入れ物をえらぼう";
-      refs.stage.append(vesselTitle);
+      const instructions = document.createElement("p");
+      instructions.className = "drag-instruction";
+      instructions.innerHTML = "<strong>入れ物と材料を、調理台まで運ぼう！</strong><span>レシピに合うものを、指やマウスでドラッグしてね。調理台のものはタッチすると戻せます。</span>";
+      refs.stage.append(instructions);
+
+      const recipeFlow = document.createElement("div");
+      recipeFlow.className = "recipe-drag-layout";
+      const pantry = document.createElement("section");
+      pantry.className = "recipe-pantry";
+      pantry.innerHTML = "<h3>① 棚からえらぼう</h3>";
+      const vesselGroup = document.createElement("div");
+      vesselGroup.className = "recipe-source-group";
+      vesselGroup.innerHTML = "<h4>入れ物</h4>";
       const vesselGrid = document.createElement("div");
-      vesselGrid.className = "choice-grid";
-      shuffle(DRINKS).forEach((item) => {
+      vesselGrid.className = "recipe-item-grid recipe-item-grid--vessels";
+      vesselGroup.append(vesselGrid);
+      const ingredientGroup = document.createElement("div");
+      ingredientGroup.className = "recipe-source-group";
+      ingredientGroup.innerHTML = "<h4>材料</h4>";
+      const ingredientGrid = document.createElement("div");
+      ingredientGrid.className = "recipe-item-grid recipe-item-grid--ingredients";
+      ingredientGroup.append(ingredientGrid);
+      pantry.append(vesselGroup, ingredientGroup);
+
+      const prep = document.createElement("section");
+      prep.className = "preparation-station";
+      prep.innerHTML = `
+        <h3>② 調理台に集めよう</h3>
+        <div class="preparation-counter" role="group" aria-label="飲み物を作る調理台">
+          <div class="prep-vessel-slot"></div>
+          <div class="prep-ingredient-list"></div>
+        </div>`;
+      const prepCounter = prep.querySelector(".preparation-counter");
+      const vesselSlot = prep.querySelector(".prep-vessel-slot");
+      const prepIngredientList = prep.querySelector(".prep-ingredient-list");
+
+      const renderPreparation = () => {
+        vesselSlot.innerHTML = "";
+        if (selectedVessel) {
+          const selectedButton = document.createElement("button");
+          selectedButton.type = "button";
+          selectedButton.className = "prepared-recipe-item prepared-recipe-item--vessel";
+          selectedButton.setAttribute("aria-label", `${selectedVessel.name}を棚へ戻す`);
+          selectedButton.innerHTML = `${recipeItemPicture(selectedVessel)}<span>${selectedVessel.name}</span>`;
+          selectedButton.addEventListener("click", () => {
+            selectedVessel = null;
+            renderPreparation();
+          });
+          vesselSlot.append(selectedButton);
+        } else {
+          vesselSlot.innerHTML = '<p><strong>入れ物</strong><span>ここに運んでね</span></p>';
+        }
+
+        prepIngredientList.innerHTML = "";
+        if (!selectedIngredients.size) {
+          prepIngredientList.innerHTML = '<p><strong>材料</strong><span>ここに運んでね</span></p>';
+        } else {
+          selectedIngredients.forEach((ingredientName) => {
+            const ingredient = {
+              name: ingredientName,
+              icon: INGREDIENT_ICONS[ingredientName] || "🥄",
+              type: "ingredient"
+            };
+            const selectedButton = document.createElement("button");
+            selectedButton.type = "button";
+            selectedButton.className = "prepared-recipe-item";
+            selectedButton.setAttribute("aria-label", `${ingredient.name}を棚へ戻す`);
+            selectedButton.innerHTML = `${recipeItemPicture(ingredient)}<span>${ingredient.name}</span>`;
+            selectedButton.addEventListener("click", () => {
+              selectedIngredients.delete(ingredient.name);
+              renderPreparation();
+            });
+            prepIngredientList.append(selectedButton);
+          });
+        }
+
+        prepCounter.setAttribute(
+          "aria-label",
+          `飲み物を作る調理台。入れ物${selectedVessel ? "あり" : "なし"}、材料${selectedIngredients.size}こ`
+        );
+      };
+
+      const vesselItems = DRINKS.map((item) => ({
+        id: `vessel-${item.id}`,
+        name: item.vessel,
+        value: item.vessel,
+        icon: item.id === "hot" ? "☕" : item.id === "soda" ? "🥤" : "🥛",
+        type: "vessel"
+      }));
+      shuffle(vesselItems).forEach((item) => {
         const itemButton = document.createElement("button");
         itemButton.type = "button";
-        itemButton.className = "choice-button";
-        itemButton.dataset.value = item.vessel;
-        itemButton.innerHTML = `<span class="emoji">${item.emoji}</span>${item.vessel}`;
-        itemButton.addEventListener("click", () => {
-          vesselGrid.querySelectorAll("button").forEach((element) => element.classList.remove("selected"));
-          itemButton.classList.add("selected");
-          selectedVessel = item.vessel;
-        });
+        itemButton.className = "draggable-recipe-item";
+        itemButton.setAttribute("aria-label", `${item.name}を調理台へ運ぶ`);
+        itemButton.innerHTML = `${recipeItemPicture(item)}<strong>${item.name}</strong>`;
+        makeDraggableItem(itemButton, item, prepCounter, (droppedItem) => {
+          selectedVessel = droppedItem;
+          renderPreparation();
+          beep("ok");
+          setMessage(`${droppedItem.name}を調理台に置いたよ。`, "hint");
+        }, recipeItemPicture);
         vesselGrid.append(itemButton);
       });
-      refs.stage.append(vesselGrid);
 
-      const ingredientsTitle = document.createElement("h3");
-      ingredientsTitle.textContent = "② 材料をぜんぶえらぼう";
-      refs.stage.append(ingredientsTitle);
       const allIngredients = [...new Set(DRINKS.flatMap((item) => item.ingredients))];
-      const ingredientGrid = document.createElement("div");
-      ingredientGrid.className = "choice-grid";
-      shuffle(allIngredients).forEach((ingredient) => {
+      shuffle(allIngredients).forEach((ingredientName) => {
+        const ingredient = {
+          id: `ingredient-${ingredientName}`,
+          name: ingredientName,
+          icon: INGREDIENT_ICONS[ingredientName] || "🥄",
+          type: "ingredient"
+        };
         const itemButton = document.createElement("button");
         itemButton.type = "button";
-        itemButton.className = "choice-button";
-        itemButton.dataset.value = ingredient;
-        itemButton.textContent = ingredient;
-        itemButton.addEventListener("click", () => {
-          if (selectedIngredients.has(ingredient)) {
-            selectedIngredients.delete(ingredient);
-            itemButton.classList.remove("selected");
-          } else {
-            selectedIngredients.add(ingredient);
-            itemButton.classList.add("selected");
+        itemButton.className = "draggable-recipe-item";
+        itemButton.setAttribute("aria-label", `${ingredient.name}を調理台へ運ぶ`);
+        itemButton.innerHTML = `${recipeItemPicture(ingredient)}<strong>${ingredient.name}</strong>`;
+        makeDraggableItem(itemButton, ingredient, prepCounter, (droppedItem) => {
+          if (selectedIngredients.has(droppedItem.name)) {
+            setMessage(`${droppedItem.name}は、もう調理台にあるよ。`, "hint");
+            return;
           }
-        });
+          selectedIngredients.add(droppedItem.name);
+          renderPreparation();
+          beep("ok");
+          setMessage(`${droppedItem.name}を調理台に置いたよ。`, "hint");
+        }, recipeItemPicture);
         ingredientGrid.append(itemButton);
       });
-      refs.stage.append(ingredientGrid);
 
-      addCheckButton(rounds > 1 && round === 1 ? "1人目にわたす" : "できあがり！", () => {
+      recipeFlow.append(pantry, prep);
+      refs.stage.append(recipeFlow);
+      renderPreparation();
+
+      const prepActions = document.createElement("div");
+      prepActions.className = "stage-actions";
+      const makeButton = document.createElement("button");
+      makeButton.type = "button";
+      makeButton.className = "primary-button";
+      makeButton.textContent = "OK！ 飲み物をつくる";
+      prepActions.append(makeButton);
+      refs.stage.append(prepActions);
+
+      makeButton.addEventListener("click", () => {
         const ingredientCorrect = selectedIngredients.size === targetDrink.ingredients.length
           && targetDrink.ingredients.every((item) => selectedIngredients.has(item));
-        if (selectedVessel === targetDrink.vessel && ingredientCorrect) {
+        if (selectedVessel?.value !== targetDrink.vessel || !ingredientCorrect) {
+          prepCounter.classList.remove("needs-check");
+          void prepCounter.offsetWidth;
+          prepCounter.classList.add("needs-check");
+          wrong("入れ物と材料を、レシピとくらべてみよう！");
+          return;
+        }
+
+        beep("ok");
+        setMessage(`${targetDrink.name}ができたよ！お客さんのトレイへ運ぼう。`, "success");
+        recipeFlow.remove();
+        prepActions.remove();
+        instructions.innerHTML = "<strong>できた飲み物を、お客さんへ届けよう！</strong><span>飲み物をつかんで、トレイの上まで運んでね。</span>";
+
+        const deliveryScene = document.createElement("div");
+        deliveryScene.className = "drink-service-scene recipe-delivery-scene";
+        const finishedShelf = document.createElement("section");
+        finishedShelf.className = "drink-shelf finished-drink-shelf";
+        finishedShelf.innerHTML = "<h3>③ できあがり</h3>";
+        const finishedButton = document.createElement("button");
+        finishedButton.type = "button";
+        finishedButton.className = "draggable-drink finished-drink";
+        finishedButton.setAttribute("aria-label", `${targetDrink.name}をお客さんのトレイへ運ぶ`);
+        finishedButton.innerHTML = `${drinkPicture(targetDrink)}<strong>${targetDrink.name}</strong><span>つかんで届ける</span>`;
+        finishedShelf.append(finishedButton);
+
+        const { customerArea, tray, trayItems } = createCustomerTray(
+          "④ お客さんのトレイにのせよう",
+          "できたかな？"
+        );
+        const deliveredDrinks = [];
+        const renderDeliveryTray = () => {
+          renderCustomerTray(tray, trayItems, deliveredDrinks, (removedDrink) => {
+            deliveredDrinks.length = 0;
+            renderDeliveryTray();
+            finishedButton.hidden = false;
+            setMessage(`${removedDrink.name}を調理台へ戻したよ。`, "hint");
+          });
+        };
+        makeDraggableItem(finishedButton, targetDrink, tray, (droppedDrink) => {
+          if (deliveredDrinks.length) return;
+          deliveredDrinks.push(droppedDrink);
+          finishedButton.hidden = true;
+          renderDeliveryTray();
+          beep("ok");
+          setMessage("トレイにのせられたよ。「OK！」でお客さんにわたそう。", "success");
+        });
+        deliveryScene.append(finishedShelf, customerArea);
+        refs.stage.append(deliveryScene);
+        renderDeliveryTray();
+
+        const deliveryActions = document.createElement("div");
+        deliveryActions.className = "stage-actions";
+        const deliveryButton = document.createElement("button");
+        deliveryButton.type = "button";
+        deliveryButton.className = "primary-button";
+        deliveryButton.textContent = rounds > 1 && round === 1
+          ? "OK！ 1人目にわたす"
+          : "OK！ お客さんにわたす";
+        deliveryActions.append(deliveryButton);
+        refs.stage.append(deliveryActions);
+
+        deliveryButton.addEventListener("click", () => {
+          if (deliveredDrinks.length !== 1) {
+            tray.classList.remove("needs-check");
+            void tray.offsetWidth;
+            tray.classList.add("needs-check");
+            wrong("できた飲み物を、トレイまで運んでから「OK！」を押そう！");
+            return;
+          }
           if (round < rounds) {
             beep("ok");
             round += 1;
-            setMessage("1人目はぴったり！つぎのお客さんの分も作ろう。", "success");
+            setMessage("1人目はぴったり！つぎのお客さんの分も同じように作ろう。", "success");
             runRound();
           } else {
-            completeLevel("入れ物と材料を正しく選んで、レモネードを作れました。");
+            completeLevel("入れ物と材料をそろえ、できたレモネードをお客さんへ届けられました。");
           }
-        } else {
-          wrong("入れ物と材料を、レシピとくらべてみよう！");
-        }
+        });
       });
     };
     runRound();

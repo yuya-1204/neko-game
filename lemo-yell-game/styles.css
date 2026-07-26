@@ -1262,6 +1262,171 @@ img {
   font-size: 2.9rem;
 }
 
+.item-drag-ghost .game-item-picture {
+  font-size: 3rem;
+}
+
+.drag-game-layout {
+  display: grid;
+  grid-template-columns: minmax(270px, .9fr) minmax(320px, 1.1fr);
+  gap: 18px;
+  align-items: stretch;
+}
+
+.drag-source-panel,
+.drag-target-panel,
+.pizza-source-panel,
+.pizza-target-panel,
+.fridge-source-panel,
+.fridge-cabinet,
+.checkout-wallet,
+.checkout-register {
+  min-width: 0;
+  padding: 16px;
+  border-radius: 22px;
+}
+
+.drag-source-panel,
+.pizza-source-panel,
+.fridge-source-panel,
+.checkout-wallet {
+  border: 3px solid #ead4a0;
+  background: linear-gradient(180deg, #fffaf0, #fff1c9);
+  box-shadow: inset 0 -10px 0 rgba(190, 125, 53, .1);
+}
+
+.drag-target-panel,
+.pizza-target-panel,
+.fridge-cabinet,
+.checkout-register {
+  border: 3px solid #b8dfed;
+  background: linear-gradient(#effbff, #fff5dc);
+}
+
+.drag-source-panel > h3,
+.drag-target-panel > h3,
+.pizza-source-panel > h3,
+.pizza-target-panel > h3,
+.fridge-source-panel > h3,
+.fridge-cabinet > h3,
+.checkout-wallet > h3,
+.checkout-register > h3 {
+  margin: 0 0 14px;
+  font-size: 1rem;
+  text-align: center;
+}
+
+.drag-item-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.draggable-game-item {
+  display: grid;
+  min-width: 0;
+  min-height: 112px;
+  padding: 8px 5px;
+  place-items: center;
+  color: var(--ink);
+  cursor: grab;
+  text-align: center;
+  touch-action: none;
+  user-select: none;
+}
+
+.draggable-game-item:active,
+.draggable-game-item.is-dragging,
+.pizza-slice-source.is-dragging,
+.draggable-coin.is-dragging {
+  cursor: grabbing;
+  opacity: .5;
+}
+
+.draggable-game-item strong {
+  font-size: .77rem;
+  line-height: 1.25;
+}
+
+.draggable-game-item > span:last-child {
+  color: var(--pink-dark);
+  font-size: .65rem;
+  font-weight: 900;
+}
+
+.game-item-picture {
+  display: grid;
+  width: 54px;
+  height: 54px;
+  place-items: center;
+  border-radius: 16px;
+  background: #fff8d8;
+  font-size: 2.15rem;
+  line-height: 1;
+}
+
+.placed-game-item {
+  display: grid;
+  min-width: 72px;
+  min-height: 88px;
+  padding: 6px;
+  place-items: center;
+  border: 3px solid #d5efbd;
+  border-radius: 15px;
+  background: #f3ffe8;
+  color: var(--ink);
+  cursor: pointer;
+  font: inherit;
+  text-align: center;
+}
+
+.placed-game-item > span:not(.game-item-picture),
+.placed-game-item small {
+  font-size: .65rem;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.drop-empty-message {
+  margin: 0;
+  color: #765c37;
+  font-size: .84rem;
+  font-weight: 900;
+  text-align: center;
+}
+
+.stack-drop-zone.is-drop-target,
+.curry-pot.is-drop-target,
+.breakfast-tray.is-drop-target,
+.payment-tray.is-drop-target,
+.tray-slot.is-drop-target,
+.pizza-person-drop.is-drop-target,
+.fridge-bin.is-drop-target {
+  outline: 4px dashed #69a72f;
+  outline-offset: 4px;
+}
+
+.stack-drop-zone.is-drag-over,
+.curry-pot.is-drag-over,
+.breakfast-tray.is-drag-over,
+.payment-tray.is-drag-over,
+.tray-slot.is-drag-over,
+.pizza-person-drop.is-drag-over,
+.fridge-bin.is-drag-over {
+  box-shadow: 0 0 0 9px rgba(108, 178, 57, .24);
+  transform: scale(1.02);
+}
+
+.stack-drop-zone.needs-check,
+.curry-pot.needs-check,
+.tray-grid.needs-check,
+.breakfast-tray.needs-check,
+.payment-tray.needs-check,
+.pizza-target-panel.needs-check,
+.fridge-cabinet.needs-check {
+  animation: shake .3s ease;
+}
+
 .recipe-drag-layout {
   display: grid;
   grid-template-columns: minmax(300px, 1fr) minmax(280px, .9fr);
@@ -1536,6 +1701,78 @@ img {
   min-height: 43px;
 }
 
+.removable-stack-layer {
+  color: var(--ink);
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.removable-stack-layer:hover,
+.removable-stack-layer:focus-visible {
+  outline: 4px solid var(--pink);
+  outline-offset: 2px;
+}
+
+.stack > .drop-empty-message {
+  align-self: center;
+  margin-bottom: 90px;
+}
+
+.curry-pot {
+  position: relative;
+  display: grid;
+  width: min(380px, calc(100% - 40px));
+  min-height: 245px;
+  margin: 24px auto 14px;
+  padding: 38px 24px 27px;
+  place-items: center;
+  border: 9px solid #563728;
+  border-radius: 35px 35px 95px 95px;
+  background:
+    radial-gradient(circle at 25% 20%, #f3aa4a 0 4px, transparent 5px),
+    radial-gradient(circle at 68% 35%, #e88c35 0 5px, transparent 6px),
+    linear-gradient(#b65c28, #713821);
+  box-shadow:
+    inset 0 8px 0 rgba(255, 228, 159, .25),
+    0 12px 0 #34241d,
+    0 18px 18px rgba(50, 34, 20, .2);
+  transition: transform .16s ease, box-shadow .16s ease;
+}
+
+.curry-pot::before,
+.curry-pot::after {
+  position: absolute;
+  top: 48px;
+  width: 54px;
+  height: 23px;
+  border-radius: 999px;
+  background: #563728;
+  content: "";
+}
+
+.curry-pot::before {
+  left: -48px;
+}
+
+.curry-pot::after {
+  right: -48px;
+}
+
+.curry-pot__items {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.curry-pot .placed-game-item {
+  min-width: 68px;
+  min-height: 76px;
+  border-color: #ffe3a4;
+  background: rgba(255, 246, 210, .93);
+}
+
 .hidden-recipe {
   filter: blur(8px);
   user-select: none;
@@ -1545,6 +1782,34 @@ img {
   margin-top: 8px;
   color: var(--pink-dark);
   font-weight: 900;
+}
+
+.recipe-memory-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 10px 14px;
+  margin: -8px 0 17px;
+  padding: 11px 14px;
+  border: 2px dashed rgba(132, 39, 78, .22);
+  border-radius: 16px;
+  background: #fff4f8;
+}
+
+.recipe-memory-controls .recipe-timer {
+  flex: 1 1 240px;
+  margin: 0;
+  text-align: center;
+}
+
+.recipe-replay-button {
+  min-width: 210px;
+}
+
+.recipe-replay-button:disabled {
+  cursor: not-allowed;
+  opacity: .55;
 }
 
 .tray-grid {
@@ -1575,7 +1840,332 @@ img {
   border-style: solid;
   border-color: var(--green);
   background: #efffde;
+  font-size: 1rem;
+}
+
+.tray-slot .game-item-picture {
+  width: 48px;
+  height: 48px;
+  font-size: 1.9rem;
+}
+
+.tray-slot small,
+.tray-slot > span:last-child {
+  font-size: .66rem;
+  font-weight: 900;
+}
+
+.pizza-sharing-layout {
+  display: grid;
+  grid-template-columns: minmax(210px, .65fr) minmax(360px, 1.35fr);
+  gap: 18px;
+}
+
+.pizza-source {
+  display: flex;
+  min-height: 240px;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 18px;
+  border: 7px solid #b87835;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff4c7 0 53%, #eeb24f 54% 63%, #a9652f 64%);
+}
+
+.pizza-slice-source {
+  display: grid;
+  width: 58px;
+  height: 58px;
+  padding: 0;
+  place-items: center;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  background: #fff8de;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.pizza-slice-source .game-item-picture {
+  width: 46px;
+  height: 46px;
+  background: transparent;
   font-size: 2rem;
+}
+
+.pizza-slice-source.selected {
+  border-color: var(--pink-dark);
+  box-shadow: 0 0 0 4px rgba(230, 90, 143, .2);
+}
+
+.pizza-people-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.pizza-person-drop {
+  display: grid;
+  min-height: 155px;
+  padding: 10px;
+  place-items: center;
+  border: 4px solid #d5e7ed;
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at center 68%, #fff 0 39%, #b9dce8 40% 44%, transparent 45%),
+    #f6fcff;
+  cursor: pointer;
+  text-align: center;
+  transition: transform .16s ease, box-shadow .16s ease;
+}
+
+.pizza-person-face {
+  font-size: 2rem;
+}
+
+.pizza-person-drop strong {
+  font-size: .82rem;
+}
+
+.pizza-person-drop small {
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: #fff;
+  font-size: .72rem;
+  font-weight: 900;
+}
+
+.pizza-plate-items {
+  display: flex;
+  min-height: 48px;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+}
+
+.placed-pizza-slice {
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  font-size: 1.55rem;
+}
+
+.placed-pizza-slice:hover,
+.placed-pizza-slice:focus-visible {
+  outline: 3px solid var(--pink);
+  background: #fff;
+}
+
+.pizza-remainder-drop {
+  border-color: #e8d8b8;
+  background: #fff9e9;
+}
+
+.breakfast-tray {
+  display: grid;
+  min-height: 330px;
+  padding: 24px;
+  place-items: center;
+  border: 9px solid #8d582b;
+  border-radius: 25px 25px 65px 65px;
+  background: linear-gradient(145deg, #ffe3a4, #d79750);
+  box-shadow:
+    inset 0 5px 0 rgba(255, 255, 255, .55),
+    0 12px 0 #70411e;
+  transition: transform .16s ease, box-shadow .16s ease;
+}
+
+.breakfast-tray__items {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+
+.breakfast-placed-item {
+  background: #fffdf4;
+}
+
+.fridge-game-layout {
+  display: grid;
+  grid-template-columns: minmax(240px, .75fr) minmax(360px, 1.25fr);
+  gap: 18px;
+}
+
+.fridge-source-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.fridge-bin-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.fridge-bin {
+  display: grid;
+  min-height: 185px;
+  align-content: start;
+  padding: 10px;
+  border: 5px solid #85c9df;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, .82);
+  cursor: pointer;
+  transition: transform .16s ease, box-shadow .16s ease;
+}
+
+.fridge-bin > strong {
+  padding: 6px;
+  border-radius: 10px;
+  background: #dff6ff;
+  color: #245d72;
+  text-align: center;
+}
+
+.fridge-bin__items {
+  display: flex;
+  min-height: 112px;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding-top: 7px;
+}
+
+.fridge-placed-item {
+  display: grid;
+  width: 70px;
+  min-height: 82px;
+  padding: 4px;
+  place-items: center;
+  border: 2px solid #d5efbd;
+  border-radius: 13px;
+  background: #f5ffed;
+  color: var(--ink);
+  cursor: pointer;
+  font: inherit;
+}
+
+.fridge-placed-item .game-item-picture {
+  width: 44px;
+  height: 44px;
+  font-size: 1.8rem;
+}
+
+.fridge-placed-item > span:last-child,
+.fridge-empty {
+  font-size: .62rem;
+  font-weight: 900;
+}
+
+.fridge-empty {
+  color: #66808b;
+}
+
+.checkout-game-layout {
+  display: grid;
+  grid-template-columns: minmax(220px, .7fr) minmax(350px, 1.3fr);
+  gap: 18px;
+}
+
+.checkout-coin-row {
+  display: flex;
+  min-height: 230px;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 13px;
+}
+
+.draggable-coin {
+  display: grid;
+  width: 88px;
+  height: 88px;
+  min-width: 88px;
+  min-height: 88px;
+  padding: 0;
+  place-items: center;
+  border: 6px double #a57b20;
+  background: radial-gradient(circle at 35% 30%, #fff6b8, #dcb744);
+  box-shadow: 0 7px 0 #9c7722;
+  color: #624a16;
+  cursor: grab;
+  font: inherit;
+  touch-action: none;
+  user-select: none;
+}
+
+.draggable-coin strong {
+  align-self: end;
+  font-size: 1.4rem;
+}
+
+.draggable-coin span {
+  align-self: start;
+  font-size: .7rem;
+  font-weight: 900;
+}
+
+.draggable-coin--50 {
+  border-color: #9da4a6;
+  background: radial-gradient(circle at 35% 30%, #fff, #bfc7ca);
+  box-shadow: 0 7px 0 #848c8f;
+}
+
+.draggable-coin--100 {
+  border-color: #b5b5b5;
+  background: radial-gradient(circle at 35% 30%, #fff, #d2d2d2);
+  box-shadow: 0 7px 0 #929292;
+}
+
+.payment-tray {
+  display: grid;
+  min-height: 220px;
+  padding: 22px;
+  place-items: center;
+  border: 8px solid #6f7d82;
+  border-radius: 22px 22px 55px 55px;
+  background: linear-gradient(145deg, #edf4f5, #aebdc1);
+  box-shadow:
+    inset 0 5px 0 rgba(255, 255, 255, .75),
+    0 11px 0 #566166;
+  transition: transform .16s ease, box-shadow .16s ease;
+}
+
+.payment-tray__coins {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+
+.placed-coin {
+  width: 62px;
+  height: 62px;
+  padding: 0;
+  border: 5px double #a57b20;
+  border-radius: 50%;
+  background: #ebcc60;
+  color: #58420d;
+  cursor: pointer;
+  font-weight: 900;
+}
+
+.placed-coin--50,
+.placed-coin--100 {
+  border-color: #91999b;
+  background: #dce2e3;
 }
 
 .people-row,
@@ -1969,6 +2559,13 @@ img {
     grid-template-columns: 1fr;
   }
 
+  .drag-game-layout,
+  .pizza-sharing-layout,
+  .fridge-game-layout,
+  .checkout-game-layout {
+    grid-template-columns: 1fr;
+  }
+
   .drink-sources {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
@@ -1992,6 +2589,11 @@ img {
 
   .preparation-station {
     min-height: 345px;
+  }
+
+  .pizza-source {
+    min-height: 210px;
+    border-radius: 35px;
   }
 
   .character-choice-button {
@@ -2090,6 +2692,79 @@ img {
     font-size: .88rem;
   }
 
+  .drag-source-panel,
+  .drag-target-panel,
+  .pizza-source-panel,
+  .pizza-target-panel,
+  .fridge-source-panel,
+  .fridge-cabinet,
+  .checkout-wallet,
+  .checkout-register {
+    padding: 12px 9px;
+  }
+
+  .drag-item-grid,
+  .fridge-source-grid {
+    gap: 5px;
+  }
+
+  .draggable-game-item {
+    min-height: 102px;
+    padding: 6px 3px;
+  }
+
+  .draggable-game-item strong {
+    font-size: .68rem;
+  }
+
+  .game-item-picture {
+    width: 47px;
+    height: 47px;
+    font-size: 1.9rem;
+  }
+
+  .curry-pot {
+    width: calc(100% - 52px);
+    min-height: 220px;
+    padding-right: 12px;
+    padding-left: 12px;
+  }
+
+  .pizza-people-grid,
+  .fridge-bin-grid {
+    gap: 6px;
+  }
+
+  .pizza-person-drop {
+    min-height: 145px;
+    padding: 7px;
+  }
+
+  .placed-pizza-slice {
+    width: 32px;
+    height: 32px;
+    font-size: 1.35rem;
+  }
+
+  .breakfast-tray {
+    min-height: 280px;
+    padding: 14px 8px;
+  }
+
+  .fridge-bin {
+    min-height: 170px;
+    padding: 7px;
+  }
+
+  .fridge-placed-item {
+    width: 60px;
+  }
+
+  .payment-tray {
+    min-height: 190px;
+    padding: 15px 8px;
+  }
+
   .drink-shelf,
   .customer-tray-area {
     padding: 12px 9px;
@@ -2110,6 +2785,11 @@ img {
 
   .recipe-item-grid--ingredients {
     grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .recipe-replay-button {
+    width: 100%;
+    min-width: 0;
   }
 
   .draggable-recipe-item {

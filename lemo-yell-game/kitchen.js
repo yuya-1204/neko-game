@@ -378,6 +378,96 @@
     });
   }
 
+  function gameItemPicture(item) {
+    return `<span class="game-item-picture" aria-hidden="true">${item.emoji || item.icon || "●"}</span>`;
+  }
+
+  function makeDraggableToZones(buttonElement, item, getDropZones, onDrop, onSelect, picture = gameItemPicture) {
+    let dragGhost = null;
+    let activePointer = null;
+    let suppressClick = false;
+    let pointerStart = null;
+    let pointerMoved = false;
+
+    const zones = () => typeof getDropZones === "function" ? getDropZones() : getDropZones;
+    const moveGhost = (clientX, clientY) => {
+      if (!dragGhost) return;
+      dragGhost.style.left = `${clientX}px`;
+      dragGhost.style.top = `${clientY}px`;
+    };
+    const zoneAt = (clientX, clientY) => zones().find((zone) => {
+      const rect = zone.getBoundingClientRect();
+      return clientX >= rect.left
+        && clientX <= rect.right
+        && clientY >= rect.top
+        && clientY <= rect.bottom;
+    });
+    const clearDropState = () => {
+      zones().forEach((zone) => zone.classList.remove("is-drop-target", "is-drag-over"));
+    };
+
+    const finishDrag = (event, cancelled = false) => {
+      if (activePointer !== event.pointerId) return;
+      const matchedZone = cancelled ? null : zoneAt(event.clientX, event.clientY);
+      const shouldSelect = !cancelled && !matchedZone && !pointerMoved;
+      buttonElement.classList.remove("is-dragging");
+      clearDropState();
+      dragGhost?.remove();
+      dragGhost = null;
+      activePointer = null;
+      pointerStart = null;
+      window.setTimeout(() => {
+        suppressClick = false;
+      }, 0);
+      if (matchedZone) onDrop(item, matchedZone);
+      else if (shouldSelect) onSelect?.(item, buttonElement);
+    };
+
+    buttonElement.addEventListener("pointerdown", (event) => {
+      if (event.button !== 0 || activePointer !== null) return;
+      event.preventDefault();
+      suppressClick = true;
+      activePointer = event.pointerId;
+      pointerStart = { x: event.clientX, y: event.clientY };
+      pointerMoved = false;
+      buttonElement.setPointerCapture(event.pointerId);
+      buttonElement.classList.add("is-dragging");
+      zones().forEach((zone) => zone.classList.add("is-drop-target"));
+      dragGhost = document.createElement("div");
+      dragGhost.className = "item-drag-ghost";
+      dragGhost.innerHTML = `${picture(item)}<strong>${item.name}</strong>`;
+      document.body.append(dragGhost);
+      moveGhost(event.clientX, event.clientY);
+    });
+
+    buttonElement.addEventListener("pointermove", (event) => {
+      if (activePointer !== event.pointerId) return;
+      event.preventDefault();
+      if (pointerStart && Math.hypot(event.clientX - pointerStart.x, event.clientY - pointerStart.y) > 8) {
+        pointerMoved = true;
+      }
+      moveGhost(event.clientX, event.clientY);
+      if (event.clientY > window.innerHeight - 70) {
+        window.scrollBy({ top: 18, behavior: "auto" });
+      } else if (event.clientY < 70) {
+        window.scrollBy({ top: -18, behavior: "auto" });
+      }
+      const matchedZone = zoneAt(event.clientX, event.clientY);
+      zones().forEach((zone) => zone.classList.toggle("is-drag-over", zone === matchedZone));
+    });
+
+    buttonElement.addEventListener("pointerup", (event) => finishDrag(event));
+    buttonElement.addEventListener("pointercancel", (event) => finishDrag(event, true));
+    buttonElement.addEventListener("click", (event) => {
+      if (suppressClick) {
+        suppressClick = false;
+        event.preventDefault();
+        return;
+      }
+      onSelect?.(item, buttonElement);
+    });
+  }
+
   function createCustomerTray(title = "② お客さんのトレイにのせよう", speech = "おねがいします♪") {
     const customerArea = document.createElement("section");
     customerArea.className = "customer-tray-area";
@@ -535,24 +625,68 @@
       let selectedVessel = null;
       const selectedIngredients = new Set();
       const recipeId = `recipe-${Date.now()}`;
+      const recipeText = `${targetDrink.vessel}・${targetDrink.ingredients.join("・")}`;
+      let recipeMemoryControls = null;
+      let recipeHideTimeout = null;
       refs.stage.innerHTML = makeOrder(
         `${targetDrink.name}を作ろう`,
-        `<span id="${recipeId}">${targetDrink.vessel}・${targetDrink.ingredients.join("・")}</span>`
+        `<span id="${recipeId}">${recipeText}</span>`
       );
 
       if (memorySeconds) {
+        let replaysRemaining = 2;
+        recipeMemoryControls = document.createElement("div");
+        recipeMemoryControls.className = "recipe-memory-controls";
         const timer = document.createElement("p");
         timer.className = "recipe-timer";
-        timer.textContent = `${memorySeconds}秒で見本がかくれるよ`;
-        refs.stage.append(timer);
-        window.setTimeout(() => {
+        timer.setAttribute("aria-live", "polite");
+        const replayButton = document.createElement("button");
+        replayButton.type = "button";
+        replayButton.className = "secondary-button recipe-replay-button";
+        replayButton.disabled = true;
+        replayButton.textContent = `もう一度見る（あと${replaysRemaining}回）`;
+        recipeMemoryControls.append(timer, replayButton);
+        refs.stage.append(recipeMemoryControls);
+
+        const hideRecipe = () => {
           const recipe = document.getElementById(recipeId);
           if (recipe) {
             recipe.textContent = "？？？（思い出して作ろう）";
             recipe.classList.add("hidden-recipe");
           }
-          timer.remove();
-        }, memorySeconds * 1000);
+          timer.textContent = replaysRemaining > 0
+            ? "見本がかくれたよ。必要なら、もう一度見られます"
+            : "見本がかくれたよ。思い出して作ってみよう";
+          replayButton.disabled = replaysRemaining <= 0;
+          replayButton.textContent = replaysRemaining > 0
+            ? `もう一度見る（あと${replaysRemaining}回）`
+            : "もう一度見る（2回使いました）";
+        };
+
+        const showRecipeForMemoryTime = (isReplay = false) => {
+          const recipe = document.getElementById(recipeId);
+          if (!recipe) return;
+          recipe.textContent = recipeText;
+          recipe.classList.remove("hidden-recipe");
+          replayButton.disabled = true;
+          replayButton.textContent = isReplay
+            ? `見本を表示中（あと${replaysRemaining}回）`
+            : `もう一度見る（あと${replaysRemaining}回）`;
+          timer.textContent = isReplay
+            ? `${memorySeconds}秒だけ、もう一度見られるよ`
+            : `${memorySeconds}秒で見本がかくれるよ。かくれた後は2回まで見られます`;
+          if (recipeHideTimeout) window.clearTimeout(recipeHideTimeout);
+          recipeHideTimeout = window.setTimeout(hideRecipe, memorySeconds * 1000);
+        };
+
+        replayButton.addEventListener("click", () => {
+          if (replaysRemaining <= 0) return;
+          replaysRemaining -= 1;
+          showRecipeForMemoryTime(true);
+          setMessage(`見本をもう一度、${memorySeconds}秒だけ見られるよ。`, "hint");
+        });
+
+        showRecipeForMemoryTime();
       }
 
       const instructions = document.createElement("p");
@@ -711,6 +845,8 @@
 
         beep("ok");
         setMessage(`${targetDrink.name}ができたよ！お客さんのトレイへ運ぼう。`, "success");
+        if (recipeHideTimeout) window.clearTimeout(recipeHideTimeout);
+        recipeMemoryControls?.remove();
         recipeFlow.remove();
         prepActions.remove();
         instructions.innerHTML = "<strong>できた飲み物を、お客さんへ届けよう！</strong><span>飲み物をつかんで、トレイの上まで運んでね。</span>";
@@ -845,7 +981,7 @@
   }
 
   function startLayerStack({ recipe, layerMap, orderTitle, hideAfter, completeText }) {
-    let placed = [];
+    const placed = [];
     const recipeId = `stack-recipe-${Date.now()}`;
     refs.stage.innerHTML = makeOrder(orderTitle, `<span id="${recipeId}">${recipe.join(" → ")}</span>`);
 
@@ -864,60 +1000,97 @@
       }, hideAfter * 1000);
     }
 
+    const instructions = document.createElement("p");
+    instructions.className = "drag-instruction";
+    instructions.innerHTML = "<strong>材料をつかんで、できあがり台へ運ぼう！</strong><span>下から順番に重ねてね。重ねた材料はタッチすると戻せます。</span>";
+    refs.stage.append(instructions);
+
+    const layout = document.createElement("div");
+    layout.className = "drag-game-layout stack-game-layout";
+    const sourcePanel = document.createElement("section");
+    sourcePanel.className = "drag-source-panel";
+    sourcePanel.innerHTML = "<h3>① 材料をえらぼう</h3>";
+    const grid = document.createElement("div");
+    grid.className = "drag-item-grid";
+    sourcePanel.append(grid);
+
+    const targetPanel = document.createElement("section");
+    targetPanel.className = "drag-target-panel";
+    targetPanel.innerHTML = "<h3>② 下から順番に重ねよう</h3>";
     const buildArea = document.createElement("div");
-    buildArea.className = "build-area";
+    buildArea.className = "build-area stack-drop-zone";
+    buildArea.setAttribute("role", "group");
+    buildArea.setAttribute("aria-label", "料理を重ねるできあがり台");
     const stack = document.createElement("div");
     stack.className = "stack";
     buildArea.append(stack);
-    refs.stage.append(buildArea);
+    targetPanel.append(buildArea);
+    layout.append(sourcePanel, targetPanel);
+    refs.stage.append(layout);
 
-    const grid = document.createElement("div");
-    grid.className = "choice-grid";
     const candidateCount = Math.min(Object.keys(layerMap).length, recipe.length + Math.max(1, currentLevel - 2));
     const candidates = shuffle([...new Set([...recipe, ...shuffle(Object.keys(layerMap))])]).slice(0, candidateCount);
     recipe.forEach((item) => {
       if (!candidates.includes(item)) candidates.push(item);
     });
+
+    const renderStack = () => {
+      stack.innerHTML = "";
+      if (!placed.length) {
+        stack.innerHTML = '<p class="drop-empty-message">ここに運んでね</p>';
+        return;
+      }
+      placed.forEach((name, index) => {
+        const item = layerMap[name];
+        const layer = document.createElement("button");
+        layer.type = "button";
+        layer.className = `stack-layer removable-stack-layer ${item.className || ""}`;
+        layer.style.setProperty("--layer-color", item.color);
+        layer.style.setProperty("--layer-width", item.width);
+        layer.setAttribute("aria-label", `${name}をできあがり台から戻す`);
+        layer.textContent = `${item.emoji} ${name}`;
+        layer.addEventListener("click", () => {
+          placed.splice(index, 1);
+          renderStack();
+          setMessage(`${name}を材料の棚へ戻したよ。`, "hint");
+        });
+        stack.append(layer);
+      });
+    };
+
     shuffle(candidates).forEach((name) => {
       const item = layerMap[name];
       const itemButton = document.createElement("button");
       itemButton.type = "button";
-      itemButton.className = "food-button";
-      itemButton.innerHTML = `<span class="emoji">${item.emoji}</span>${name}`;
-      itemButton.addEventListener("click", () => {
-        const expected = recipe[placed.length];
-        if (name !== expected) {
-          itemButton.classList.add("wrong");
-          window.setTimeout(() => itemButton.classList.remove("wrong"), 450);
-          wrong(`もう一度、注文を見てみよう！つぎは「${expected}」だよ。`);
+      itemButton.className = "food-button draggable-game-item";
+      itemButton.setAttribute("aria-label", `${name}をできあがり台へ運ぶ`);
+      itemButton.innerHTML = `${gameItemPicture({ emoji: item.emoji })}<strong>${name}</strong><span>つかんで運ぶ</span>`;
+      makeDraggableItem(itemButton, { name, emoji: item.emoji }, buildArea, (droppedItem) => {
+        if (placed.length >= recipe.length + 2) {
+          wrong("できあがり台がいっぱいだよ。いらない材料をタッチして戻そう！");
           return;
         }
-        placed.push(name);
-        const layer = document.createElement("div");
-        layer.className = `stack-layer ${item.className || ""}`;
-        layer.style.setProperty("--layer-color", item.color);
-        layer.style.setProperty("--layer-width", item.width);
-        layer.textContent = `${item.emoji} ${name}`;
-        stack.append(layer);
+        placed.push(droppedItem.name);
+        renderStack();
         beep("ok");
-        if (placed.length === recipe.length) {
-          window.setTimeout(() => completeLevel(completeText), 350);
-        }
-      });
+        setMessage(`${droppedItem.name}を重ねたよ。できたら「OK！」を押そう。`, "hint");
+      }, gameItemPicture);
       grid.append(itemButton);
     });
-    refs.stage.append(grid);
+    renderStack();
 
-    const undo = document.createElement("button");
-    undo.type = "button";
-    undo.className = "text-button";
-    undo.textContent = "ひとつ戻す";
-    undo.addEventListener("click", () => {
-      if (!placed.length) return;
-      placed.pop();
-      stack.lastElementChild?.remove();
+    addCheckButton("OK！ できあがり", () => {
+      const correct = placed.length === recipe.length
+        && recipe.every((name, index) => placed[index] === name);
+      if (correct) {
+        completeLevel(completeText);
+      } else {
+        buildArea.classList.remove("needs-check");
+        void buildArea.offsetWidth;
+        buildArea.classList.add("needs-check");
+        wrong("材料の種類と、下から重ねる順番を注文カードとくらべてみよう！");
+      }
     });
-    refs.stage.append(undo);
   }
 
   // 3. Curry ingredients
@@ -947,7 +1120,7 @@
     recipe.forEach((item) => {
       if (!candidates.some((candidate) => candidate.name === item.name)) candidates.push(item);
     });
-    const selected = new Set();
+    const selected = new Map();
     const memorySeconds = currentLevel <= 2 ? null : Math.max(3, 9 - currentLevel);
     const recipeId = `curry-recipe-${Date.now()}`;
     refs.stage.innerHTML = makeOrder(
@@ -967,30 +1140,83 @@
       }, memorySeconds * 1000);
     }
 
+    const instructions = document.createElement("p");
+    instructions.className = "drag-instruction";
+    instructions.innerHTML = "<strong>思い出した具材を、カレー鍋へ運ぼう！</strong><span>鍋に入れた具材は、タッチすると棚へ戻せます。</span>";
+    refs.stage.append(instructions);
+
+    const layout = document.createElement("div");
+    layout.className = "drag-game-layout curry-game-layout";
+    const sourcePanel = document.createElement("section");
+    sourcePanel.className = "drag-source-panel";
+    sourcePanel.innerHTML = "<h3>① 具材をえらぼう</h3>";
     const grid = document.createElement("div");
-    grid.className = "choice-grid";
+    grid.className = "drag-item-grid";
+    sourcePanel.append(grid);
+    const targetPanel = document.createElement("section");
+    targetPanel.className = "drag-target-panel";
+    targetPanel.innerHTML = "<h3>② カレー鍋に入れよう</h3>";
+    const pot = document.createElement("div");
+    pot.className = "curry-pot";
+    pot.setAttribute("role", "group");
+    pot.setAttribute("aria-label", "カレー鍋。まだ具材は入っていません");
+    const potItems = document.createElement("div");
+    potItems.className = "curry-pot__items";
+    pot.append(potItems);
+    targetPanel.append(pot);
+    layout.append(sourcePanel, targetPanel);
+    refs.stage.append(layout);
+
+    const renderPot = () => {
+      potItems.innerHTML = "";
+      pot.setAttribute("aria-label", `カレー鍋。具材が${selected.size}こ入っています`);
+      if (!selected.size) {
+        potItems.innerHTML = '<p class="drop-empty-message">ここに運んでね</p>';
+        return;
+      }
+      selected.forEach((item) => {
+        const selectedButton = document.createElement("button");
+        selectedButton.type = "button";
+        selectedButton.className = "placed-game-item";
+        selectedButton.setAttribute("aria-label", `${item.name}を鍋から戻す`);
+        selectedButton.innerHTML = `${gameItemPicture(item)}<span>${item.name}</span>`;
+        selectedButton.addEventListener("click", () => {
+          selected.delete(item.name);
+          renderPot();
+          setMessage(`${item.name}を具材の棚へ戻したよ。`, "hint");
+        });
+        potItems.append(selectedButton);
+      });
+    };
+
     candidates.forEach((item) => {
       const itemButton = document.createElement("button");
       itemButton.type = "button";
-      itemButton.className = "food-button";
-      itemButton.innerHTML = `<span class="emoji">${item.emoji}</span>${item.name}`;
-      itemButton.addEventListener("click", () => {
-        if (selected.has(item.name)) {
-          selected.delete(item.name);
-          itemButton.classList.remove("selected");
-        } else {
-          selected.add(item.name);
-          itemButton.classList.add("selected");
+      itemButton.className = "food-button draggable-game-item";
+      itemButton.setAttribute("aria-label", `${item.name}をカレー鍋へ運ぶ`);
+      itemButton.innerHTML = `${gameItemPicture(item)}<strong>${item.name}</strong><span>鍋へ運ぶ</span>`;
+      makeDraggableItem(itemButton, item, pot, (droppedItem) => {
+        if (selected.has(droppedItem.name)) {
+          setMessage(`${droppedItem.name}は、もう鍋に入っているよ。`, "hint");
+          return;
         }
-      });
+        selected.set(droppedItem.name, droppedItem);
+        renderPot();
+        beep("ok");
+        setMessage(`${droppedItem.name}を鍋に入れたよ。`, "hint");
+      }, gameItemPicture);
       grid.append(itemButton);
     });
-    refs.stage.append(grid);
-    addCheckButton("これでカレーを作る", () => {
+    renderPot();
+
+    addCheckButton("OK！ これでカレーを作る", () => {
       const correct = selected.size === recipe.length && recipe.every((item) => selected.has(item.name));
       if (correct) {
         completeLevel("調理場面を思い出して、使った具材を全部見つけられました。");
       } else {
+        pot.classList.remove("needs-check");
+        void pot.offsetWidth;
+        pot.classList.add("needs-check");
         wrong("さっきの調理場面を思い出して、選んだ数も確認してみよう！");
       }
     });
@@ -1015,6 +1241,7 @@
     const target = SLOT_NAMES.slice(0, slotCount).map((slot, index) => ({ slot, food: foods[index] }));
     let selectedFood = null;
     const filled = new Map();
+    const sourceButtons = [];
     const memorySeconds = currentLevel >= 5 ? Math.max(3, 9 - currentLevel) : null;
     const orderId = `bento-order-${Date.now()}`;
     refs.stage.innerHTML = makeOrder(
@@ -1033,48 +1260,113 @@
       }, memorySeconds * 1000);
     }
 
+    const instructions = document.createElement("p");
+    instructions.className = "drag-instruction";
+    instructions.innerHTML = "<strong>おかずをつかんで、お弁当箱の場所まで運ぼう！</strong><span>ドラッグが難しい時は、おかず→入れる場所の順にタッチ。入れたおかずはタッチで戻せます。</span>";
+    refs.stage.append(instructions);
+
+    const layout = document.createElement("div");
+    layout.className = "drag-game-layout bento-game-layout";
+    const sourcePanel = document.createElement("section");
+    sourcePanel.className = "drag-source-panel";
+    sourcePanel.innerHTML = "<h3>① おかずをえらぼう</h3>";
+    const grid = document.createElement("div");
+    grid.className = "drag-item-grid";
+    sourcePanel.append(grid);
+    const targetPanel = document.createElement("section");
+    targetPanel.className = "drag-target-panel";
+    targetPanel.innerHTML = "<h3>② 指定された場所につめよう</h3>";
     const tray = document.createElement("div");
     tray.className = "tray-grid";
+
+    const clearSourceSelection = () => {
+      selectedFood = null;
+      sourceButtons.forEach((buttonElement) => buttonElement.classList.remove("selected"));
+    };
+
+    const placeFood = (food, slot) => {
+      const index = Number(slot.dataset.index);
+      if (filled.has(index)) {
+        wrong("その場所には、もうおかずが入っているよ。タッチして戻してみよう！");
+        return;
+      }
+      filled.set(index, food);
+      clearSourceSelection();
+      renderTray();
+      beep("ok");
+      setMessage(`${food.name}を${target[index].slot}に入れたよ。`, "hint");
+    };
+
+    const renderTray = () => {
+      tray.querySelectorAll(".tray-slot").forEach((slot) => {
+        const index = Number(slot.dataset.index);
+        const placedFood = filled.get(index);
+        slot.classList.toggle("filled", Boolean(placedFood));
+        if (placedFood) {
+          slot.innerHTML = `${gameItemPicture(placedFood)}<small>${placedFood.name}</small><span>タッチで戻す</span>`;
+        } else {
+          slot.innerHTML = `<small>${target[index].slot}</small><span>ここに運ぶ</span>`;
+        }
+      });
+    };
+
     target.forEach((item, index) => {
       const slot = document.createElement("button");
       slot.type = "button";
       slot.className = "tray-slot";
       slot.dataset.index = String(index);
-      slot.innerHTML = `<small>${item.slot}</small><span>ここに入れる</span>`;
       slot.addEventListener("click", () => {
-        if (!selectedFood || filled.has(index)) return;
-        if (selectedFood.name !== item.food.name) {
-          wrong(`${item.slot}には、どのおかずだったかな？注文カードを見てみよう！`);
+        if (filled.has(index)) {
+          const removedFood = filled.get(index);
+          filled.delete(index);
+          renderTray();
+          setMessage(`${removedFood.name}をおかずの棚へ戻したよ。`, "hint");
           return;
         }
-        filled.set(index, selectedFood);
-        slot.classList.add("filled");
-        slot.innerHTML = `<span>${selectedFood.emoji}</span><small>${selectedFood.name}</small>`;
-        beep("ok");
-        if (filled.size === target.length) {
-          window.setTimeout(() => completeLevel("指定された場所に、すべてのおかずをつめられました。"), 350);
-        }
+        if (selectedFood) placeFood(selectedFood, slot);
       });
       tray.append(slot);
     });
-    refs.stage.append(tray);
+    targetPanel.append(tray);
+    layout.append(sourcePanel, targetPanel);
+    refs.stage.append(layout);
 
-    const grid = document.createElement("div");
-    grid.className = "choice-grid";
     shuffle([...foods, ...shuffle(BENTO_FOODS.filter((item) => !foods.includes(item))).slice(0, Math.max(0, currentLevel - 3))]).forEach((food) => {
       const foodButton = document.createElement("button");
       foodButton.type = "button";
-      foodButton.className = "food-button";
-      foodButton.innerHTML = `<span class="emoji">${food.emoji}</span>${food.name}`;
-      foodButton.addEventListener("click", () => {
-        grid.querySelectorAll("button").forEach((element) => element.classList.remove("selected"));
-        foodButton.classList.add("selected");
-        selectedFood = food;
-        setMessage(`${food.name}を選んだよ。入れる場所をタップしよう。`, "hint");
-      });
+      foodButton.className = "food-button draggable-game-item";
+      foodButton.setAttribute("aria-label", `${food.name}をお弁当箱へ運ぶ`);
+      foodButton.innerHTML = `${gameItemPicture(food)}<strong>${food.name}</strong><span>つかんで運ぶ</span>`;
+      sourceButtons.push(foodButton);
+      makeDraggableToZones(
+        foodButton,
+        food,
+        () => [...tray.querySelectorAll(".tray-slot")],
+        (droppedFood, slot) => placeFood(droppedFood, slot),
+        (selected, selectedButton) => {
+          sourceButtons.forEach((buttonElement) => buttonElement.classList.remove("selected"));
+          selectedButton.classList.add("selected");
+          selectedFood = selected;
+          setMessage(`${selected.name}を選んだよ。入れる場所をタッチしよう。`, "hint");
+        },
+        gameItemPicture
+      );
       grid.append(foodButton);
     });
-    refs.stage.append(grid);
+    renderTray();
+
+    addCheckButton("OK！ おべんとうをわたす", () => {
+      const correct = filled.size === target.length
+        && target.every((item, index) => filled.get(index)?.name === item.food.name);
+      if (correct) {
+        completeLevel("指定された場所に、すべてのおかずをつめられました。");
+      } else {
+        tray.classList.remove("needs-check");
+        void tray.offsetWidth;
+        tray.classList.add("needs-check");
+        wrong("おかずの種類と場所を、注文カードとくらべてみよう！");
+      }
+    });
   }
 
   // 6. Pizza sharing
@@ -1092,62 +1384,149 @@
     const config = PIZZA_LEVELS[currentLevel - 1];
     const perPerson = Math.floor(config.total / config.people);
     const remainder = config.total % config.people;
+    const assignments = Array(config.total).fill(null);
+    const sourceButtons = [];
+    let selectedSliceIndex = null;
     refs.stage.innerHTML = makeOrder(
       `ピザ${config.total}切れを、${config.people}人に同じ数ずつ分けよう`,
       currentLevel >= 5 ? "あまるピザがあるかもしれないよ" : ""
     );
-    const pizza = document.createElement("div");
-    pizza.className = "plate-row";
-    pizza.innerHTML = Array.from({ length: config.total }, () => '<span class="person-plate" aria-hidden="true">🍕</span>').join("");
-    refs.stage.append(pizza);
+
+    const instructions = document.createElement("p");
+    instructions.className = "drag-instruction";
+    instructions.innerHTML = "<strong>ピザを1切れずつ、みんなのお皿へ運ぼう！</strong><span>ドラッグが難しい時は、ピザ→お皿の順にタッチ。置いたピザはタッチで大皿へ戻せます。</span>";
+    refs.stage.append(instructions);
+
+    const layout = document.createElement("div");
+    layout.className = "pizza-sharing-layout";
+    const sourcePanel = document.createElement("section");
+    sourcePanel.className = "pizza-source-panel";
+    sourcePanel.innerHTML = `<h3>① 大皿のピザ（${config.total}切れ）</h3>`;
+    const pizzaSource = document.createElement("div");
+    pizzaSource.className = "pizza-source";
+    sourcePanel.append(pizzaSource);
+    const targetPanel = document.createElement("section");
+    targetPanel.className = "pizza-target-panel";
+    targetPanel.innerHTML = "<h3>② みんなのお皿に配ろう</h3>";
     const people = document.createElement("div");
-    people.className = "people-row";
-    people.innerHTML = Array.from({ length: config.people }, (_, i) => `<div class="person-plate">🙂<small>${i + 1}人目</small></div>`).join("");
-    refs.stage.append(people);
+    people.className = "pizza-people-grid";
+    const dropZones = [];
 
-    const question = document.createElement("h3");
-    question.textContent = "1人に何切れずつ？";
-    question.style.textAlign = "center";
-    refs.stage.append(question);
-    const choices = shuffle([...new Set([perPerson, perPerson + 1, Math.max(0, perPerson - 1), perPerson + 2])]);
-    const grid = document.createElement("div");
-    grid.className = "choice-grid";
-    let chosenPerPerson = null;
-    choices.forEach((number) => {
-      const numberButton = document.createElement("button");
-      numberButton.type = "button";
-      numberButton.className = "choice-button";
-      numberButton.textContent = `${number}切れ`;
-      numberButton.addEventListener("click", () => {
-        grid.querySelectorAll("button").forEach((element) => element.classList.remove("selected"));
-        numberButton.classList.add("selected");
-        chosenPerPerson = number;
-      });
-      grid.append(numberButton);
-    });
-    refs.stage.append(grid);
+    const clearSliceSelection = () => {
+      selectedSliceIndex = null;
+      sourceButtons.forEach((buttonElement) => buttonElement.classList.remove("selected"));
+    };
 
-    let chosenRemainder = 0;
-    if (currentLevel >= 5) {
-      const remainderArea = document.createElement("div");
-      remainderArea.innerHTML = `<h3 style="text-align:center">あまりは何切れ？</h3>
-        <div class="count-control">
-          <button type="button" data-change="-1" aria-label="あまりを1減らす">−</button>
-          <output>0</output>
-          <button type="button" data-change="1" aria-label="あまりを1増やす">＋</button>
-        </div>`;
-      remainderArea.querySelectorAll("[data-change]").forEach((control) => {
-        control.addEventListener("click", () => {
-          chosenRemainder = Math.max(0, Math.min(5, chosenRemainder + Number(control.dataset.change)));
-          remainderArea.querySelector("output").textContent = chosenRemainder;
-        });
+    const assignSlice = (slice, zone) => {
+      if (assignments[slice.index] !== null) return;
+      assignments[slice.index] = zone.dataset.zone;
+      clearSliceSelection();
+      renderPizza();
+      beep("ok");
+      setMessage("ピザを1切れ配ったよ。同じ数になるように続けよう。", "hint");
+    };
+
+    const placeSelectedOn = (zone) => {
+      if (selectedSliceIndex === null) return;
+      assignSlice({ index: selectedSliceIndex }, zone);
+    };
+
+    const makePlate = (zoneName, title, face) => {
+      const plate = document.createElement("div");
+      plate.className = "pizza-person-drop";
+      plate.dataset.zone = zoneName;
+      plate.tabIndex = 0;
+      plate.setAttribute("role", "button");
+      plate.setAttribute("aria-label", `${title}のお皿`);
+      plate.innerHTML = `<span class="pizza-person-face" aria-hidden="true">${face}</span><strong>${title}</strong><div class="pizza-plate-items"></div><small class="pizza-count">0切れ</small>`;
+      plate.addEventListener("click", () => placeSelectedOn(plate));
+      plate.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          placeSelectedOn(plate);
+        }
       });
-      refs.stage.append(remainderArea);
+      dropZones.push(plate);
+      return plate;
+    };
+
+    for (let index = 0; index < config.people; index += 1) {
+      people.append(makePlate(`person-${index}`, `${index + 1}人目`, "🙂"));
     }
-    addCheckButton("分けてみる", () => {
-      if (chosenPerPerson === perPerson && chosenRemainder === remainder) {
+    const remainderPlate = makePlate("remainder", "あまり置き場", "🍕");
+    remainderPlate.classList.add("pizza-remainder-drop");
+    people.append(remainderPlate);
+    targetPanel.append(people);
+    layout.append(sourcePanel, targetPanel);
+    refs.stage.append(layout);
+
+    const renderPizza = () => {
+      sourceButtons.forEach((buttonElement, index) => {
+        buttonElement.hidden = assignments[index] !== null;
+      });
+      dropZones.forEach((zone) => {
+        const indices = assignments
+          .map((assignedZone, index) => assignedZone === zone.dataset.zone ? index : -1)
+          .filter((index) => index >= 0);
+        const plateItems = zone.querySelector(".pizza-plate-items");
+        plateItems.innerHTML = "";
+        indices.forEach((sliceIndex) => {
+          const sliceButton = document.createElement("button");
+          sliceButton.type = "button";
+          sliceButton.className = "placed-pizza-slice";
+          sliceButton.setAttribute("aria-label", "このピザを大皿へ戻す");
+          sliceButton.textContent = "🍕";
+          sliceButton.addEventListener("click", (event) => {
+            event.stopPropagation();
+            assignments[sliceIndex] = null;
+            renderPizza();
+            setMessage("ピザを大皿へ戻したよ。", "hint");
+          });
+          plateItems.append(sliceButton);
+        });
+        zone.querySelector(".pizza-count").textContent = `${indices.length}切れ`;
+      });
+    };
+
+    Array.from({ length: config.total }, (_, index) => ({
+      name: `ピザ${index + 1}切れ目`,
+      emoji: "🍕",
+      index
+    })).forEach((slice) => {
+      const sliceButton = document.createElement("button");
+      sliceButton.type = "button";
+      sliceButton.className = "pizza-slice-source";
+      sliceButton.setAttribute("aria-label", `${slice.name}をお皿へ運ぶ`);
+      sliceButton.innerHTML = gameItemPicture(slice);
+      sourceButtons.push(sliceButton);
+      makeDraggableToZones(
+        sliceButton,
+        slice,
+        () => dropZones,
+        (droppedSlice, zone) => assignSlice(droppedSlice, zone),
+        (selectedSlice, selectedButton) => {
+          sourceButtons.forEach((buttonElement) => buttonElement.classList.remove("selected"));
+          selectedButton.classList.add("selected");
+          selectedSliceIndex = selectedSlice.index;
+          setMessage("ピザを選んだよ。渡す人のお皿をタッチしよう。", "hint");
+        },
+        gameItemPicture
+      );
+      pizzaSource.append(sliceButton);
+    });
+    renderPizza();
+
+    addCheckButton("OK！ みんなに配る", () => {
+      const peopleCorrect = Array.from({ length: config.people }, (_, index) => (
+        assignments.filter((zone) => zone === `person-${index}`).length === perPerson
+      )).every(Boolean);
+      const remainderCorrect = assignments.filter((zone) => zone === "remainder").length === remainder;
+      if (peopleCorrect && remainderCorrect && assignments.every((zone) => zone !== null)) {
         completeLevel(`${config.people}人に${perPerson}切れずつ、あまり${remainder}切れに分けられました。`);
       } else {
+        targetPanel.classList.remove("needs-check");
+        void targetPanel.offsetWidth;
+        targetPanel.classList.add("needs-check");
         wrong("1人ずつ順番に配るつもりで、もう一度数えてみよう！");
       }
     });
@@ -1177,7 +1556,8 @@
         : currentLevel <= 6
           ? { 主食: 1, おかず: 2, 飲み物: 1, 果物: 1 }
           : { 主食: 2, おかず: 2, 飲み物: 1, 果物: 1 };
-    const selected = new Set();
+    const selected = new Map();
+    const sourceButtons = new Map();
     const candidateCount = Math.min(BREAKFAST_ITEMS.length, 5 + currentLevel);
     const candidates = shuffle(BREAKFAST_ITEMS).slice(0, candidateCount);
     Object.keys(requirements).forEach((category) => {
@@ -1191,27 +1571,82 @@
       "朝ごはんをそろえよう",
       Object.entries(requirements).map(([category, count]) => `${category}${count}つ`).join("・")
     );
+
+    const instructions = document.createElement("p");
+    instructions.className = "drag-instruction";
+    instructions.innerHTML = "<strong>食べ物をつかんで、朝ごはんトレイへ運ぼう！</strong><span>注文に合う種類と数をそろえてね。トレイの食べ物はタッチすると戻せます。</span>";
+    refs.stage.append(instructions);
+
+    const layout = document.createElement("div");
+    layout.className = "drag-game-layout breakfast-game-layout";
+    const sourcePanel = document.createElement("section");
+    sourcePanel.className = "drag-source-panel";
+    sourcePanel.innerHTML = "<h3>① 食べ物をえらぼう</h3>";
     const grid = document.createElement("div");
-    grid.className = "choice-grid";
+    grid.className = "drag-item-grid";
+    sourcePanel.append(grid);
+    const targetPanel = document.createElement("section");
+    targetPanel.className = "drag-target-panel";
+    targetPanel.innerHTML = "<h3>② 朝ごはんトレイにのせよう</h3>";
+    const tray = document.createElement("div");
+    tray.className = "breakfast-tray";
+    tray.setAttribute("role", "group");
+    tray.setAttribute("aria-label", "朝ごはんトレイ。まだ食べ物はありません");
+    const trayItems = document.createElement("div");
+    trayItems.className = "breakfast-tray__items";
+    tray.append(trayItems);
+    targetPanel.append(tray);
+    layout.append(sourcePanel, targetPanel);
+    refs.stage.append(layout);
+
+    const renderBreakfast = () => {
+      trayItems.innerHTML = "";
+      tray.setAttribute("aria-label", `朝ごはんトレイ。食べ物が${selected.size}こあります`);
+      sourceButtons.forEach((buttonElement, itemName) => {
+        buttonElement.hidden = selected.has(itemName);
+      });
+      if (!selected.size) {
+        trayItems.innerHTML = '<p class="drop-empty-message">ここに運んでね</p>';
+        return;
+      }
+      selected.forEach((item) => {
+        const placedButton = document.createElement("button");
+        placedButton.type = "button";
+        placedButton.className = "placed-game-item breakfast-placed-item";
+        placedButton.setAttribute("aria-label", `${item.name}をトレイから戻す`);
+        placedButton.innerHTML = `${gameItemPicture(item)}<span>${item.name}</span><small>${item.category}</small>`;
+        placedButton.addEventListener("click", () => {
+          selected.delete(item.name);
+          renderBreakfast();
+          setMessage(`${item.name}を食べ物の棚へ戻したよ。`, "hint");
+        });
+        trayItems.append(placedButton);
+      });
+    };
+
     shuffle(candidates).forEach((item) => {
       const itemButton = document.createElement("button");
       itemButton.type = "button";
-      itemButton.className = "food-button";
-      itemButton.innerHTML = `<span class="emoji">${item.emoji}</span>${item.name}<small>${currentLevel <= 3 ? item.category : ""}</small>`;
-      itemButton.addEventListener("click", () => {
-        if (selected.has(item.name)) {
-          selected.delete(item.name);
-          itemButton.classList.remove("selected");
-        } else {
-          selected.add(item.name);
-          itemButton.classList.add("selected");
+      itemButton.className = "food-button draggable-game-item";
+      itemButton.setAttribute("aria-label", `${item.name}を朝ごはんトレイへ運ぶ`);
+      itemButton.innerHTML = `${gameItemPicture(item)}<strong>${item.name}</strong><span>${currentLevel <= 3 ? item.category : "つかんで運ぶ"}</span>`;
+      sourceButtons.set(item.name, itemButton);
+      makeDraggableItem(itemButton, item, tray, (droppedItem) => {
+        if (selected.has(droppedItem.name)) {
+          setMessage(`${droppedItem.name}は、もうトレイにあるよ。`, "hint");
+          return;
         }
-      });
+        selected.set(droppedItem.name, droppedItem);
+        renderBreakfast();
+        beep("ok");
+        setMessage(`${droppedItem.name}を朝ごはんトレイにのせたよ。`, "hint");
+      }, gameItemPicture);
       grid.append(itemButton);
     });
-    refs.stage.append(grid);
-    addCheckButton("いただきます！", () => {
-      const selectedItems = BREAKFAST_ITEMS.filter((item) => selected.has(item.name));
+    renderBreakfast();
+
+    addCheckButton("OK！ いただきます", () => {
+      const selectedItems = [...selected.values()];
       const counts = selectedItems.reduce((map, item) => {
         map[item.category] = (map[item.category] || 0) + 1;
         return map;
@@ -1221,6 +1656,9 @@
       if (correct) {
         completeLevel("主食・おかず・飲み物などを、注文どおりに組み合わせられました。");
       } else {
+        tray.classList.remove("needs-check");
+        void tray.offsetWidth;
+        tray.classList.add("needs-check");
         wrong("選んだ食べ物を、主食・おかず・飲み物に分けて数えてみよう！");
       }
     });
@@ -1249,45 +1687,133 @@
     const categories = ["野菜", "果物", "飲み物", "乳製品"].slice(0, categoryCount);
     const itemCount = Math.min(12, 3 + currentLevel);
     const items = shuffle(FRIDGE_ITEMS.filter((item) => categories.includes(item.category))).slice(0, itemCount);
-    let currentIndex = 0;
+    const assignments = new Map();
+    const sourceButtons = new Map();
+    const bins = [];
+    let selectedItem = null;
     refs.stage.innerHTML = makeOrder(`${items.length}この食べ物を、仲間ごとにかたづけよう`);
-    const current = document.createElement("div");
-    current.className = "classification-current";
-    const label = document.createElement("p");
-    label.style.textAlign = "center";
-    label.style.fontWeight = "900";
-    const categoryRow = document.createElement("div");
-    categoryRow.className = "category-row";
-    refs.stage.append(current, label, categoryRow);
 
-    const showNext = () => {
-      const item = items[currentIndex];
-      current.textContent = item.emoji;
-      label.textContent = `${item.name}は、どの仲間？（${currentIndex + 1} / ${items.length}）`;
+    const instructions = document.createElement("p");
+    instructions.className = "drag-instruction";
+    instructions.innerHTML = "<strong>食べ物をつかんで、同じ仲間の冷蔵庫へ運ぼう！</strong><span>ドラッグが難しい時は、食べ物→仲間の場所の順にタッチ。入れた食べ物はタッチで戻せます。</span>";
+    refs.stage.append(instructions);
+
+    const layout = document.createElement("div");
+    layout.className = "fridge-game-layout";
+    const sourcePanel = document.createElement("section");
+    sourcePanel.className = "fridge-source-panel";
+    sourcePanel.innerHTML = "<h3>① かたづける食べ物</h3>";
+    const sourceGrid = document.createElement("div");
+    sourceGrid.className = "fridge-source-grid";
+    sourcePanel.append(sourceGrid);
+    const fridge = document.createElement("section");
+    fridge.className = "fridge-cabinet";
+    fridge.innerHTML = "<h3>② 仲間の冷蔵庫へ入れよう</h3>";
+    const binGrid = document.createElement("div");
+    binGrid.className = "fridge-bin-grid";
+    fridge.append(binGrid);
+    layout.append(sourcePanel, fridge);
+    refs.stage.append(layout);
+
+    const clearItemSelection = () => {
+      selectedItem = null;
+      sourceButtons.forEach((buttonElement) => buttonElement.classList.remove("selected"));
+    };
+
+    const assignItem = (item, bin) => {
+      assignments.set(item.name, bin.dataset.category);
+      clearItemSelection();
+      renderFridge();
+      beep("ok");
+      setMessage(`${item.name}を「${bin.dataset.category}」へ入れたよ。`, "hint");
+    };
+
+    const placeSelectedIn = (bin) => {
+      if (selectedItem) assignItem(selectedItem, bin);
     };
 
     categories.forEach((category) => {
-      const categoryButton = document.createElement("button");
-      categoryButton.type = "button";
-      categoryButton.className = "category-button";
-      categoryButton.textContent = category;
-      categoryButton.addEventListener("click", () => {
-        const item = items[currentIndex];
-        if (category !== item.category) {
-          wrong(`${item.name}は「${category}」の仲間かな？もう一度考えてみよう！`);
-          return;
-        }
-        beep("ok");
-        currentIndex += 1;
-        if (currentIndex >= items.length) {
-          completeLevel("野菜・果物・飲み物などを、正しい仲間に分けられました。");
-        } else {
-          showNext();
+      const bin = document.createElement("div");
+      bin.className = "fridge-bin";
+      bin.dataset.category = category;
+      bin.tabIndex = 0;
+      bin.setAttribute("role", "button");
+      bin.setAttribute("aria-label", `${category}の冷蔵庫`);
+      bin.innerHTML = `<strong>${category}</strong><div class="fridge-bin__items"></div>`;
+      bin.addEventListener("click", () => placeSelectedIn(bin));
+      bin.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          placeSelectedIn(bin);
         }
       });
-      categoryRow.append(categoryButton);
+      bins.push(bin);
+      binGrid.append(bin);
     });
-    showNext();
+
+    const renderFridge = () => {
+      sourceButtons.forEach((buttonElement, itemName) => {
+        buttonElement.hidden = assignments.has(itemName);
+      });
+      bins.forEach((bin) => {
+        const itemArea = bin.querySelector(".fridge-bin__items");
+        itemArea.innerHTML = "";
+        items.filter((item) => assignments.get(item.name) === bin.dataset.category).forEach((item) => {
+          const placedButton = document.createElement("button");
+          placedButton.type = "button";
+          placedButton.className = "fridge-placed-item";
+          placedButton.setAttribute("aria-label", `${item.name}を冷蔵庫から戻す`);
+          placedButton.innerHTML = `${gameItemPicture(item)}<span>${item.name}</span>`;
+          placedButton.addEventListener("click", (event) => {
+            event.stopPropagation();
+            assignments.delete(item.name);
+            renderFridge();
+            setMessage(`${item.name}を冷蔵庫から戻したよ。`, "hint");
+          });
+          itemArea.append(placedButton);
+        });
+        if (!itemArea.children.length) {
+          itemArea.innerHTML = '<span class="fridge-empty">ここに運ぶ</span>';
+        }
+      });
+    };
+
+    items.forEach((item) => {
+      const itemButton = document.createElement("button");
+      itemButton.type = "button";
+      itemButton.className = "food-button draggable-game-item";
+      itemButton.setAttribute("aria-label", `${item.name}を冷蔵庫へ運ぶ`);
+      itemButton.innerHTML = `${gameItemPicture(item)}<strong>${item.name}</strong><span>つかんで運ぶ</span>`;
+      sourceButtons.set(item.name, itemButton);
+      makeDraggableToZones(
+        itemButton,
+        item,
+        () => bins,
+        (droppedItem, bin) => assignItem(droppedItem, bin),
+        (selected, selectedButton) => {
+          sourceButtons.forEach((buttonElement) => buttonElement.classList.remove("selected"));
+          selectedButton.classList.add("selected");
+          selectedItem = selected;
+          setMessage(`${selected.name}を選んだよ。仲間の冷蔵庫をタッチしよう。`, "hint");
+        },
+        gameItemPicture
+      );
+      sourceGrid.append(itemButton);
+    });
+    renderFridge();
+
+    addCheckButton("OK！ おかたづけ完了", () => {
+      const correct = assignments.size === items.length
+        && items.every((item) => assignments.get(item.name) === item.category);
+      if (correct) {
+        completeLevel("野菜・果物・飲み物などを、正しい仲間に分けられました。");
+      } else {
+        fridge.classList.remove("needs-check");
+        void fridge.offsetWidth;
+        fridge.classList.add("needs-check");
+        wrong("それぞれの食べ物が、どの仲間かもう一度考えてみよう！");
+      }
+    });
   }
 
   // 9. Restaurant checkout
@@ -1307,49 +1833,102 @@
     const order = shuffle(availableItems).slice(0, numberOfItems);
     const target = order.reduce((sum, item) => sum + item.price, 0);
     const coins = currentLevel <= 2 ? [10] : currentLevel <= 4 ? [10, 50] : [10, 50, 100];
-    let paid = 0;
     const usedCoins = [];
     refs.stage.innerHTML = makeOrder(
       order.map((item) => `${item.emoji}${item.name} ${item.price}円`).join(" ＋ "),
       `ぜんぶで ${target}円`
     );
+
+    const instructions = document.createElement("p");
+    instructions.className = "drag-instruction";
+    instructions.innerHTML = "<strong>硬貨をつかんで、お会計トレイへ運ぼう！</strong><span>ぴったりの金額を作ってね。トレイの硬貨はタッチすると戻せます。</span>";
+    refs.stage.append(instructions);
+
     const total = document.createElement("div");
     total.className = "money-total";
     total.textContent = `いま 0円 ／ ${target}円`;
-    refs.stage.append(total);
+    const layout = document.createElement("div");
+    layout.className = "checkout-game-layout";
+    const wallet = document.createElement("section");
+    wallet.className = "checkout-wallet";
+    wallet.innerHTML = "<h3>① 硬貨をえらぼう</h3>";
     const coinRow = document.createElement("div");
-    coinRow.className = "coin-row";
+    coinRow.className = "checkout-coin-row";
+    wallet.append(coinRow);
+    const register = document.createElement("section");
+    register.className = "checkout-register";
+    register.innerHTML = "<h3>② お会計トレイに置こう</h3>";
+    register.append(total);
+    const paymentTray = document.createElement("div");
+    paymentTray.className = "payment-tray";
+    paymentTray.setAttribute("role", "group");
+    paymentTray.setAttribute("aria-label", "お会計トレイ。まだ硬貨はありません");
+    const paymentCoins = document.createElement("div");
+    paymentCoins.className = "payment-tray__coins";
+    paymentTray.append(paymentCoins);
+    register.append(paymentTray);
+    layout.append(wallet, register);
+    refs.stage.append(layout);
+
+    const paidTotal = () => usedCoins.reduce((sum, coin) => sum + coin.value, 0);
+    const renderPayment = () => {
+      const paid = paidTotal();
+      total.textContent = `いま ${paid}円 ／ ${target}円`;
+      paymentTray.setAttribute("aria-label", `お会計トレイ。いま${paid}円あります`);
+      paymentCoins.innerHTML = "";
+      if (!usedCoins.length) {
+        paymentCoins.innerHTML = '<p class="drop-empty-message">ここに運んでね</p>';
+        return;
+      }
+      usedCoins.forEach((coin, index) => {
+        const coinButton = document.createElement("button");
+        coinButton.type = "button";
+        coinButton.className = `placed-coin placed-coin--${coin.value}`;
+        coinButton.setAttribute("aria-label", `${coin.value}円を財布へ戻す`);
+        coinButton.textContent = `${coin.value}円`;
+        coinButton.addEventListener("click", () => {
+          usedCoins.splice(index, 1);
+          renderPayment();
+          setMessage(`${coin.value}円を財布へ戻したよ。`, "hint");
+        });
+        paymentCoins.append(coinButton);
+      });
+    };
+
     coins.forEach((coin) => {
+      const coinItem = { name: `${coin}円硬貨`, emoji: `${coin}`, value: coin };
       const coinButton = document.createElement("button");
       coinButton.type = "button";
-      coinButton.className = "coin-button";
-      coinButton.textContent = `${coin}円`;
-      coinButton.addEventListener("click", () => {
-        if (paid + coin > target + 100) return;
-        paid += coin;
-        usedCoins.push(coin);
-        total.textContent = `いま ${paid}円 ／ ${target}円`;
+      coinButton.className = `coin-button draggable-coin draggable-coin--${coin}`;
+      coinButton.setAttribute("aria-label", `${coin}円硬貨をお会計トレイへ運ぶ`);
+      coinButton.innerHTML = `<strong>${coin}</strong><span>円</span>`;
+      makeDraggableItem(coinButton, coinItem, paymentTray, (droppedCoin) => {
+        if (paidTotal() + droppedCoin.value > target + 100) {
+          wrong("硬貨が多くなりすぎるよ。トレイの硬貨をタッチして戻そう！");
+          return;
+        }
+        usedCoins.push({ ...droppedCoin });
+        renderPayment();
         beep("ok");
-      });
+        setMessage(`${droppedCoin.value}円をお会計トレイに置いたよ。`, "hint");
+      }, gameItemPicture);
       coinRow.append(coinButton);
     });
-    refs.stage.append(coinRow);
-    const undo = document.createElement("button");
-    undo.type = "button";
-    undo.className = "text-button";
-    undo.textContent = "硬貨をひとつ戻す";
-    undo.addEventListener("click", () => {
-      if (!usedCoins.length) return;
-      paid -= usedCoins.pop();
-      total.textContent = `いま ${paid}円 ／ ${target}円`;
-    });
-    refs.stage.append(undo);
-    addCheckButton("お会計する", () => {
+    renderPayment();
+
+    addCheckButton("OK！ お会計する", () => {
+      const paid = paidTotal();
       if (paid === target) {
         completeLevel(`${target}円を、硬貨でぴったり支払えました。`);
       } else if (paid < target) {
+        paymentTray.classList.remove("needs-check");
+        void paymentTray.offsetWidth;
+        paymentTray.classList.add("needs-check");
         wrong(`あと${target - paid}円だよ。硬貨を足してみよう！`);
       } else {
+        paymentTray.classList.remove("needs-check");
+        void paymentTray.offsetWidth;
+        paymentTray.classList.add("needs-check");
         wrong(`${paid - target}円多いよ。硬貨を戻してぴったりにしよう！`);
       }
     });

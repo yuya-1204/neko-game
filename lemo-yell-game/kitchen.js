@@ -53,6 +53,7 @@
   let challengeTimer = null;
   let challengeRemaining = 0;
   let audioContext = null;
+  const CHALLENGE_OFF_TEXT = "チェックすると、時間制限がつくよ（オフなら時間制限なし）";
 
   function loadProgress() {
     try {
@@ -174,7 +175,7 @@
     refs.playTitle.textContent = currentGame.title;
     refs.playInstruction.textContent = currentGame.desc;
     refs.challengeMode.checked = false;
-    refs.challengeHelp.textContent = "時間制限なしで遊べます";
+    refs.challengeHelp.textContent = CHALLENGE_OFF_TEXT;
     renderLevelDots();
     setMessage("いっしょに、ゆっくりやってみよう！", "hint");
     startCurrentGame();
@@ -241,7 +242,7 @@
       challengeTimer = null;
     }
     if (!refs.challengeMode.checked) {
-      refs.challengeHelp.textContent = "時間制限なしで遊べます";
+      refs.challengeHelp.textContent = CHALLENGE_OFF_TEXT;
     }
   }
 
@@ -285,6 +286,98 @@
     { id: "hot", name: "ホットレモネード", emoji: "☕", vessel: "あたたかいマグカップ", ingredients: ["レモン2枚", "お湯1杯", "はちみつ1さじ"] }
   ];
 
+  function drinkPicture(drink) {
+    return `<span class="drink-picture drink-picture--${drink.id}" aria-hidden="true"><i></i></span>`;
+  }
+
+  function makeDraggableDrink(buttonElement, drink, trayElement, onDrop) {
+    let dragGhost = null;
+    let activePointer = null;
+    let suppressClick = false;
+
+    const moveGhost = (clientX, clientY) => {
+      if (!dragGhost) return;
+      dragGhost.style.left = `${clientX}px`;
+      dragGhost.style.top = `${clientY}px`;
+    };
+
+    const finishDrag = (event, cancelled = false) => {
+      if (activePointer !== event.pointerId) return;
+      const trayRect = trayElement.getBoundingClientRect();
+      const isOverTray = !cancelled
+        && event.clientX >= trayRect.left
+        && event.clientX <= trayRect.right
+        && event.clientY >= trayRect.top
+        && event.clientY <= trayRect.bottom;
+
+      buttonElement.classList.remove("is-dragging");
+      trayElement.classList.remove("is-drop-target");
+      dragGhost?.remove();
+      dragGhost = null;
+      activePointer = null;
+      window.setTimeout(() => {
+        suppressClick = false;
+      }, 0);
+
+      if (isOverTray) {
+        onDrop(drink);
+      }
+    };
+
+    buttonElement.addEventListener("pointerdown", (event) => {
+      if (event.button !== 0 || activePointer !== null) return;
+      event.preventDefault();
+      suppressClick = true;
+      activePointer = event.pointerId;
+      buttonElement.setPointerCapture(event.pointerId);
+      buttonElement.classList.add("is-dragging");
+      trayElement.classList.add("is-drop-target");
+      dragGhost = document.createElement("div");
+      dragGhost.className = "drink-drag-ghost";
+      dragGhost.innerHTML = `${drinkPicture(drink)}<strong>${drink.name}</strong>`;
+      document.body.append(dragGhost);
+      moveGhost(event.clientX, event.clientY);
+    });
+
+    buttonElement.addEventListener("pointermove", (event) => {
+      if (activePointer !== event.pointerId) return;
+      event.preventDefault();
+      moveGhost(event.clientX, event.clientY);
+      if (event.clientY > window.innerHeight - 70) {
+        window.scrollBy({ top: 18, behavior: "auto" });
+      } else if (event.clientY < 70) {
+        window.scrollBy({ top: -18, behavior: "auto" });
+      }
+      const trayRect = trayElement.getBoundingClientRect();
+      trayElement.classList.toggle(
+        "is-drag-over",
+        event.clientX >= trayRect.left
+          && event.clientX <= trayRect.right
+          && event.clientY >= trayRect.top
+          && event.clientY <= trayRect.bottom
+      );
+    });
+
+    buttonElement.addEventListener("pointerup", (event) => {
+      trayElement.classList.remove("is-drag-over");
+      finishDrag(event);
+    });
+
+    buttonElement.addEventListener("pointercancel", (event) => {
+      trayElement.classList.remove("is-drag-over");
+      finishDrag(event, true);
+    });
+
+    buttonElement.addEventListener("click", (event) => {
+      if (suppressClick) {
+        suppressClick = false;
+        event.preventDefault();
+        return;
+      }
+      onDrop(drink);
+    });
+  }
+
   function startLemonade() {
     if (currentLevel <= 3) {
       startDrinkOrder();
@@ -300,39 +393,108 @@
       ...drink,
       count: currentLevel === 1 ? 1 : 1 + Math.floor(Math.random() * maxCount)
     }));
-    const counts = Object.fromEntries(DRINKS.map((drink) => [drink.id, 0]));
+    const placedDrinks = [];
     const orderText = targets.map((item) => `${item.name}を${item.count}杯`).join("、");
     refs.stage.innerHTML = makeOrder(`${orderText} ください`);
 
-    const grid = document.createElement("div");
-    grid.className = "choice-grid";
-    DRINKS.forEach((drink) => {
-      const card = document.createElement("div");
-      card.className = "choice-button";
-      card.innerHTML = `<span class="emoji">${drink.emoji}</span><strong>${drink.name}</strong>
-        <div class="count-control">
-          <button type="button" data-change="-1" aria-label="${drink.name}を1杯減らす">−</button>
-          <output aria-label="${drink.name}の杯数">0</output>
-          <button type="button" data-change="1" aria-label="${drink.name}を1杯増やす">＋</button>
-        </div>`;
-      card.querySelectorAll("[data-change]").forEach((control) => {
-        control.addEventListener("click", () => {
-          counts[drink.id] = Math.max(0, Math.min(6, counts[drink.id] + Number(control.dataset.change)));
-          card.querySelector("output").textContent = counts[drink.id];
+    const instructions = document.createElement("p");
+    instructions.className = "drag-instruction";
+    instructions.innerHTML = "<strong>飲み物をつかんで、トレイまで運ぼう！</strong><span>指やマウスで動かせます。まちがえた飲み物は、トレイの上でタッチすると戻せるよ。</span>";
+    refs.stage.append(instructions);
+
+    const serviceScene = document.createElement("div");
+    serviceScene.className = "drink-service-scene";
+
+    const shelf = document.createElement("section");
+    shelf.className = "drink-shelf";
+    shelf.setAttribute("aria-labelledby", "drinkShelfTitle");
+    shelf.innerHTML = '<h3 id="drinkShelfTitle">① 飲み物をえらぼう</h3>';
+    const drinkSources = document.createElement("div");
+    drinkSources.className = "drink-sources";
+
+    const customerArea = document.createElement("section");
+    customerArea.className = "customer-tray-area";
+    customerArea.setAttribute("aria-labelledby", "trayTitle");
+    customerArea.innerHTML = `
+      <h3 id="trayTitle">② お客さんのトレイにのせよう</h3>
+      <div class="customer-picture">
+        <img src="assets/lemomy.png" alt="トレイを持って待っているレモミィちゃん">
+        <span>おねがいします♪</span>
+      </div>`;
+    const tray = document.createElement("div");
+    tray.className = "serving-tray";
+    tray.setAttribute("role", "group");
+    tray.setAttribute("aria-label", "お客さんのトレイ。まだ飲み物はありません");
+    const trayItems = document.createElement("div");
+    trayItems.className = "serving-tray__items";
+    tray.append(trayItems);
+
+    const renderTray = () => {
+      trayItems.innerHTML = "";
+      tray.classList.toggle("is-empty", placedDrinks.length === 0);
+      tray.setAttribute(
+        "aria-label",
+        placedDrinks.length
+          ? `お客さんのトレイ。飲み物が${placedDrinks.length}杯あります`
+          : "お客さんのトレイ。まだ飲み物はありません"
+      );
+
+      if (!placedDrinks.length) {
+        trayItems.innerHTML = '<p class="tray-empty-message">ここに運んでね</p>';
+        return;
+      }
+
+      placedDrinks.forEach((drink, index) => {
+        const trayDrink = document.createElement("button");
+        trayDrink.type = "button";
+        trayDrink.className = "tray-drink";
+        trayDrink.setAttribute("aria-label", `${drink.name}をトレイから戻す`);
+        trayDrink.innerHTML = `${drinkPicture(drink)}<span>${drink.name}</span>`;
+        trayDrink.addEventListener("click", () => {
+          placedDrinks.splice(index, 1);
+          renderTray();
+          setMessage(`${drink.name}をトレイから戻したよ。`, "hint");
         });
+        trayItems.append(trayDrink);
       });
-      grid.append(card);
+    };
+
+    DRINKS.forEach((drink) => {
+      const drinkButton = document.createElement("button");
+      drinkButton.type = "button";
+      drinkButton.className = "draggable-drink";
+      drinkButton.setAttribute("aria-label", `${drink.name}をトレイへ運ぶ`);
+      drinkButton.innerHTML = `${drinkPicture(drink)}<strong>${drink.name}</strong><span>つかんで運ぶ</span>`;
+      makeDraggableDrink(drinkButton, drink, tray, (droppedDrink) => {
+        if (placedDrinks.length >= 10) {
+          wrong("トレイがいっぱいだよ。いらない飲み物をタッチして戻そう！");
+          return;
+        }
+        placedDrinks.push(droppedDrink);
+        renderTray();
+        beep("ok");
+        setMessage(`${droppedDrink.name}をトレイにのせたよ。注文どおりなら「OK！」を押そう。`, "hint");
+      });
+      drinkSources.append(drinkButton);
     });
-    refs.stage.append(grid);
-    addCheckButton("注文をわたす", () => {
+    shelf.append(drinkSources);
+    customerArea.append(tray);
+    serviceScene.append(shelf, customerArea);
+    refs.stage.append(serviceScene);
+    renderTray();
+
+    addCheckButton("OK！ 注文をわたす", () => {
       const correct = DRINKS.every((drink) => {
         const target = targets.find((item) => item.id === drink.id)?.count || 0;
-        return counts[drink.id] === target;
+        return placedDrinks.filter((placed) => placed.id === drink.id).length === target;
       });
       if (correct) {
         completeLevel("お客さんの注文どおりに、飲み物をそろえられました。");
       } else {
-        wrong("種類と杯数を、注文カードとくらべてみよう！");
+        tray.classList.remove("needs-check");
+        void tray.offsetWidth;
+        tray.classList.add("needs-check");
+        wrong("トレイの飲み物の種類と数を、注文カードとくらべてみよう！");
       }
     });
   }
@@ -1026,8 +1188,8 @@
 
   refs.challengeMode.addEventListener("change", () => {
     refs.challengeHelp.textContent = refs.challengeMode.checked
-      ? "時間内にできるか挑戦しよう"
-      : "時間制限なしで遊べます";
+      ? "時間制限あり：レベルに合わせて24〜36秒で挑戦！"
+      : CHALLENGE_OFF_TEXT;
     startCurrentGame();
   });
 

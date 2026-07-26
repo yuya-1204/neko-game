@@ -33,9 +33,9 @@
   };
 
   const TYPES = [
-    { id: "lemon", emoji: "🍋", score: 10, chance: 0.58, size: 50 },
-    { id: "heart", emoji: "💗", score: 20, chance: 0.25, size: 52 },
-    { id: "star", emoji: "⭐", score: 30, chance: 0.17, size: 54 }
+    { id: "lemon", score: 10, chance: 0.58, size: 50 },
+    { id: "heart", score: 20, chance: 0.25, size: 52 },
+    { id: "star", score: 30, chance: 0.17, size: 54 }
   ];
 
   let selectedCharacter = "lemo";
@@ -59,6 +59,7 @@
       items: [],
       keys: { left: false, right: false },
       flash: 0,
+      stunRemaining: 0,
       message: "",
       messageTime: 0,
       particles: []
@@ -85,6 +86,36 @@
     }
   }
 
+  function playMissSound() {
+    if (!soundEnabled) return;
+    try {
+      audioContext ||= new (window.AudioContext || window.webkitAudioContext)();
+      const startAt = audioContext.currentTime;
+      [
+        { frequency: 220, offset: 0, duration: 0.16 },
+        { frequency: 145, offset: 0.13, duration: 0.25 }
+      ].forEach((note) => {
+        const oscillator = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+        oscillator.type = "square";
+        oscillator.frequency.setValueAtTime(note.frequency, startAt + note.offset);
+        oscillator.frequency.exponentialRampToValueAtTime(
+          Math.max(70, note.frequency * 0.68),
+          startAt + note.offset + note.duration
+        );
+        gain.gain.setValueAtTime(0.0001, startAt + note.offset);
+        gain.gain.exponentialRampToValueAtTime(0.13, startAt + note.offset + 0.012);
+        gain.gain.exponentialRampToValueAtTime(0.0001, startAt + note.offset + note.duration);
+        oscillator.connect(gain);
+        gain.connect(audioContext.destination);
+        oscillator.start(startAt + note.offset);
+        oscillator.stop(startAt + note.offset + note.duration + 0.02);
+      });
+    } catch {
+      // Sound is optional.
+    }
+  }
+
   function randomType() {
     const roll = Math.random();
     let cumulative = 0;
@@ -99,15 +130,15 @@
     const settings = SETTINGS[state.difficulty];
     const isCloud = Math.random() < settings.cloudChance;
     const type = isCloud
-      ? { id: "cloud", emoji: "☁️", score: -5, size: 58 }
+      ? { id: "cloud", score: -5, size: 64 }
       : randomType();
     state.items.push({
       ...type,
       x: 25 + Math.random() * (canvas.width - 80),
       y: -70,
       speed: settings.minSpeed + Math.random() * (settings.maxSpeed - settings.minSpeed),
-      rotation: Math.random() * Math.PI * 2,
-      spin: (Math.random() - 0.5) * 1.6
+      rotation: isCloud ? 0 : Math.random() * Math.PI * 2,
+      spin: isCloud ? 0 : (Math.random() - 0.5) * 1.6
     });
   }
 
@@ -173,7 +204,10 @@
       return;
     }
 
-    const direction = (state.keys.right ? 1 : 0) - (state.keys.left ? 1 : 0);
+    state.stunRemaining = Math.max(0, state.stunRemaining - delta);
+    const direction = state.stunRemaining > 0
+      ? 0
+      : (state.keys.right ? 1 : 0) - (state.keys.left ? 1 : 0);
     state.player.x += direction * state.player.speed * delta;
     state.player.x = Math.max(0, Math.min(canvas.width - state.player.width, state.player.x));
 
@@ -199,17 +233,26 @@
     state.items = state.items.filter((item) => {
       const itemCenterX = item.x + item.size / 2;
       const itemBottom = item.y + item.size;
+      if (state.stunRemaining > 0) return item.y < canvas.height + 80;
       const hit = itemCenterX >= playerHitbox.left
         && itemCenterX <= playerHitbox.right
         && itemBottom >= playerHitbox.top
         && item.y <= playerHitbox.bottom;
       if (hit) {
         state.score = Math.max(0, state.score + item.score);
-        state.message = item.id === "cloud" ? "ふわっ！ -5" : `+${item.score}`;
+        state.message = item.id === "cloud" ? "ミス！ -5" : `+${item.score}`;
         state.messageTime = 0.7;
-        state.flash = item.id === "cloud" ? 0.25 : 0;
-        addParticles(itemCenterX, item.y, item.id === "cloud" ? "#e6eef2" : "#ffd93d");
-        beep(item.id === "cloud" ? 180 : item.id === "star" ? 880 : 650);
+        state.flash = item.id === "cloud" ? 0.7 : 0;
+        addParticles(itemCenterX, item.y, item.id === "cloud" ? "#ffd43b" : "#ffd93d");
+        if (item.id === "cloud") {
+          state.stunRemaining = 0.7;
+          state.keys.left = false;
+          state.keys.right = false;
+          dragActive = false;
+          playMissSound();
+        } else {
+          beep(item.id === "star" ? 880 : 650);
+        }
         return false;
       }
       return item.y < canvas.height + 80;
@@ -254,6 +297,12 @@
     drawPlayer();
     drawParticles();
 
+    if (state.flash > 0) {
+      ctx.fillStyle = state.stunRemaining > 0
+        ? "rgba(31,41,55,.28)"
+        : "rgba(255,255,255,.38)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
     if (state.messageTime > 0) {
       ctx.save();
       ctx.fillStyle = state.message.includes("-") ? "#8c4f5c" : "#d64a72";
@@ -261,10 +310,6 @@
       ctx.textAlign = "center";
       ctx.fillText(state.message, canvas.width / 2, 130);
       ctx.restore();
-    }
-    if (state.flash > 0) {
-      ctx.fillStyle = "rgba(255,255,255,.38)";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
   }
 
@@ -291,10 +336,135 @@
     ctx.save();
     ctx.translate(item.x + item.size / 2, item.y + item.size / 2);
     ctx.rotate(item.rotation);
-    ctx.font = `${item.size}px "Segoe UI Emoji", "Apple Color Emoji", sans-serif`;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(item.emoji, 0, 0);
+    ctx.scale(item.size / 60, item.size / 60);
+    if (item.id === "lemon") drawLemon();
+    if (item.id === "heart") drawHeart();
+    if (item.id === "star") drawStar();
+    if (item.id === "cloud") drawStormCloud();
+    ctx.restore();
+  }
+
+  function drawLemon() {
+    ctx.save();
+    ctx.shadowColor = "rgba(112,78,0,.22)";
+    ctx.shadowBlur = 7;
+    ctx.shadowOffsetY = 4;
+    ctx.fillStyle = "#ffd43b";
+    ctx.strokeStyle = "#b98700";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.ellipse(0, 5, 18, 25, -0.22, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.shadowColor = "transparent";
+    ctx.fillStyle = "#65a832";
+    ctx.strokeStyle = "#356d1c";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.ellipse(12, -23, 11, 5.5, -0.45, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.strokeStyle = "#4a781f";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(4, -17);
+    ctx.lineTo(8, -27);
+    ctx.stroke();
+    ctx.fillStyle = "rgba(255,255,255,.58)";
+    ctx.beginPath();
+    ctx.ellipse(-7, -3, 4, 8, -0.3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawHeart() {
+    ctx.save();
+    ctx.shadowColor = "rgba(123,25,66,.24)";
+    ctx.shadowBlur = 7;
+    ctx.shadowOffsetY = 4;
+    ctx.fillStyle = "#f55f94";
+    ctx.strokeStyle = "#bd2f63";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(0, 25);
+    ctx.bezierCurveTo(-6, 18, -24, 7, -24, -8);
+    ctx.bezierCurveTo(-24, -23, -5, -27, 0, -13);
+    ctx.bezierCurveTo(5, -27, 24, -23, 24, -8);
+    ctx.bezierCurveTo(24, 7, 6, 18, 0, 25);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.shadowColor = "transparent";
+    ctx.fillStyle = "rgba(255,255,255,.55)";
+    ctx.beginPath();
+    ctx.ellipse(-10, -11, 4, 6, -0.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawStar() {
+    ctx.save();
+    ctx.shadowColor = "rgba(115,76,0,.24)";
+    ctx.shadowBlur = 7;
+    ctx.shadowOffsetY = 4;
+    ctx.fillStyle = "#ffc928";
+    ctx.strokeStyle = "#b77a00";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    for (let index = 0; index < 10; index += 1) {
+      const radius = index % 2 === 0 ? 27 : 12;
+      const angle = -Math.PI / 2 + index * Math.PI / 5;
+      const x = Math.cos(angle) * radius;
+      const y = Math.sin(angle) * radius;
+      if (index === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.shadowColor = "transparent";
+    ctx.fillStyle = "rgba(255,255,255,.56)";
+    ctx.beginPath();
+    ctx.arc(-6, -8, 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawStormCloud() {
+    ctx.save();
+    ctx.shadowColor = "rgba(15,23,42,.38)";
+    ctx.shadowBlur = 9;
+    ctx.shadowOffsetY = 5;
+    ctx.fillStyle = "#4b5563";
+    ctx.strokeStyle = "#1f2937";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(-27, 14);
+    ctx.bezierCurveTo(-35, 14, -37, 4, -31, -2);
+    ctx.bezierCurveTo(-27, -7, -20, -8, -15, -5);
+    ctx.bezierCurveTo(-13, -18, 0, -25, 11, -18);
+    ctx.bezierCurveTo(17, -14, 19, -9, 19, -5);
+    ctx.bezierCurveTo(28, -8, 35, -1, 34, 7);
+    ctx.bezierCurveTo(33, 13, 28, 16, 21, 16);
+    ctx.lineTo(-27, 16);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.shadowColor = "transparent";
+    ctx.fillStyle = "#ffd43b";
+    ctx.strokeStyle = "#8a6100";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(4, -9);
+    ctx.lineTo(-7, 6);
+    ctx.lineTo(0, 6);
+    ctx.lineTo(-4, 21);
+    ctx.lineTo(14, 1);
+    ctx.lineTo(6, 1);
+    ctx.lineTo(11, -9);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
     ctx.restore();
   }
 
@@ -387,10 +557,12 @@
   }
 
   function setMove(direction, active) {
+    if (state.stunRemaining > 0) return;
     state.keys[direction] = active;
   }
 
   function movePlayerToPointer(clientX) {
+    if (state.stunRemaining > 0) return;
     const rect = canvas.getBoundingClientRect();
     const x = ((clientX - rect.left) / rect.width) * canvas.width;
     state.player.x = Math.max(0, Math.min(canvas.width - state.player.width, x - state.player.width / 2));
@@ -447,12 +619,13 @@
   bindHold(refs.right, "right");
 
   canvas.addEventListener("pointerdown", (event) => {
+    if (state.stunRemaining > 0) return;
     dragActive = true;
     canvas.setPointerCapture?.(event.pointerId);
     movePlayerToPointer(event.clientX);
   });
   canvas.addEventListener("pointermove", (event) => {
-    if (dragActive) movePlayerToPointer(event.clientX);
+    if (dragActive && state.stunRemaining <= 0) movePlayerToPointer(event.clientX);
   });
   canvas.addEventListener("pointerup", () => {
     dragActive = false;

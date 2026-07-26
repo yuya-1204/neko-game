@@ -473,16 +473,24 @@ img {
   transition: width .4s ease;
 }
 
+.text-button,
 .danger-text-button {
   min-height: 44px;
   padding: 8px 6px;
   border: 0;
   background: transparent;
-  color: #a13a32;
   cursor: pointer;
   font-weight: 900;
   text-decoration: underline;
   text-underline-offset: 4px;
+}
+
+.text-button {
+  color: var(--green-dark);
+}
+
+.danger-text-button {
+  color: #a13a32;
 }
 
 .guardian-controls {
@@ -1157,7 +1165,8 @@ img {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
-  margin-bottom: 12px;
+  width: min(100%, 560px);
+  margin: 0 auto 8px;
 }
 
 .catch-hud span {
@@ -1172,6 +1181,49 @@ img {
 .catch-hud strong {
   display: block;
   font-size: 1.3rem;
+}
+
+.catch-score-guide {
+  display: grid;
+  width: min(100%, 720px);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0 auto 12px;
+}
+
+.catch-score-guide > span {
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px 8px;
+  border: 2px solid rgba(40, 88, 114, .1);
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 4px 13px rgba(40, 88, 114, .08);
+  font-size: .78rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.catch-score-guide strong {
+  color: #12668c;
+}
+
+.catch-score-guide .score-guide-danger {
+  border-color: rgba(91, 44, 49, .2);
+  background: #fff7f2;
+}
+
+.catch-score-guide .score-guide-danger strong {
+  color: #8c3645;
+}
+
+.score-icon {
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
 }
 
 .canvas-wrap {
@@ -1409,6 +1461,14 @@ img {
 
   .touch-controls {
     grid-template-columns: 1fr 58px 1fr;
+  }
+
+  .catch-score-guide {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .catch-score-guide > span {
+    white-space: normal;
   }
 }
 

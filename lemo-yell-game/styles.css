@@ -473,16 +473,51 @@ img {
   transition: width .4s ease;
 }
 
-.text-button {
+.danger-text-button {
   min-height: 44px;
   padding: 8px 6px;
   border: 0;
   background: transparent;
-  color: var(--green-dark);
+  color: #a13a32;
   cursor: pointer;
   font-weight: 900;
   text-decoration: underline;
   text-underline-offset: 4px;
+}
+
+.guardian-controls {
+  max-width: 680px;
+  margin: 30px auto 0;
+}
+
+.guardian-controls details {
+  overflow: hidden;
+  border: 2px solid rgba(83, 61, 11, .12);
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, .72);
+}
+
+.guardian-controls summary {
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  padding: 10px 18px;
+  color: var(--muted);
+  cursor: pointer;
+  font-weight: 900;
+}
+
+.guardian-controls__body {
+  padding: 0 18px 18px;
+  border-top: 1px solid rgba(83, 61, 11, .1);
+  text-align: center;
+}
+
+.guardian-controls__body p {
+  margin: 16px 0 4px;
+  color: var(--muted);
+  font-size: .9rem;
+  font-weight: 700;
 }
 
 .mini-game-grid {
@@ -583,6 +618,18 @@ img {
   background: linear-gradient(135deg, var(--lemon), var(--lemon-deep));
   box-shadow: 0 7px 18px rgba(195, 134, 0, .28);
   color: #3a2a00;
+}
+
+.danger-button {
+  min-height: 48px;
+  padding: 10px 18px;
+  border: 0;
+  border-radius: 999px;
+  background: #a13a32;
+  box-shadow: 0 7px 18px rgba(120, 35, 29, .22);
+  color: #fff;
+  cursor: pointer;
+  font-weight: 900;
 }
 
 .big-button {
@@ -1002,6 +1049,15 @@ img {
 .clear-dialog h2 {
   margin: 4px 0;
   font-size: 2rem;
+}
+
+.reset-dialog {
+  background: linear-gradient(145deg, #fff, #fff1ea);
+}
+
+.reset-dialog p {
+  color: #6d342f;
+  font-weight: 800;
 }
 
 .clear-burst {

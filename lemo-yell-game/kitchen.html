@@ -37,10 +37,19 @@
           <strong id="totalStars">0 / 63</strong>
         </div>
         <div class="progress-track"><span id="totalProgress"></span></div>
-        <button id="resetProgress" class="text-button" type="button">はじめから遊ぶ</button>
       </div>
 
       <div id="gameMenu" class="mini-game-grid"></div>
+
+      <section id="guardianControls" class="guardian-controls" aria-labelledby="guardianTitle" hidden>
+        <details>
+          <summary id="guardianTitle">おうちの方へ</summary>
+          <div class="guardian-controls__body">
+            <p>これまでの進み具合を最初の状態に戻す操作です。</p>
+            <button id="resetProgress" class="danger-text-button" type="button">クリア記録をすべて消す</button>
+          </div>
+        </details>
+      </section>
     </section>
 
     <section id="playView" class="play-view" hidden aria-labelledby="playTitle">
@@ -86,6 +95,16 @@
     <div class="dialog-actions">
       <button id="nextLevelButton" class="primary-button" type="button">つぎのレベルへ</button>
       <button id="menuButton" class="secondary-button" type="button">ゲーム一覧へ</button>
+    </div>
+  </dialog>
+
+  <dialog id="resetDialog" class="clear-dialog reset-dialog">
+    <div class="clear-burst" aria-hidden="true">⚠️</div>
+    <h2>キッチンスターを0に戻しますか？</h2>
+    <p>クリアしたステージとキッチンスターがすべて消えます。元には戻せません。</p>
+    <div class="dialog-actions">
+      <button id="cancelReset" class="primary-button" type="button">消さずにもどる</button>
+      <button id="confirmReset" class="danger-button" type="button">記録を消して最初から</button>
     </div>
   </dialog>
 

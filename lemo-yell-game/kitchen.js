@@ -20,7 +20,11 @@
     gameMenu: document.getElementById("gameMenu"),
     totalStars: document.getElementById("totalStars"),
     totalProgress: document.getElementById("totalProgress"),
+    guardianControls: document.getElementById("guardianControls"),
     resetProgress: document.getElementById("resetProgress"),
+    resetDialog: document.getElementById("resetDialog"),
+    cancelReset: document.getElementById("cancelReset"),
+    confirmReset: document.getElementById("confirmReset"),
     backToMenu: document.getElementById("backToMenu"),
     playIcon: document.getElementById("playIcon"),
     playTitle: document.getElementById("playTitle"),
@@ -144,6 +148,7 @@
     const total = Object.values(progress).reduce((sum, value) => sum + Math.min(7, value || 0), 0);
     refs.totalStars.textContent = `${total} / 63`;
     refs.totalProgress.style.width = `${(total / 63) * 100}%`;
+    refs.guardianControls.hidden = total === 0;
   }
 
   function renderLevelDots() {
@@ -1034,7 +1039,15 @@
   });
 
   refs.resetProgress.addEventListener("click", () => {
-    if (!window.confirm("クリアしたレベルを全部消して、はじめから遊びますか？")) return;
+    refs.resetDialog.showModal();
+  });
+
+  refs.cancelReset.addEventListener("click", () => {
+    refs.resetDialog.close();
+  });
+
+  refs.confirmReset.addEventListener("click", () => {
+    refs.resetDialog.close();
     progress = Object.fromEntries(GAME_DEFS.map((game) => [game.id, 0]));
     saveProgress();
     renderMenu();

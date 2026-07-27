@@ -740,7 +740,7 @@ func _start_race() -> void:
 	title_overlay.visible = false
 	finish_overlay.visible = false
 	state = RaceState.COUNTDOWN
-	countdown_time = 3.65
+	countdown_time = 3.0
 	countdown_last_number = 4
 	countdown_label.visible = true
 	countdown_label.text = "3"
@@ -782,6 +782,9 @@ func _update_race(delta: float) -> void:
 
 func _update_player_progress(delta: float) -> void:
 	var angle: float = player.get_track_angle()
+	var previous_angle := fposmod(player_progress, TAU)
+	var progress_step := wrapf(angle - previous_angle, -PI, PI)
+	player_progress += progress_step
 	var sector := int(floor(angle / (TAU / float(CHECKPOINT_COUNT)))) % CHECKPOINT_COUNT
 	if sector == next_checkpoint:
 		if next_checkpoint == 0:
@@ -794,8 +797,6 @@ func _update_player_progress(delta: float) -> void:
 			_beep(700.0, 0.18, 0.34)
 		else:
 			next_checkpoint = (next_checkpoint + 1) % CHECKPOINT_COUNT
-	player_progress = float(completed_laps) * TAU + angle
-
 	var tangent := _track_tangent(angle)
 	var facing_forward: float = player.get_forward().dot(tangent)
 	if facing_forward < -0.20 and player.speed > 5.0:
@@ -850,6 +851,7 @@ func _update_ranking() -> void:
 func _finish_race() -> void:
 	state = RaceState.FINISHED
 	player.set_active(false)
+	_update_ranking()
 	final_place = clampi(final_place, 1, 4)
 	if best_time <= 0.0 or elapsed_time < best_time:
 		best_time = elapsed_time

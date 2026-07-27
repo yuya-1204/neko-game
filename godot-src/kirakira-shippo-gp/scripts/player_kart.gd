@@ -1,6 +1,7 @@
 extends CharacterBody3D
 
 signal boost_triggered
+signal drift_boost_triggered
 signal recovered
 
 const KartVisual = preload("res://scripts/kart_visual.gd")
@@ -21,7 +22,8 @@ var auto_accelerate := true
 var touch_left := false
 var touch_right := false
 var touch_brake := false
-var touch_drift := false
+var touch_drift_left := false
+var touch_drift_right := false
 var recover_cooldown := 0.0
 var drift_was_held := false
 var visual: Node3D
@@ -65,6 +67,12 @@ func reset_at(track_angle: float, lane_offset: float = 0.0) -> void:
 	drift_charge = 0.0
 	is_drifting = false
 	offroad = false
+	touch_left = false
+	touch_right = false
+	touch_brake = false
+	touch_drift_left = false
+	touch_drift_right = false
+	drift_was_held = false
 
 
 func _physics_process(delta: float) -> void:
@@ -87,7 +95,7 @@ func _physics_process(delta: float) -> void:
 	var yaw_error := wrapf(desired_yaw - rotation.y, -PI, PI)
 	var assist := 0.0
 	if absf(steer_input) < 0.12:
-		assist = clampf(yaw_error * (0.48 if offroad else 0.20), -0.58, 0.58)
+		assist = clampf(-yaw_error * (0.48 if offroad else 0.20), -0.58, 0.58)
 	steering_value = clampf(steer_input + assist, -1.0, 1.0)
 
 	var drift_possible := absf(steering_value) > 0.25 and speed > 9.5
@@ -97,6 +105,7 @@ func _physics_process(delta: float) -> void:
 	elif drift_was_held:
 		if drift_charge >= 0.55:
 			give_boost(clampf(0.62 + drift_charge * 0.23, 0.72, 1.18))
+			drift_boost_triggered.emit()
 		drift_charge = 0.0
 	elif not drift_held:
 		drift_charge = maxf(0.0, drift_charge - delta * 2.5)
@@ -124,13 +133,13 @@ func _physics_process(delta: float) -> void:
 	var turn_rate := lerpf(1.95, 0.92, speed_ratio)
 	if is_drifting:
 		turn_rate *= 1.20
-	rotation.y += steering_value * turn_rate * delta
+	rotation.y -= steering_value * turn_rate * delta
 
 	var forward := get_forward()
 	var horizontal_velocity := Vector3(velocity.x, 0, velocity.z)
 	var desired_velocity := forward * speed
 	if is_drifting:
-		var right := Vector3(forward.z, 0, -forward.x)
+		var right := Vector3(-forward.z, 0, forward.x)
 		desired_velocity += right * steering_value * speed * 0.16
 	var grip := 2.7 if is_drifting else 7.8
 	if offroad:
@@ -178,8 +187,10 @@ func set_touch_control(control: StringName, pressed: bool) -> void:
 			touch_right = pressed
 		&"brake":
 			touch_brake = pressed
-		&"drift":
-			touch_drift = pressed
+		&"drift_left":
+			touch_drift_left = pressed
+		&"drift_right":
+			touch_drift_right = pressed
 
 
 func get_forward() -> Vector3:
@@ -228,7 +239,7 @@ func _read_brake() -> bool:
 
 
 func _read_drift() -> bool:
-	if Input.is_key_pressed(KEY_SPACE) or touch_drift:
+	if Input.is_key_pressed(KEY_SPACE) or touch_drift_left or touch_drift_right:
 		return true
 	if Input.get_connected_joypads().size() > 0:
 		return Input.is_joy_button_pressed(Input.get_connected_joypads()[0], JOY_BUTTON_A)

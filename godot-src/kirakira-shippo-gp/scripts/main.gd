@@ -3,6 +3,9 @@ extends Node3D
 const PlayerKart = preload("res://scripts/player_kart.gd")
 const AIKart = preload("res://scripts/ai_kart.gd")
 const UI_FONT = preload("res://assets/fonts/KosugiMaru-Regular.ttf")
+const RACE_BGM = preload("res://assets/audio/race_bgm.res")
+const DRIFT_LOOP = preload("res://assets/audio/drift_loop.res")
+const TURBO_SOUND = preload("res://assets/audio/turbo.res")
 
 const TRACK_RADIUS_X := 48.0
 const TRACK_RADIUS_Z := 30.0
@@ -10,6 +13,9 @@ const ROAD_HALF_WIDTH := 7.0
 const TRACK_SEGMENTS := 128
 const CHECKPOINT_COUNT := 8
 const TOTAL_LAPS := 3
+const LEFT_DRIFT_RECT := Rect2(28, 560, 250, 132)
+const RIGHT_DRIFT_RECT := Rect2(1002, 560, 250, 132)
+const TOP_RIGHT_CONTROLS_RECT := Rect2(1038, 8, 234, 154)
 
 enum RaceState {
 	TITLE,
@@ -55,10 +61,19 @@ var finish_title: Label
 var finish_detail: Label
 var best_label: Label
 var mute_button: Button
+var left_steering_area: PanelContainer
+var right_steering_area: PanelContainer
+var left_drift_area: PanelContainer
+var right_drift_area: PanelContainer
+var active_touches: Dictionary = {}
+var audio_unlocked := false
 
-var sound_enabled := false
+var sound_enabled := true
 var beep_player: AudioStreamPlayer
 var beep_generator: AudioStreamGenerator
+var music_player: AudioStreamPlayer
+var drift_player: AudioStreamPlayer
+var turbo_player: AudioStreamPlayer
 
 
 func _ready() -> void:
@@ -71,6 +86,7 @@ func _ready() -> void:
 	_build_audio()
 	_build_ui()
 	_reset_race()
+	call_deferred("_auto_start_race")
 
 
 func _process(delta: float) -> void:
@@ -88,6 +104,44 @@ func _process(delta: float) -> void:
 			for ai in ai_karts:
 				ai.update_race(delta, player_progress, elapsed_time)
 			_update_hud()
+	_update_audio_state()
+
+
+func _input(event: InputEvent) -> void:
+	if event is InputEventScreenTouch:
+		if event.pressed:
+			audio_unlocked = true
+		if event.pressed and state in [RaceState.COUNTDOWN, RaceState.RACING]:
+			var role := _touch_role_for_position(event.position)
+			if role != &"":
+				active_touches[event.index] = role
+			else:
+				active_touches.erase(event.index)
+		else:
+			active_touches.erase(event.index)
+		_sync_touch_controls()
+	elif event is InputEventScreenDrag and active_touches.has(event.index):
+		var role := _touch_role_for_position(event.position)
+		if role == &"":
+			active_touches.erase(event.index)
+		else:
+			active_touches[event.index] = role
+		_sync_touch_controls()
+	elif event is InputEventMouseButton and event.pressed:
+		audio_unlocked = true
+	elif event is InputEventKey and event.pressed:
+		audio_unlocked = true
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_APPLICATION_FOCUS_OUT:
+		_clear_touch_controls()
+
+
+func _exit_tree() -> void:
+	for audio_player in [beep_player, music_player, drift_player, turbo_player]:
+		if audio_player:
+			audio_player.stop()
 
 
 func _build_environment() -> void:
@@ -97,28 +151,28 @@ func _build_environment() -> void:
 	environment.background_mode = Environment.BG_SKY
 	var sky := Sky.new()
 	var sky_material := ProceduralSkyMaterial.new()
-	sky_material.sky_top_color = Color("#4e9fe8")
-	sky_material.sky_horizon_color = Color("#c9f3ff")
-	sky_material.ground_horizon_color = Color("#d9f5c8")
-	sky_material.ground_bottom_color = Color("#7acb6c")
+	sky_material.sky_top_color = Color("#75283a")
+	sky_material.sky_horizon_color = Color("#d86f5d")
+	sky_material.ground_horizon_color = Color("#a95649")
+	sky_material.ground_bottom_color = Color("#3d171b")
 	sky_material.sun_angle_max = 18.0
 	sky.sky_material = sky_material
 	environment.sky = sky
 	environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	environment.ambient_light_color = Color("#dff6ff")
-	environment.ambient_light_energy = 0.72
+	environment.ambient_light_color = Color("#ffd8c7")
+	environment.ambient_light_energy = 0.62
 	environment.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	environment.fog_enabled = true
-	environment.fog_light_color = Color("#d9f4ff")
-	environment.fog_density = 0.0025
+	environment.fog_light_color = Color("#8b463f")
+	environment.fog_density = 0.0015
 	world_environment.environment = environment
 	add_child(world_environment)
 
 	var sun := DirectionalLight3D.new()
 	sun.name = "Sun"
 	sun.rotation_degrees = Vector3(-52, -28, 0)
-	sun.light_color = Color("#fff4cf")
-	sun.light_energy = 1.15
+	sun.light_color = Color("#ffd6b0")
+	sun.light_energy = 1.05
 	sun.shadow_enabled = true
 	sun.directional_shadow_max_distance = 120.0
 	add_child(sun)
@@ -128,7 +182,7 @@ func _build_environment() -> void:
 	var ground_mesh := PlaneMesh.new()
 	ground_mesh.size = Vector2(160, 120)
 	ground.mesh = ground_mesh
-	ground.material_override = _material(Color("#70c85d"), 0.94)
+	ground.material_override = _material(Color("#651f29"), 0.97)
 	ground.position.y = -0.05
 	add_child(ground)
 
@@ -294,7 +348,7 @@ func _build_decorations() -> void:
 	pond_mesh.height = 0.12
 	pond_mesh.radial_segments = 48
 	pond.mesh = pond_mesh
-	var water_material := _material(Color("#4bc7e5"), 0.18)
+	var water_material := _material(Color("#286b78"), 0.18)
 	water_material.metallic = 0.12
 	pond.material_override = water_material
 	pond.position = Vector3(0, 0.01, 0)
@@ -436,7 +490,7 @@ func _add_hill(pos: Vector3, size: float, variant: int) -> void:
 	mesh.rings = 8
 	hill.mesh = mesh
 	hill.material_override = _material(
-		Color("#4fae65") if variant % 2 else Color("#68bd70"),
+		Color("#7d352b") if variant % 2 else Color("#512019"),
 		0.98
 	)
 	hill.position = pos - Vector3.UP * (size * 0.32)
@@ -450,6 +504,7 @@ func _build_racers() -> void:
 	add_child(player)
 	player.configure_track(TRACK_RADIUS_X, TRACK_RADIUS_Z, ROAD_HALF_WIDTH)
 	player.boost_triggered.connect(_on_player_boost)
+	player.drift_boost_triggered.connect(_on_drift_boost)
 	player.recovered.connect(_on_player_recovered)
 
 	var ai_settings := [
@@ -518,9 +573,27 @@ func _build_audio() -> void:
 	beep_player = AudioStreamPlayer.new()
 	beep_player.name = "SynthEffects"
 	beep_player.stream = beep_generator
+	beep_player.playback_type = AudioServer.PLAYBACK_TYPE_STREAM
 	beep_player.volume_db = -9.0
 	add_child(beep_player)
 
+	music_player = AudioStreamPlayer.new()
+	music_player.name = "RaceBGM"
+	music_player.stream = RACE_BGM
+	music_player.volume_db = -15.0
+	add_child(music_player)
+
+	drift_player = AudioStreamPlayer.new()
+	drift_player.name = "DriftSound"
+	drift_player.stream = DRIFT_LOOP
+	drift_player.volume_db = -11.0
+	add_child(drift_player)
+
+	turbo_player = AudioStreamPlayer.new()
+	turbo_player.name = "TurboSound"
+	turbo_player.stream = TURBO_SOUND
+	turbo_player.volume_db = -5.0
+	add_child(turbo_player)
 
 func _build_ui() -> void:
 	canvas = CanvasLayer.new()
@@ -575,12 +648,14 @@ func _build_ui() -> void:
 	drift_label.add_theme_constant_override("outline_size", 8)
 	root.add_child(drift_label)
 
-	mute_button = _make_button("おと：オフ", Vector2(190, 62), Color("#63558f"), 22)
+	mute_button = _make_button("おと：オン", Vector2(190, 62), Color("#63558f"), 22)
 	mute_button.position = Vector2(1072, 18)
+	mute_button.z_index = 30
 	mute_button.pressed.connect(_toggle_sound)
 	root.add_child(mute_button)
 	var recover_button := _make_button("コースにもどる", Vector2(210, 58), Color("#397e91"), 20)
 	recover_button.position = Vector2(1052, 88)
+	recover_button.z_index = 30
 	recover_button.pressed.connect(_recover_player)
 	root.add_child(recover_button)
 
@@ -595,40 +670,42 @@ func _build_ui() -> void:
 	countdown_label.size = Vector2(500, 260)
 	countdown_label.add_theme_color_override("font_outline_color", Color("#5b3f91"))
 	countdown_label.add_theme_constant_override("outline_size", 20)
+	countdown_label.z_index = 40
 	countdown_label.visible = false
 	root.add_child(countdown_label)
 
 
 func _build_touch_controls(root: Control) -> void:
-	var left_button := _make_button("ひだり", Vector2(112, 92), Color(0.20, 0.36, 0.58, 0.83), 25)
-	left_button.position = Vector2(22, 598)
-	left_button.button_down.connect(_on_touch_control.bind(&"left", true))
-	left_button.button_up.connect(_on_touch_control.bind(&"left", false))
-	root.add_child(left_button)
+	left_steering_area = _make_steering_area("←", Color(0.72, 0.18, 0.18, 0.035))
+	left_steering_area.position = Vector2.ZERO
+	left_steering_area.size = Vector2(640, 720)
+	left_steering_area.z_index = -1
+	root.add_child(left_steering_area)
 
-	var right_button := _make_button("みぎ", Vector2(112, 92), Color(0.20, 0.36, 0.58, 0.83), 25)
-	right_button.position = Vector2(146, 598)
-	right_button.button_down.connect(_on_touch_control.bind(&"right", true))
-	right_button.button_up.connect(_on_touch_control.bind(&"right", false))
-	root.add_child(right_button)
+	right_steering_area = _make_steering_area("→", Color(0.35, 0.12, 0.08, 0.045))
+	right_steering_area.position = Vector2(640, 0)
+	right_steering_area.size = Vector2(640, 720)
+	right_steering_area.z_index = -1
+	root.add_child(right_steering_area)
 
-	var brake_button := _make_button("ブレーキ", Vector2(130, 86), Color(0.83, 0.29, 0.36, 0.86), 23)
-	brake_button.position = Vector2(988, 604)
-	brake_button.button_down.connect(_on_touch_control.bind(&"brake", true))
-	brake_button.button_up.connect(_on_touch_control.bind(&"brake", false))
-	root.add_child(brake_button)
+	left_drift_area = _make_drift_area(Color("#a83d63"))
+	left_drift_area.position = LEFT_DRIFT_RECT.position
+	left_drift_area.size = LEFT_DRIFT_RECT.size
+	left_drift_area.z_index = 30
+	root.add_child(left_drift_area)
 
-	var drift_button := _make_button("ドリフト", Vector2(132, 86), Color(0.55, 0.31, 0.78, 0.88), 23)
-	drift_button.position = Vector2(1124, 604)
-	drift_button.button_down.connect(_on_touch_control.bind(&"drift", true))
-	drift_button.button_up.connect(_on_touch_control.bind(&"drift", false))
-	root.add_child(drift_button)
+	right_drift_area = _make_drift_area(Color("#7b3fa4"))
+	right_drift_area.position = RIGHT_DRIFT_RECT.position
+	right_drift_area.size = RIGHT_DRIFT_RECT.size
+	right_drift_area.z_index = 30
+	root.add_child(right_drift_area)
 
 
 func _build_title_overlay(root: Control) -> void:
 	title_overlay = ColorRect.new()
 	title_overlay.name = "TitleOverlay"
 	title_overlay.color = Color(0.04, 0.08, 0.18, 0.70)
+	title_overlay.z_index = 100
 	title_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	root.add_child(title_overlay)
 	var panel := PanelContainer.new()
@@ -650,7 +727,7 @@ func _build_title_overlay(root: Control) -> void:
 	box.add_child(subtitle)
 	var feature := _make_label(
 		"3しゅうレース　　キラリをあつめよう\n"
-		+ "まがるだけでも だいじょうぶ。Spaceでドリフト！",
+		+ "画面の左・右をおして曲がろう。反対側の下ボタンでドリフト！",
 		23,
 		Color("#6b536f")
 	)
@@ -665,7 +742,7 @@ func _build_title_overlay(root: Control) -> void:
 	box.add_child(best_label)
 	var note := _make_label(
 		"キーボード：左右キー / A D　ドリフト：Space\n"
-		+ "画面ボタン・ゲームパッドでも遊べます。音は最初はオフです。",
+		+ "スマホは横向きがおすすめです。BGMと効果音は右上で切り替えできます。",
 		18,
 		Color("#847a72")
 	)
@@ -677,6 +754,7 @@ func _build_finish_overlay(root: Control) -> void:
 	finish_overlay = ColorRect.new()
 	finish_overlay.name = "FinishOverlay"
 	finish_overlay.color = Color(0.05, 0.08, 0.18, 0.72)
+	finish_overlay.z_index = 100
 	finish_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	finish_overlay.visible = false
 	root.add_child(finish_overlay)
@@ -709,6 +787,7 @@ func _build_finish_overlay(root: Control) -> void:
 
 
 func _reset_race() -> void:
+	_clear_touch_controls()
 	state = RaceState.TITLE
 	elapsed_time = 0.0
 	completed_laps = 0
@@ -736,7 +815,13 @@ func _reset_race() -> void:
 	_update_hud()
 
 
+func _auto_start_race() -> void:
+	if state == RaceState.TITLE:
+		_start_race()
+
+
 func _start_race() -> void:
+	_clear_touch_controls()
 	title_overlay.visible = false
 	finish_overlay.visible = false
 	state = RaceState.COUNTDOWN
@@ -849,6 +934,7 @@ func _update_ranking() -> void:
 
 
 func _finish_race() -> void:
+	_clear_touch_controls()
 	state = RaceState.FINISHED
 	player.set_active(false)
 	_update_ranking()
@@ -904,9 +990,51 @@ func _animate_world(delta: float) -> void:
 		node.scale.y = 1.0 + sin(Time.get_ticks_msec() * 0.006 + node.position.x) * 0.10
 
 
-func _on_touch_control(control: StringName, pressed: bool) -> void:
+func _touch_role_for_position(position: Vector2) -> StringName:
+	if position.x < 0.0 or position.x > 1280.0 or position.y < 0.0 or position.y > 720.0:
+		return &""
+	if LEFT_DRIFT_RECT.has_point(position):
+		return &"drift_left"
+	if RIGHT_DRIFT_RECT.has_point(position):
+		return &"drift_right"
+	if TOP_RIGHT_CONTROLS_RECT.has_point(position):
+		return &""
+	return &"left" if position.x < 640.0 else &"right"
+
+
+func _sync_touch_controls() -> void:
+	var left_pressed := false
+	var right_pressed := false
+	var left_drift_pressed := false
+	var right_drift_pressed := false
+	for role in active_touches.values():
+		match role:
+			&"left":
+				left_pressed = true
+			&"right":
+				right_pressed = true
+			&"drift_left":
+				left_drift_pressed = true
+			&"drift_right":
+				right_drift_pressed = true
 	if player:
-		player.set_touch_control(control, pressed)
+		player.set_touch_control(&"left", left_pressed)
+		player.set_touch_control(&"right", right_pressed)
+		player.set_touch_control(&"drift_left", left_drift_pressed)
+		player.set_touch_control(&"drift_right", right_drift_pressed)
+	if left_steering_area:
+		left_steering_area.modulate = Color("#ffd4d4") if left_pressed else Color.WHITE
+	if right_steering_area:
+		right_steering_area.modulate = Color("#ffd8c8") if right_pressed else Color.WHITE
+	if left_drift_area:
+		left_drift_area.modulate = Color("#ffd4ea") if left_drift_pressed else Color.WHITE
+	if right_drift_area:
+		right_drift_area.modulate = Color("#ead5ff") if right_drift_pressed else Color.WHITE
+
+
+func _clear_touch_controls() -> void:
+	active_touches.clear()
+	_sync_touch_controls()
 
 
 func _recover_player() -> void:
@@ -924,6 +1052,7 @@ func _return_to_title() -> void:
 
 
 func _reset_for_countdown() -> void:
+	_clear_touch_controls()
 	elapsed_time = 0.0
 	completed_laps = 0
 	next_checkpoint = 1
@@ -948,15 +1077,51 @@ func _toggle_sound() -> void:
 	if sound_enabled:
 		mute_button.text = "おと：オン"
 		mute_button.add_theme_color_override("font_color", Color("#fff7bf"))
+		audio_unlocked = true
+		music_player.play()
 		_beep(660.0, 0.13, 0.35)
 	else:
 		mute_button.text = "おと：オフ"
 		mute_button.add_theme_color_override("font_color", Color.WHITE)
 		beep_player.stop()
+		music_player.stop()
+		drift_player.stop()
+		turbo_player.stop()
+
+
+func _update_audio_state() -> void:
+	if not sound_enabled:
+		return
+	if not audio_unlocked:
+		return
+	if music_player and not music_player.playing:
+		music_player.play()
+	var should_play_drift: bool = (
+		state == RaceState.RACING
+		and player
+		and player.is_drifting
+	)
+	if should_play_drift:
+		if not drift_player.playing:
+			drift_player.play()
+		var charge: float = clampf(player.drift_charge / 1.8, 0.0, 1.0)
+		drift_player.pitch_scale = lerpf(0.92, 1.16, charge)
+		drift_player.volume_db = lerpf(-12.0, -7.5, charge)
+	elif drift_player and drift_player.playing:
+		drift_player.stop()
 
 
 func _on_player_boost() -> void:
 	_beep(620.0, 0.11, 0.25)
+
+
+func _on_drift_boost() -> void:
+	if not sound_enabled:
+		return
+	beep_player.stop()
+	drift_player.stop()
+	turbo_player.stop()
+	turbo_player.play()
 
 
 func _on_player_recovered() -> void:
@@ -966,7 +1131,7 @@ func _on_player_recovered() -> void:
 
 
 func _beep(frequency: float, duration: float, volume: float) -> void:
-	if not sound_enabled or not beep_player:
+	if not sound_enabled or not audio_unlocked or not beep_player:
 		return
 	beep_player.stop()
 	beep_player.play()
@@ -985,7 +1150,7 @@ func _load_best_time() -> void:
 	var config := ConfigFile.new()
 	if config.load("user://kirakira_shippo_settings.cfg") == OK:
 		best_time = float(config.get_value("records", "best_time", 0.0))
-	sound_enabled = false
+	sound_enabled = true
 
 
 func _save_best_time() -> void:
@@ -1077,6 +1242,40 @@ func _make_button(
 	button.add_theme_stylebox_override("pressed", _button_style(color.darkened(0.10)))
 	button.focus_mode = Control.FOCUS_NONE
 	return button
+
+
+func _make_steering_area(symbol: String, tint: Color) -> PanelContainer:
+	var panel := PanelContainer.new()
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var style := StyleBoxFlat.new()
+	style.bg_color = tint
+	style.border_width_left = 1
+	style.border_width_right = 1
+	style.border_color = Color(1.0, 0.86, 0.82, 0.08)
+	panel.add_theme_stylebox_override("panel", style)
+	var label := _make_label(symbol, 108, Color(1.0, 0.92, 0.88, 0.17))
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	label.add_theme_color_override("font_outline_color", Color(0.18, 0.04, 0.03, 0.24))
+	label.add_theme_constant_override("outline_size", 6)
+	panel.add_child(label)
+	return panel
+
+
+func _make_drift_area(color: Color) -> PanelContainer:
+	var panel := PanelContainer.new()
+	panel.custom_minimum_size = Vector2(250, 132)
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.add_theme_stylebox_override("panel", _button_style(color))
+	var label := _make_label("ドリフト", 29, Color.WHITE)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	label.add_theme_color_override("font_outline_color", Color(0.12, 0.03, 0.12, 0.50))
+	label.add_theme_constant_override("outline_size", 5)
+	panel.add_child(label)
+	return panel
 
 
 func _button_style(color: Color) -> StyleBoxFlat:

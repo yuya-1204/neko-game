@@ -2,15 +2,12 @@ extends Node3D
 
 const PlayerKart = preload("res://scripts/player_kart.gd")
 const AIKart = preload("res://scripts/ai_kart.gd")
+const RaceCourse = preload("res://scripts/race_course.gd")
 const UI_FONT = preload("res://assets/fonts/KosugiMaru-Regular.ttf")
 const RACE_BGM = preload("res://assets/audio/race_bgm.res")
 const DRIFT_LOOP = preload("res://assets/audio/drift_loop.res")
 const TURBO_SOUND = preload("res://assets/audio/turbo.res")
 
-const TRACK_RADIUS_X := 48.0
-const TRACK_RADIUS_Z := 30.0
-const ROAD_HALF_WIDTH := 7.0
-const TRACK_SEGMENTS := 128
 const CHECKPOINT_COUNT := 8
 const TOTAL_LAPS := 3
 const LEFT_DRIFT_RECT := Rect2(28, 560, 250, 132)
@@ -25,6 +22,9 @@ enum RaceState {
 }
 
 var state := RaceState.TITLE
+var selected_stage := 0
+var course
+var stage_root: Node3D
 var player
 var ai_karts: Array[Node3D] = []
 var camera: Camera3D
@@ -42,6 +42,7 @@ var reverse_timer := 0.0
 var boost_pad_cooldown := 0.0
 var collected_count := 0
 var best_time := 0.0
+var best_times: Array[float] = [0.0, 0.0, 0.0]
 
 var sparkles: Array[Dictionary] = []
 var boost_pads: Array[Dictionary] = []
@@ -51,6 +52,7 @@ var title_overlay: ColorRect
 var finish_overlay: ColorRect
 var countdown_label: Label
 var position_label: Label
+var stage_hud_label: Label
 var lap_label: Label
 var time_label: Label
 var speed_label: Label
@@ -60,6 +62,9 @@ var drift_label: Label
 var finish_title: Label
 var finish_detail: Label
 var best_label: Label
+var stage_description_label: Label
+var stage_buttons: Array[Button] = []
+var start_button: Button
 var mute_button: Button
 var left_steering_area: PanelContainer
 var right_steering_area: PanelContainer
@@ -79,14 +84,14 @@ var turbo_player: AudioStreamPlayer
 func _ready() -> void:
 	_load_best_time()
 	_build_environment()
-	_build_track()
-	_build_decorations()
+	course = RaceCourse.new()
+	course.configure(selected_stage)
+	_build_stage_world()
 	_build_racers()
 	_build_camera()
 	_build_audio()
 	_build_ui()
 	_reset_race()
-	call_deferred("_auto_start_race")
 
 
 func _process(delta: float) -> void:
@@ -151,19 +156,19 @@ func _build_environment() -> void:
 	environment.background_mode = Environment.BG_SKY
 	var sky := Sky.new()
 	var sky_material := ProceduralSkyMaterial.new()
-	sky_material.sky_top_color = Color("#75283a")
-	sky_material.sky_horizon_color = Color("#d86f5d")
-	sky_material.ground_horizon_color = Color("#a95649")
-	sky_material.ground_bottom_color = Color("#3d171b")
+	sky_material.sky_top_color = Color("#5b514c")
+	sky_material.sky_horizon_color = Color("#9a806c")
+	sky_material.ground_horizon_color = Color("#786858")
+	sky_material.ground_bottom_color = Color("#39322e")
 	sky_material.sun_angle_max = 18.0
 	sky.sky_material = sky_material
 	environment.sky = sky
 	environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	environment.ambient_light_color = Color("#ffd8c7")
-	environment.ambient_light_energy = 0.62
+	environment.ambient_light_color = Color("#e0d7cc")
+	environment.ambient_light_energy = 0.68
 	environment.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	environment.fog_enabled = true
-	environment.fog_light_color = Color("#8b463f")
+	environment.fog_light_color = Color("#6b6056")
 	environment.fog_density = 0.0015
 	world_environment.environment = environment
 	add_child(world_environment)
@@ -171,7 +176,7 @@ func _build_environment() -> void:
 	var sun := DirectionalLight3D.new()
 	sun.name = "Sun"
 	sun.rotation_degrees = Vector3(-52, -28, 0)
-	sun.light_color = Color("#ffd6b0")
+	sun.light_color = Color("#fff0dd")
 	sun.light_energy = 1.05
 	sun.shadow_enabled = true
 	sun.directional_shadow_max_distance = 120.0
@@ -182,29 +187,96 @@ func _build_environment() -> void:
 	var ground_mesh := PlaneMesh.new()
 	ground_mesh.size = Vector2(160, 120)
 	ground.mesh = ground_mesh
-	ground.material_override = _material(Color("#651f29"), 0.97)
+	ground.material_override = _material(Color("#665744"), 0.97)
 	ground.position.y = -0.05
 	add_child(ground)
 
 
+func _build_stage_world() -> void:
+	if stage_root:
+		remove_child(stage_root)
+		stage_root.free()
+	stage_root = Node3D.new()
+	stage_root.name = "StageWorld"
+	add_child(stage_root)
+	boost_pads.clear()
+	sparkles.clear()
+	_build_track()
+	_build_decorations()
+	if selected_stage == 2:
+		_build_stage_three_obstacles()
+
+
 func _build_track() -> void:
+	_add_road_path(
+		course.main_points,
+		true,
+		course.road_half_width,
+		"MainRoad",
+		Color("#485364"),
+		0.060
+	)
+	_add_curbs_for_path(
+		course.main_points,
+		true,
+		course.road_half_width,
+		"Main",
+		0
+	)
+	for branch_index in range(course.branches.size()):
+		var branch: Dictionary = course.branches[branch_index]
+		var points := branch["points"] as PackedVector3Array
+		var half_width := float(branch["road_half_width"])
+		_add_road_path(
+			points,
+			false,
+			half_width,
+			"BranchRoad%d" % (branch_index + 1),
+			Color("#526273"),
+			0.072
+		)
+		_add_curbs_for_path(
+			points,
+			false,
+			half_width,
+			"Branch%d" % (branch_index + 1),
+			5
+		)
+
+	_build_start_line()
+	_build_boost_pads()
+	_build_sparkles()
+	if selected_stage == 2:
+		_build_branch_sign()
+
+
+func _add_road_path(
+		points: PackedVector3Array,
+		closed: bool,
+		half_width: float,
+		road_name: String,
+		color: Color,
+		height: float
+	) -> void:
 	var surface := SurfaceTool.new()
 	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
-	for i in range(TRACK_SEGMENTS):
-		var t0 := TAU * float(i) / float(TRACK_SEGMENTS)
-		var t1 := TAU * float(i + 1) / float(TRACK_SEGMENTS)
-		var center0 := _track_center(t0)
-		var center1 := _track_center(t1)
-		var outward0 := _track_outward(t0)
-		var outward1 := _track_outward(t1)
-		var inner0 := center0 - outward0 * ROAD_HALF_WIDTH
-		var outer0 := center0 + outward0 * ROAD_HALF_WIDTH
-		var inner1 := center1 - outward1 * ROAD_HALF_WIDTH
-		var outer1 := center1 + outward1 * ROAD_HALF_WIDTH
-		inner0.y = 0.06
-		outer0.y = 0.06
-		inner1.y = 0.06
-		outer1.y = 0.06
+	var segment_count := points.size() if closed else points.size() - 1
+	for i in range(segment_count):
+		var next_index := (i + 1) % points.size()
+		var center0 := points[i]
+		var center1 := points[next_index]
+		var tangent0 := _path_tangent_at_index(points, i, closed)
+		var tangent1 := _path_tangent_at_index(points, next_index, closed)
+		var outward0 := Vector3(tangent0.z, 0.0, -tangent0.x)
+		var outward1 := Vector3(tangent1.z, 0.0, -tangent1.x)
+		var inner0 := center0 - outward0 * half_width
+		var outer0 := center0 + outward0 * half_width
+		var inner1 := center1 - outward1 * half_width
+		var outer1 := center1 + outward1 * half_width
+		inner0.y = height
+		outer0.y = height
+		inner1.y = height
+		outer1.y = height
 		_surface_vertex(surface, inner0, Vector2(0, float(i) / 8.0))
 		_surface_vertex(surface, outer0, Vector2(1, float(i) / 8.0))
 		_surface_vertex(surface, outer1, Vector2(1, float(i + 1) / 8.0))
@@ -212,176 +284,336 @@ func _build_track() -> void:
 		_surface_vertex(surface, outer1, Vector2(1, float(i + 1) / 8.0))
 		_surface_vertex(surface, inner1, Vector2(0, float(i + 1) / 8.0))
 	var road := MeshInstance3D.new()
-	road.name = "Road"
+	road.name = road_name
 	road.mesh = surface.commit()
-	var road_material := _material(Color("#485364"), 0.92)
+	var road_material := _material(color, 0.92)
 	road_material.metallic = 0.05
 	road.material_override = road_material
-	add_child(road)
+	stage_root.add_child(road)
 
-	for i in range(0, TRACK_SEGMENTS, 2):
-		var angle := TAU * float(i) / float(TRACK_SEGMENTS)
-		var center := _track_center(angle)
-		var outward := _track_outward(angle)
-		var tangent := _track_tangent(angle)
+
+func _add_curbs_for_path(
+		points: PackedVector3Array,
+		closed: bool,
+		half_width: float,
+		prefix: String,
+		end_skip: int
+	) -> void:
+	var segment_count := points.size() if closed else points.size() - 1
+	var start_index := 0 if closed else end_skip
+	var end_index := segment_count if closed else segment_count - end_skip
+	for i in range(start_index, end_index, 2):
+		var center := points[i]
+		var tangent := _path_tangent_at_index(points, i, closed)
+		var outward := Vector3(tangent.z, 0.0, -tangent.x)
 		var curb_color := Color("#fff5df") if (i / 2) % 2 == 0 else Color("#ff6671")
+		var skip_inner_curb := false
+		if prefix == "Main" and selected_stage == 2:
+			var path_progress := float(i) / float(points.size())
+			for branch_join in [0.13, 0.38]:
+				if absf(wrapf(path_progress - branch_join, -0.5, 0.5)) < 0.045:
+					skip_inner_curb = true
+		if not skip_inner_curb:
+			_add_box_mesh(
+				prefix + "InnerCurb",
+				Vector3(0.55, 0.18, 2.05),
+				center - outward * (half_width + 0.12) + Vector3.UP * 0.12,
+				curb_color,
+				atan2(tangent.x, tangent.z)
+			)
 		_add_box_mesh(
-			"InnerCurb",
+			prefix + "OuterCurb",
 			Vector3(0.55, 0.18, 2.05),
-			center - outward * (ROAD_HALF_WIDTH + 0.12) + Vector3.UP * 0.12,
-			curb_color,
-			atan2(tangent.x, tangent.z)
-		)
-		_add_box_mesh(
-			"OuterCurb",
-			Vector3(0.55, 0.18, 2.05),
-			center + outward * (ROAD_HALF_WIDTH + 0.12) + Vector3.UP * 0.12,
+			center + outward * (half_width + 0.12) + Vector3.UP * 0.12,
 			curb_color,
 			atan2(tangent.x, tangent.z)
 		)
 
-	_build_start_line()
-	_build_boost_pads()
-	_build_sparkles()
+
+func _path_tangent_at_index(
+		points: PackedVector3Array,
+		index: int,
+		closed: bool
+	) -> Vector3:
+	if points.size() < 2:
+		return Vector3.FORWARD
+	var before_index := index - 1
+	var after_index := index + 1
+	if closed:
+		before_index = posmod(before_index, points.size())
+		after_index = posmod(after_index, points.size())
+	else:
+		before_index = maxi(before_index, 0)
+		after_index = mini(after_index, points.size() - 1)
+	return (points[after_index] - points[before_index]).normalized()
 
 
 func _build_start_line() -> void:
-	var angle := 0.0
-	var center := _track_center(angle)
-	var outward := _track_outward(angle)
-	var tangent := _track_tangent(angle)
+	var center: Vector3 = course.point_at(0.0)
+	var outward: Vector3 = course.outward_at(0.0)
+	var tangent: Vector3 = course.tangent_at(0.0)
 	for i in range(10):
-		var offset := (float(i) - 4.5) * (ROAD_HALF_WIDTH * 2.0 / 10.0)
+		var offset: float = (float(i) - 4.5) * (course.road_half_width * 2.0 / 10.0)
 		var color := Color.WHITE if i % 2 == 0 else Color("#202735")
 		_add_box_mesh(
 			"StartTile",
-			Vector3(ROAD_HALF_WIDTH * 2.0 / 10.0, 0.035, 1.25),
+			Vector3(course.road_half_width * 2.0 / 10.0, 0.035, 1.25),
 			center + outward * offset + Vector3.UP * 0.105,
 			color,
 			atan2(tangent.x, tangent.z)
 		)
 
-	var left_pos := center - outward * (ROAD_HALF_WIDTH + 1.2)
-	var right_pos := center + outward * (ROAD_HALF_WIDTH + 1.2)
-	_add_box_mesh("StartPost", Vector3(0.7, 5.2, 0.7), left_pos + Vector3.UP * 2.6, Color("#7046d9"), 0.0)
-	_add_box_mesh("StartPost", Vector3(0.7, 5.2, 0.7), right_pos + Vector3.UP * 2.6, Color("#7046d9"), 0.0)
+	var left_pos: Vector3 = center - outward * (course.road_half_width + 1.2)
+	var right_pos: Vector3 = center + outward * (course.road_half_width + 1.2)
+	var yaw := atan2(tangent.x, tangent.z)
+	_add_box_mesh("StartPost", Vector3(0.7, 5.2, 0.7), left_pos + Vector3.UP * 2.6, Color("#7046d9"), yaw)
+	_add_box_mesh("StartPost", Vector3(0.7, 5.2, 0.7), right_pos + Vector3.UP * 2.6, Color("#7046d9"), yaw)
 	_add_box_mesh(
 		"StartBanner",
-		Vector3(ROAD_HALF_WIDTH * 2.0 + 3.0, 1.0, 0.6),
+		Vector3(course.road_half_width * 2.0 + 3.0, 1.0, 0.6),
 		center + Vector3.UP * 5.0,
 		Color("#ffe067"),
-		0.0
+		yaw
 	)
 	var label := Label3D.new()
 	label.text = "START!"
 	label.font_size = 84
 	label.outline_size = 12
 	label.modulate = Color("#4f3193")
-	label.position = center + Vector3(0, 5.02, 0.34)
-	label.rotation_degrees = Vector3(0, 90, 0)
+	label.position = center + Vector3.UP * 5.02 - tangent * 0.34
+	label.rotation.y = yaw + PI
 	label.no_depth_test = true
-	add_child(label)
+	stage_root.add_child(label)
 
 
 func _build_boost_pads() -> void:
-	for angle in [0.72, 2.10, 3.62, 5.18]:
-		var center := _track_center(angle)
-		var tangent := _track_tangent(angle)
-		var outward := _track_outward(angle)
-		var lane := sin(angle * 3.0) * 2.1
-		var pos := center + outward * lane + Vector3.UP * 0.12
-		var pad := _add_box_mesh(
-			"BoostPad",
-			Vector3(3.2, 0.08, 4.4),
-			pos,
-			Color("#4ee9e6"),
-			atan2(tangent.x, tangent.z)
-		)
-		var material := pad.material_override as StandardMaterial3D
-		material.emission_enabled = true
-		material.emission = Color("#20fff4")
-		material.emission_energy_multiplier = 1.4
-		boost_pads.append({"node": pad, "position": pos})
+	var main_progresses := [0.11, 0.34, 0.59, 0.82]
+	if selected_stage == 2:
+		main_progresses = [0.47, 0.67, 0.88]
+	for progress in main_progresses:
+		var center: Vector3 = course.point_at(float(progress))
+		var tangent: Vector3 = course.tangent_at(float(progress))
+		var outward: Vector3 = course.outward_at(float(progress))
+		var lane := sin(float(progress) * TAU * 3.0) * 2.1
+		_add_boost_pad(center, tangent, outward, lane)
+	if selected_stage == 2 and not course.branches.is_empty():
+		var branch_progress := 0.56
+		var center: Vector3 = course.branch_point(0, branch_progress)
+		var tangent: Vector3 = course.branch_tangent(0, branch_progress)
+		var outward := Vector3(tangent.z, 0.0, -tangent.x)
+		_add_boost_pad(center, tangent, outward, 0.0)
+
+
+func _add_boost_pad(
+		center: Vector3,
+		tangent: Vector3,
+		outward: Vector3,
+		lane: float
+	) -> void:
+	var pos := center + outward * lane + Vector3.UP * 0.12
+	var pad := _add_box_mesh(
+		"BoostPad",
+		Vector3(3.2, 0.08, 4.4),
+		pos,
+		Color("#4ee9e6"),
+		atan2(tangent.x, tangent.z)
+	)
+	var material := pad.material_override as StandardMaterial3D
+	material.emission_enabled = true
+	material.emission = Color("#20fff4")
+	material.emission_energy_multiplier = 1.4
+	boost_pads.append({"node": pad, "position": pos})
 
 
 func _build_sparkles() -> void:
-	for i in range(20):
-		var angle := 0.34 + TAU * float(i) / 20.0
-		var center := _track_center(angle)
-		var outward := _track_outward(angle)
+	var main_count := 16 if selected_stage == 2 else 20
+	for i in range(main_count):
+		var progress := fposmod(0.05 + float(i) / float(main_count), 1.0)
+		var center: Vector3 = course.point_at(progress)
+		var outward: Vector3 = course.outward_at(progress)
 		var lane := sin(float(i) * 1.73) * 3.5
-		var pos := center + outward * lane + Vector3.UP * 1.05
-		var holder := Node3D.new()
-		holder.name = "Kirari"
-		holder.position = pos
-		var ring := MeshInstance3D.new()
-		var ring_mesh := TorusMesh.new()
-		ring_mesh.inner_radius = 0.20
-		ring_mesh.outer_radius = 0.46
-		ring_mesh.rings = 10
-		ring_mesh.ring_segments = 8
-		ring.mesh = ring_mesh
-		var sparkle_material := _material(Color("#fff47a"), 0.20)
-		sparkle_material.emission_enabled = true
-		sparkle_material.emission = Color("#fff15c")
-		sparkle_material.emission_energy_multiplier = 1.5
-		ring.material_override = sparkle_material
-		ring.rotation_degrees.x = 90
-		holder.add_child(ring)
-		var core := MeshInstance3D.new()
-		var core_mesh := SphereMesh.new()
-		core_mesh.radius = 0.18
-		core_mesh.height = 0.36
-		core.mesh = core_mesh
-		core.material_override = sparkle_material
-		holder.add_child(core)
-		add_child(holder)
-		sparkles.append({"node": holder, "position": pos, "taken": false})
+		_add_sparkle(center + outward * lane + Vector3.UP * 1.05)
+	if selected_stage == 2 and not course.branches.is_empty():
+		for i in range(4):
+			var local_progress := 0.22 + float(i) * 0.19
+			var center: Vector3 = course.branch_point(0, local_progress)
+			var tangent: Vector3 = course.branch_tangent(0, local_progress)
+			var outward := Vector3(tangent.z, 0.0, -tangent.x)
+			var lane := -2.5 if i % 2 == 0 else 2.5
+			_add_sparkle(center + outward * lane + Vector3.UP * 1.05)
+
+
+func _add_sparkle(pos: Vector3) -> void:
+	var holder := Node3D.new()
+	holder.name = "Kirari"
+	holder.position = pos
+	var ring := MeshInstance3D.new()
+	var ring_mesh := TorusMesh.new()
+	ring_mesh.inner_radius = 0.20
+	ring_mesh.outer_radius = 0.46
+	ring_mesh.rings = 10
+	ring_mesh.ring_segments = 8
+	ring.mesh = ring_mesh
+	var sparkle_material := _material(Color("#fff47a"), 0.20)
+	sparkle_material.emission_enabled = true
+	sparkle_material.emission = Color("#fff15c")
+	sparkle_material.emission_energy_multiplier = 1.5
+	ring.material_override = sparkle_material
+	ring.rotation_degrees.x = 90
+	holder.add_child(ring)
+	var core := MeshInstance3D.new()
+	var core_mesh := SphereMesh.new()
+	core_mesh.radius = 0.18
+	core_mesh.height = 0.36
+	core.mesh = core_mesh
+	core.material_override = sparkle_material
+	holder.add_child(core)
+	stage_root.add_child(holder)
+	sparkles.append({"node": holder, "position": pos, "taken": false})
 
 
 func _build_decorations() -> void:
+	if selected_stage == 0:
+		_add_pond(Vector3.ZERO, 14.0)
+		_build_windmill(Vector3(0, 0.15, 0))
+	elif selected_stage == 1:
+		_add_pond(Vector3.ZERO, 9.0)
+		_build_windmill(Vector3(0, 0.15, 0))
+	else:
+		_add_pond(Vector3(4, 0, -8), 7.5)
+
+	var tree_count := 26 if selected_stage == 2 else 32
+	for i in range(tree_count):
+		var progress := fposmod(0.015 + float(i) / float(tree_count), 1.0)
+		var radius_extra := 9.0 + float((i * 7) % 7) * 0.72
+		var center: Vector3 = course.point_at(progress)
+		var pos: Vector3 = center + course.outward_at(progress) * (course.road_half_width + radius_extra)
+		_add_tree(pos, 0.78 + float(i % 4) * 0.10, i)
+
+	if selected_stage != 2:
+		for i in range(9):
+			var progress := fposmod(float(i) / 9.0 + 0.08, 1.0)
+			var center: Vector3 = course.point_at(progress)
+			var pos: Vector3 = center - course.outward_at(progress) * (course.road_half_width + 4.8)
+			if pos.length() > 16.0:
+				_add_tree(pos, 0.65 + float(i % 3) * 0.08, i + 40)
+
+	for i in range(14):
+		var progress := fposmod(float(i) / 14.0 + 0.04, 1.0)
+		var center: Vector3 = course.point_at(progress)
+		var pos: Vector3 = center + course.outward_at(progress) * (course.road_half_width + 2.9)
+		_add_flower_patch(pos, i)
+
+	for i in range(8):
+		var progress := fposmod(float(i) / 8.0 + 0.055, 1.0)
+		var center: Vector3 = course.point_at(progress)
+		var pos: Vector3 = center + course.outward_at(progress) * (course.road_half_width + 21.0)
+		_add_hill(pos, 5.0 + float(i % 3), i)
+
+
+func _add_pond(pos: Vector3, radius: float) -> void:
 	var pond := MeshInstance3D.new()
 	pond.name = "Pond"
 	var pond_mesh := CylinderMesh.new()
-	pond_mesh.top_radius = 14.0
-	pond_mesh.bottom_radius = 14.5
+	pond_mesh.top_radius = radius
+	pond_mesh.bottom_radius = radius + 0.5
 	pond_mesh.height = 0.12
 	pond_mesh.radial_segments = 48
 	pond.mesh = pond_mesh
 	var water_material := _material(Color("#286b78"), 0.18)
 	water_material.metallic = 0.12
 	pond.material_override = water_material
-	pond.position = Vector3(0, 0.01, 0)
-	add_child(pond)
+	pond.position = pos + Vector3.UP * 0.01
+	stage_root.add_child(pond)
 
-	_build_windmill(Vector3(0, 0.15, 0))
 
-	for i in range(32):
-		var angle := TAU * float(i) / 32.0
-		var radius_extra := 10.5 + float((i * 7) % 9) * 0.72
-		var center := _track_center(angle)
-		var pos := center + _track_outward(angle) * (ROAD_HALF_WIDTH + radius_extra)
-		_add_tree(pos, 0.78 + float(i % 4) * 0.10, i)
+func _build_branch_sign() -> void:
+	var branch: Dictionary = course.branches[0]
+	var race_start := float(branch["race_start"])
+	var fork_position: Vector3 = course.point_at(race_start)
+	var sign := Label3D.new()
+	sign.name = "BranchSign"
+	sign.text = "わかれみち！\n青い道は 近道"
+	sign.font = UI_FONT
+	sign.font_size = 56
+	sign.outline_size = 12
+	sign.modulate = Color("#fff3a6")
+	sign.position = fork_position + Vector3.UP * 3.6
+	sign.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	sign.no_depth_test = true
+	stage_root.add_child(sign)
 
-	for i in range(10):
-		var angle := TAU * float(i) / 10.0 + 0.18
-		var center := _track_center(angle)
-		var pos := center - _track_outward(angle) * (ROAD_HALF_WIDTH + 4.6)
-		if pos.length() > 18.0:
-			_add_tree(pos, 0.65 + float(i % 3) * 0.08, i + 40)
+	for local_progress in [0.07, 0.13, 0.19]:
+		var center: Vector3 = course.branch_point(0, float(local_progress))
+		var tangent: Vector3 = course.branch_tangent(0, float(local_progress))
+		_add_box_mesh(
+			"BranchGuide",
+			Vector3(3.8, 0.055, 0.75),
+			center + Vector3.UP * 0.135,
+			Color("#69d8ee"),
+			atan2(tangent.x, tangent.z)
+		)
 
-	for i in range(16):
-		var angle := TAU * float(i) / 16.0 + 0.08
-		var center := _track_center(angle)
-		var pos := center + _track_outward(angle) * (ROAD_HALF_WIDTH + 2.7)
-		_add_flower_patch(pos, i)
 
-	for i in range(8):
-		var angle := TAU * float(i) / 8.0 + 0.35
-		var center := _track_center(angle)
-		var outward := _track_outward(angle)
-		var pos := center + outward * (ROAD_HALF_WIDTH + 22.0)
-		_add_hill(pos, 5.0 + float(i % 3), i)
+func _build_stage_three_obstacles() -> void:
+	var branch_specs := [
+		{"progress": 0.30, "lane": -2.5},
+		{"progress": 0.53, "lane": 2.4},
+		{"progress": 0.76, "lane": -2.1},
+	]
+	for spec_index in range(branch_specs.size()):
+		var spec: Dictionary = branch_specs[spec_index]
+		var progress := float(spec["progress"])
+		var center: Vector3 = course.branch_point(0, progress)
+		var tangent: Vector3 = course.branch_tangent(0, progress)
+		var outward := Vector3(tangent.z, 0.0, -tangent.x)
+		_add_obstacle(
+			center + outward * float(spec["lane"]),
+			tangent,
+			Color("#bd6b35"),
+			"ObstacleShortcut%d" % (spec_index + 1)
+		)
+
+	var main_progress := 0.64
+	var main_center: Vector3 = course.point_at(main_progress)
+	var main_tangent: Vector3 = course.tangent_at(main_progress)
+	_add_obstacle(
+		main_center + course.outward_at(main_progress) * 3.6,
+		main_tangent,
+		Color("#9b633d"),
+		"ObstacleOuterRoute"
+	)
+
+
+func _add_obstacle(
+		pos: Vector3,
+		tangent: Vector3,
+		color: Color,
+		obstacle_name: String
+	) -> void:
+	var body := StaticBody3D.new()
+	body.name = obstacle_name
+	body.position = pos
+	body.rotation.y = atan2(tangent.x, tangent.z)
+
+	var size := Vector3(2.5, 1.55, 1.7)
+	var mesh := _create_box_instance(size, color)
+	mesh.position.y = size.y * 0.5
+	body.add_child(mesh)
+	var stripe := _create_box_instance(
+		Vector3(size.x + 0.05, 0.24, size.z + 0.05),
+		Color("#ffe58a")
+	)
+	stripe.position.y = size.y * 0.62
+	body.add_child(stripe)
+
+	var collision := CollisionShape3D.new()
+	var shape := BoxShape3D.new()
+	shape.size = size
+	collision.shape = shape
+	collision.position.y = size.y * 0.5
+	body.add_child(collision)
+	stage_root.add_child(body)
 
 
 func _build_windmill(pos: Vector3) -> void:
@@ -395,7 +627,7 @@ func _build_windmill(pos: Vector3) -> void:
 	tower.mesh = tower_mesh
 	tower.material_override = _material(Color("#fff0d2"), 0.82)
 	tower.position = pos + Vector3.UP * 4.0
-	add_child(tower)
+	stage_root.add_child(tower)
 
 	var roof := MeshInstance3D.new()
 	var roof_mesh := CylinderMesh.new()
@@ -406,7 +638,7 @@ func _build_windmill(pos: Vector3) -> void:
 	roof.mesh = roof_mesh
 	roof.material_override = _material(Color("#e65d67"), 0.65)
 	roof.position = pos + Vector3.UP * 8.3
-	add_child(roof)
+	stage_root.add_child(roof)
 
 	var rotor := Node3D.new()
 	rotor.name = "WindmillRotor"
@@ -427,7 +659,7 @@ func _build_windmill(pos: Vector3) -> void:
 	hub.mesh = hub_mesh
 	hub.material_override = _material(Color("#7e4a2e"), 0.72)
 	rotor.add_child(hub)
-	add_child(rotor)
+	stage_root.add_child(rotor)
 
 
 func _add_tree(pos: Vector3, tree_scale: float, variant: int) -> void:
@@ -457,7 +689,7 @@ func _add_tree(pos: Vector3, tree_scale: float, variant: int) -> void:
 	crown.position = Vector3(0, 3.2, 0)
 	crown.scale = Vector3(1.0, 0.86, 1.0)
 	tree.add_child(crown)
-	add_child(tree)
+	stage_root.add_child(tree)
 
 
 func _add_flower_patch(pos: Vector3, variant: int) -> void:
@@ -477,7 +709,7 @@ func _add_flower_patch(pos: Vector3, variant: int) -> void:
 			0.24,
 			cos(float(j) * 1.7) * 0.9
 		)
-		add_child(flower)
+		stage_root.add_child(flower)
 
 
 func _add_hill(pos: Vector3, size: float, variant: int) -> void:
@@ -490,26 +722,27 @@ func _add_hill(pos: Vector3, size: float, variant: int) -> void:
 	mesh.rings = 8
 	hill.mesh = mesh
 	hill.material_override = _material(
-		Color("#7d352b") if variant % 2 else Color("#512019"),
+		Color("#7a5942") if variant % 2 else Color("#4a3328"),
 		0.98
 	)
 	hill.position = pos - Vector3.UP * (size * 0.32)
 	hill.scale = Vector3(1.4, 0.72, 1.0)
-	add_child(hill)
+	stage_root.add_child(hill)
 
 
 func _build_racers() -> void:
 	player = PlayerKart.new()
 	player.name = "PlayerKart"
 	add_child(player)
-	player.configure_track(TRACK_RADIUS_X, TRACK_RADIUS_Z, ROAD_HALF_WIDTH)
+	player.configure_track(course)
 	player.boost_triggered.connect(_on_player_boost)
 	player.drift_boost_triggered.connect(_on_drift_boost)
 	player.recovered.connect(_on_player_recovered)
+	player.obstacle_hit.connect(_on_obstacle_hit)
 
 	var ai_settings := [
 		{
-			"start": -0.065,
+			"start": -0.010,
 			"lane": -2.2,
 			"speed": 20.2,
 			"body": Color("#6d8cff"),
@@ -518,7 +751,7 @@ func _build_racers() -> void:
 			"phase": 0.6,
 		},
 		{
-			"start": -0.125,
+			"start": -0.021,
 			"lane": 2.0,
 			"speed": 19.8,
 			"body": Color("#8bd06d"),
@@ -527,7 +760,7 @@ func _build_racers() -> void:
 			"phase": 2.2,
 		},
 		{
-			"start": -0.190,
+			"start": -0.032,
 			"lane": 0.0,
 			"speed": 20.5,
 			"body": Color("#b774e8"),
@@ -542,8 +775,7 @@ func _build_racers() -> void:
 		ai.name = "AIKart%d" % (i + 1)
 		add_child(ai)
 		ai.setup(
-			TRACK_RADIUS_X,
-			TRACK_RADIUS_Z,
+			course,
 			data["start"],
 			data["lane"],
 			data["speed"],
@@ -609,16 +841,18 @@ func _build_ui() -> void:
 
 	var hud_panel := PanelContainer.new()
 	hud_panel.position = Vector2(18, 18)
-	hud_panel.custom_minimum_size = Vector2(270, 150)
+	hud_panel.custom_minimum_size = Vector2(302, 176)
 	hud_panel.add_theme_stylebox_override("panel", _panel_style(Color(0.08, 0.12, 0.22, 0.83), Color("#7ee8ff")))
 	root.add_child(hud_panel)
 	var hud_box := VBoxContainer.new()
 	hud_box.add_theme_constant_override("separation", 2)
 	hud_panel.add_child(hud_box)
+	stage_hud_label = _make_label("コース1 シンプル", 19, Color("#ffd6b3"))
 	lap_label = _make_label("ラップ 1 / 3", 26, Color.WHITE)
 	time_label = _make_label("タイム 00:00.00", 24, Color("#dffcff"))
 	speed_label = _make_label("スピード 0 km/h", 22, Color("#ffe681"))
 	sparkle_label = _make_label("キラリ 0 / 20", 22, Color("#fff39c"))
+	hud_box.add_child(stage_hud_label)
 	hud_box.add_child(lap_label)
 	hud_box.add_child(time_label)
 	hud_box.add_child(speed_label)
@@ -648,9 +882,9 @@ func _build_ui() -> void:
 	drift_label.add_theme_constant_override("outline_size", 8)
 	root.add_child(drift_label)
 
-	mute_button = _make_button("おと：オン", Vector2(190, 62), Color("#63558f"), 22)
-	mute_button.position = Vector2(1072, 18)
-	mute_button.z_index = 30
+	mute_button = _make_button("おと：オン", Vector2(220, 88), Color("#63558f"), 24)
+	mute_button.position = Vector2(1042, 18)
+	mute_button.z_index = 120
 	mute_button.pressed.connect(_toggle_sound)
 	root.add_child(mute_button)
 	var recover_button := _make_button("コースにもどる", Vector2(210, 58), Color("#397e91"), 20)
@@ -704,50 +938,80 @@ func _build_touch_controls(root: Control) -> void:
 func _build_title_overlay(root: Control) -> void:
 	title_overlay = ColorRect.new()
 	title_overlay.name = "TitleOverlay"
-	title_overlay.color = Color(0.04, 0.08, 0.18, 0.70)
+	title_overlay.color = Color(0.10, 0.06, 0.05, 0.76)
 	title_overlay.z_index = 100
 	title_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	root.add_child(title_overlay)
 	var panel := PanelContainer.new()
-	panel.position = Vector2(280, 90)
-	panel.custom_minimum_size = Vector2(720, 540)
-	panel.add_theme_stylebox_override("panel", _panel_style(Color("#fffaf0"), Color("#f3c95c"), 28))
+	panel.position = Vector2(40, 25)
+	panel.custom_minimum_size = Vector2(1200, 670)
+	panel.add_theme_stylebox_override("panel", _panel_style(Color("#fff8ed"), Color("#e3a958"), 28))
 	title_overlay.add_child(panel)
 	var box := VBoxContainer.new()
 	box.alignment = BoxContainer.ALIGNMENT_CENTER
-	box.add_theme_constant_override("separation", 14)
+	box.add_theme_constant_override("separation", 7)
 	panel.add_child(box)
-	var title := _make_label("キラキラしっぽ\nグランプリ", 58, Color("#643f99"))
+	var title := _make_label("あそびかた と コースえらび", 42, Color("#643f99"))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_color_override("font_outline_color", Color("#fff0a6"))
-	title.add_theme_constant_override("outline_size", 12)
+	title.add_theme_constant_override("outline_size", 9)
 	box.add_child(title)
-	var subtitle := _make_label("ネコレーサーと、ひかりのコースを走ろう！", 25, Color("#4d6572"))
+	var subtitle := _make_label("キラキラしっぽグランプリ　｜　3しゅう・じどうアクセル", 25, Color("#4d6572"))
 	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(subtitle)
-	var feature := _make_label(
-		"3しゅうレース　　キラリをあつめよう\n"
-		+ "画面の左・右をおして曲がろう。反対側の下ボタンでドリフト！",
-		23,
+	var instructions := _make_label(
+		"左半分のどこでも おすと左へ　　右半分のどこでも おすと右へ\n"
+		+ "右へドリフト：右半分をおしたまま＋左下　　左へ：左半分＋右下",
+		28,
 		Color("#6b536f")
 	)
-	feature.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	box.add_child(feature)
-	var start_button := _make_button("レース スタート！", Vector2(380, 78), Color("#ed6c6c"), 31)
+	instructions.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(instructions)
+	var choose_label := _make_label("コースを えらぼう", 29, Color("#9a542f"))
+	choose_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(choose_label)
+
+	var stage_row := HBoxContainer.new()
+	stage_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	stage_row.add_theme_constant_override("separation", 18)
+	box.add_child(stage_row)
+	stage_buttons.clear()
+	for stage_index in range(3):
+		var stage_button := _make_button(
+			_stage_button_text(stage_index, false),
+			Vector2(340, 134),
+			Color("#8c6ab2"),
+			28
+		)
+		stage_button.name = "StageButton%d" % (stage_index + 1)
+		stage_button.pressed.connect(_select_stage.bind(stage_index))
+		stage_row.add_child(stage_button)
+		stage_buttons.append(stage_button)
+
+	stage_description_label = _make_label("", 24, Color("#765844"))
+	stage_description_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(stage_description_label)
+	start_button = _make_button(
+		"このコースで レーススタート！",
+		Vector2(500, 94),
+		Color("#e76155"),
+		31
+	)
+	start_button.name = "RaceStartButton"
 	start_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	start_button.pressed.connect(_start_race)
+	start_button.pressed.connect(_start_selected_stage)
 	box.add_child(start_button)
-	best_label = _make_label("", 20, Color("#8a6b4d"))
+	best_label = _make_label("", 21, Color("#8a6b4d"))
 	best_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(best_label)
 	var note := _make_label(
-		"キーボード：左右キー / A D　ドリフト：Space\n"
-		+ "スマホは横向きがおすすめです。BGMと効果音は右上で切り替えできます。",
-		18,
+		"スマホは横向きがおすすめ　　PC：左右 / A D　　ドリフト：Space",
+		20,
 		Color("#847a72")
 	)
 	note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(note)
+	_refresh_stage_selection_ui()
 
 
 func _build_finish_overlay(root: Control) -> void:
@@ -776,11 +1040,11 @@ func _build_finish_overlay(root: Control) -> void:
 	var celebrate := _make_label("さいごまで走れたね！", 28, Color("#d0664f"))
 	celebrate.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(celebrate)
-	var again_button := _make_button("もういちど走る", Vector2(340, 72), Color("#ef7272"), 28)
+	var again_button := _make_button("同じコースでもう一度", Vector2(380, 72), Color("#ef7272"), 26)
 	again_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	again_button.pressed.connect(_restart_from_finish)
 	box.add_child(again_button)
-	var title_button := _make_button("タイトルにもどる", Vector2(280, 58), Color("#66839d"), 22)
+	var title_button := _make_button("操作説明・コース選択へ", Vector2(340, 62), Color("#66839d"), 22)
 	title_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	title_button.pressed.connect(_return_to_title)
 	box.add_child(title_button)
@@ -798,10 +1062,11 @@ func _reset_race() -> void:
 	reverse_timer = 0.0
 	boost_pad_cooldown = 0.0
 	collected_count = 0
+	best_time = best_times[selected_stage]
 	player.reset_at(0.0, 0.0)
 	player.set_active(false)
 	for i in range(ai_karts.size()):
-		var starts := [-0.065, -0.125, -0.190]
+		var starts := [-0.010, -0.021, -0.032]
 		ai_karts[i].reset_to(starts[i])
 	for item in sparkles:
 		item["taken"] = false
@@ -811,13 +1076,72 @@ func _reset_race() -> void:
 	countdown_label.visible = false
 	message_label.text = ""
 	drift_label.text = ""
-	best_label.text = "ベストタイム：" + (_format_time(best_time) if best_time > 0.0 else "まだありません")
+	_refresh_stage_selection_ui()
 	_update_hud()
 
 
-func _auto_start_race() -> void:
-	if state == RaceState.TITLE:
-		_start_race()
+func _select_stage(stage_index: int) -> void:
+	if state != RaceState.TITLE:
+		return
+	stage_index = clampi(stage_index, 0, 2)
+	if selected_stage != stage_index:
+		selected_stage = stage_index
+		course.configure(selected_stage)
+		_build_stage_world()
+		player.configure_track(course)
+		for ai in ai_karts:
+			ai.configure_track(course)
+		_reset_race()
+	else:
+		_refresh_stage_selection_ui()
+
+
+func _start_selected_stage() -> void:
+	if state != RaceState.TITLE:
+		return
+	audio_unlocked = true
+	_reset_for_countdown()
+	_start_race()
+
+
+func _stage_button_text(stage_index: int, selected: bool) -> String:
+	var labels := [
+		"1 シンプル\nはじめて向け",
+		"2 ひょうたん\nくねくねカーブ",
+		"3 わかれみち\n障害物に挑戦",
+	]
+	return labels[stage_index] + ("\nえらんだよ ✓" if selected else "\nタッチして選ぶ")
+
+
+func _refresh_stage_selection_ui() -> void:
+	if stage_description_label:
+		var descriptions := [
+			"大きなカーブ中心のシンプルなコース。まずはここから！",
+			"中央がくびれた、ひょうたん型のくねくねコース。",
+			"外回りか近道を選べるコース。近道には障害物！",
+		]
+		stage_description_label.text = descriptions[selected_stage]
+	if best_label:
+		best_time = best_times[selected_stage]
+		best_label.text = (
+			"%s のベスト：%s"
+			% [
+				course.stage_name,
+				_format_time(best_time) if best_time > 0.0 else "まだありません",
+			]
+		)
+	for index in range(stage_buttons.size()):
+		var button := stage_buttons[index]
+		var is_selected := index == selected_stage
+		var color := Color("#d45d4f") if is_selected else Color("#7f6a9f")
+		button.text = _stage_button_text(index, is_selected)
+		button.add_theme_stylebox_override("normal", _button_style(color))
+		button.add_theme_stylebox_override("hover", _button_style(color.lightened(0.08)))
+		button.add_theme_stylebox_override("pressed", _button_style(color.darkened(0.10)))
+		button.add_theme_color_override(
+			"font_color",
+			Color("#fff4b0") if is_selected else Color.WHITE
+		)
 
 
 func _start_race() -> void:
@@ -866,11 +1190,11 @@ func _update_race(delta: float) -> void:
 
 
 func _update_player_progress(delta: float) -> void:
-	var angle: float = player.get_track_angle()
-	var previous_angle := fposmod(player_progress, TAU)
-	var progress_step := wrapf(angle - previous_angle, -PI, PI)
+	var lap_progress: float = player.get_track_progress()
+	var previous_progress := fposmod(player_progress, 1.0)
+	var progress_step := wrapf(lap_progress - previous_progress, -0.5, 0.5)
 	player_progress += progress_step
-	var sector := int(floor(angle / (TAU / float(CHECKPOINT_COUNT)))) % CHECKPOINT_COUNT
+	var sector := int(floor(lap_progress * float(CHECKPOINT_COUNT))) % CHECKPOINT_COUNT
 	if sector == next_checkpoint:
 		if next_checkpoint == 0:
 			completed_laps += 1
@@ -882,7 +1206,7 @@ func _update_player_progress(delta: float) -> void:
 			_beep(700.0, 0.18, 0.34)
 		else:
 			next_checkpoint = (next_checkpoint + 1) % CHECKPOINT_COUNT
-	var tangent := _track_tangent(angle)
+	var tangent: Vector3 = player.get_course_tangent()
 	var facing_forward: float = player.get_forward().dot(tangent)
 	if facing_forward < -0.20 and player.speed > 5.0:
 		reverse_timer += delta
@@ -941,11 +1265,18 @@ func _finish_race() -> void:
 	final_place = clampi(final_place, 1, 4)
 	if best_time <= 0.0 or elapsed_time < best_time:
 		best_time = elapsed_time
+		best_times[selected_stage] = best_time
 		_save_best_time()
 	finish_title.text = "ゴール！ %dい！" % final_place
 	finish_detail.text = (
-		"タイム　%s\nキラリ　%d / %d\nベスト　%s"
-		% [_format_time(elapsed_time), collected_count, sparkles.size(), _format_time(best_time)]
+		"%s\nタイム　%s\nキラリ　%d / %d\nベスト　%s"
+		% [
+			course.stage_name,
+			_format_time(elapsed_time),
+			collected_count,
+			sparkles.size(),
+			_format_time(best_time),
+		]
 	)
 	finish_overlay.visible = true
 	countdown_label.visible = false
@@ -954,6 +1285,7 @@ func _finish_race() -> void:
 
 func _update_hud() -> void:
 	var shown_lap := mini(completed_laps + 1, TOTAL_LAPS)
+	stage_hud_label.text = "コース%d　%s" % [selected_stage + 1, course.stage_name]
 	lap_label.text = "ラップ %d / %d" % [shown_lap, TOTAL_LAPS]
 	time_label.text = "タイム " + _format_time(elapsed_time)
 	speed_label.text = "スピード %d km/h" % int(player.speed * 3.6)
@@ -982,9 +1314,10 @@ func _update_camera(delta: float) -> void:
 
 
 func _animate_world(delta: float) -> void:
-	for child in get_children():
-		if child is Node3D and child.has_meta("rotates"):
-			child.rotate_z(delta * 0.48)
+	if stage_root:
+		for child in stage_root.get_children():
+			if child is Node3D and child.has_meta("rotates"):
+				child.rotate_z(delta * 0.48)
 	for pad in boost_pads:
 		var node := pad["node"] as MeshInstance3D
 		node.scale.y = 1.0 + sin(Time.get_ticks_msec() * 0.006 + node.position.x) * 0.10
@@ -1063,13 +1396,15 @@ func _reset_for_countdown() -> void:
 	collected_count = 0
 	player.reset_at(0.0, 0.0)
 	for i in range(ai_karts.size()):
-		var starts := [-0.065, -0.125, -0.190]
+		var starts := [-0.010, -0.021, -0.032]
 		ai_karts[i].reset_to(starts[i])
 	for item in sparkles:
 		item["taken"] = false
 		(item["node"] as Node3D).visible = true
 	finish_overlay.visible = false
 	message_label.text = ""
+	drift_label.text = ""
+	_update_hud()
 
 
 func _toggle_sound() -> void:
@@ -1130,6 +1465,12 @@ func _on_player_recovered() -> void:
 		_beep(390.0, 0.10, 0.22)
 
 
+func _on_obstacle_hit() -> void:
+	if state == RaceState.RACING:
+		message_label.text = "しょうがいぶつ！"
+		_beep(210.0, 0.16, 0.30)
+
+
 func _beep(frequency: float, duration: float, volume: float) -> void:
 	if not sound_enabled or not audio_unlocked or not beep_player:
 		return
@@ -1149,13 +1490,29 @@ func _beep(frequency: float, duration: float, volume: float) -> void:
 func _load_best_time() -> void:
 	var config := ConfigFile.new()
 	if config.load("user://kirakira_shippo_settings.cfg") == OK:
-		best_time = float(config.get_value("records", "best_time", 0.0))
+		var legacy_best := float(config.get_value("records", "best_time", 0.0))
+		for index in range(3):
+			var fallback := legacy_best if index == 0 else 0.0
+			best_times[index] = float(
+				config.get_value(
+					"records",
+					"best_time_stage_%d" % (index + 1),
+					fallback
+				)
+			)
+	best_time = best_times[selected_stage]
 	sound_enabled = true
 
 
 func _save_best_time() -> void:
 	var config := ConfigFile.new()
-	config.set_value("records", "best_time", best_time)
+	for index in range(3):
+		config.set_value(
+			"records",
+			"best_time_stage_%d" % (index + 1),
+			best_times[index]
+		)
+	config.set_value("records", "best_time", best_times[0])
 	config.save("user://kirakira_shippo_settings.cfg")
 
 
@@ -1164,19 +1521,6 @@ func _format_time(seconds: float) -> String:
 	var whole_seconds := int(seconds) % 60
 	var hundredths := int(seconds * 100.0) % 100
 	return "%02d:%02d.%02d" % [minutes, whole_seconds, hundredths]
-
-
-func _track_center(angle: float) -> Vector3:
-	return Vector3(TRACK_RADIUS_X * cos(angle), 0, TRACK_RADIUS_Z * sin(angle))
-
-
-func _track_tangent(angle: float) -> Vector3:
-	return Vector3(-TRACK_RADIUS_X * sin(angle), 0, TRACK_RADIUS_Z * cos(angle)).normalized()
-
-
-func _track_outward(angle: float) -> Vector3:
-	var tangent := _track_tangent(angle)
-	return Vector3(tangent.z, 0, -tangent.x)
 
 
 func _surface_vertex(surface: SurfaceTool, vertex: Vector3, uv: Vector2) -> void:
@@ -1196,7 +1540,7 @@ func _add_box_mesh(
 	instance.name = node_name
 	instance.position = pos
 	instance.rotation.y = yaw
-	add_child(instance)
+	stage_root.add_child(instance)
 	return instance
 
 

@@ -63,8 +63,8 @@ var best_label: Label
 var mute_button: Button
 var left_steering_area: PanelContainer
 var right_steering_area: PanelContainer
-var left_drift_area: PanelContainer
-var right_drift_area: PanelContainer
+var left_drift_area: Button
+var right_drift_area: Button
 var active_touches: Dictionary = {}
 var audio_unlocked := false
 
@@ -1263,19 +1263,12 @@ func _make_steering_area(symbol: String, tint: Color) -> PanelContainer:
 	return panel
 
 
-func _make_drift_area(color: Color) -> PanelContainer:
-	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(250, 132)
-	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	panel.add_theme_stylebox_override("panel", _button_style(color))
-	var label := _make_label("ドリフト", 29, Color.WHITE)
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	label.add_theme_color_override("font_outline_color", Color(0.12, 0.03, 0.12, 0.50))
-	label.add_theme_constant_override("outline_size", 5)
-	panel.add_child(label)
-	return panel
+func _make_drift_area(color: Color) -> Button:
+	var button := _make_button("ドリフト", Vector2(250, 132), color, 29)
+	button.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	button.add_theme_color_override("font_outline_color", Color(0.12, 0.03, 0.12, 0.50))
+	button.add_theme_constant_override("outline_size", 5)
+	return button
 
 
 func _button_style(color: Color) -> StyleBoxFlat:

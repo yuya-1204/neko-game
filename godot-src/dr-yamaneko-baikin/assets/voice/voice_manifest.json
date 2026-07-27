@@ -1,0 +1,302 @@
+[
+    {
+        "id":  "CMN_001",
+        "file":  "res://assets/voice/vo_cmn_001_title.wav",
+        "text":  "ドクターやまねこの、バイキン退治だいさくせん！"
+    },
+    {
+        "id":  "CMN_002",
+        "file":  "res://assets/voice/vo_cmn_002_audio_ready.wav",
+        "text":  "おとが きこえたら、じゅんび かんりょう！"
+    },
+    {
+        "id":  "CMN_003",
+        "file":  "res://assets/voice/vo_cmn_003_greeting.wav",
+        "text":  "こんにちは。わたしは、ドクターやまねこ。いっしょに まちを きれいにしよう！"
+    },
+    {
+        "id":  "CMN_004",
+        "file":  "res://assets/voice/vo_cmn_004_mission.wav",
+        "text":  "五つのステージを めぐって、いたずらバイキンを あわで きれいにするよ！"
+    },
+    {
+        "id":  "CMN_005",
+        "file":  "res://assets/voice/vo_cmn_005_landscape.wav",
+        "text":  "がめんを よこむきにしてね。もどったら、つづけられるよ。"
+    },
+    {
+        "id":  "CMN_006",
+        "file":  "res://assets/voice/vo_cmn_006_move.wav",
+        "text":  "ひだりの まるを、ゆっくり うごかしてみよう。"
+    },
+    {
+        "id":  "CMN_007",
+        "file":  "res://assets/voice/vo_cmn_007_look.wav",
+        "text":  "みぎの がめんを なぞると、まわりを みられるよ。"
+    },
+    {
+        "id":  "CMN_008",
+        "file":  "res://assets/voice/vo_cmn_008_fire.wav",
+        "text":  "おおきな あわボタンを、おしてみよう！"
+    },
+    {
+        "id":  "CMN_009",
+        "file":  "res://assets/voice/vo_cmn_009_aim.wav",
+        "text":  "まんなかが ひかったら、バイキンを ねらえているよ。"
+    },
+    {
+        "id":  "CMN_010",
+        "file":  "res://assets/voice/vo_cmn_010_tutorial_clear.wav",
+        "text":  "できたね！これで じゅんび ばっちり！"
+    },
+    {
+        "id":  "CMN_011",
+        "file":  "res://assets/voice/vo_cmn_011_good.wav",
+        "text":  "いいね！その ちょうし！"
+    },
+    {
+        "id":  "CMN_012",
+        "file":  "res://assets/voice/vo_cmn_012_combo.wav",
+        "text":  "れんぞく せいこう！すごい しゅうちゅうりょくだね！"
+    },
+    {
+        "id":  "CMN_013",
+        "file":  "res://assets/voice/vo_cmn_013_star_lost.wav",
+        "text":  "げんきスターが ひとつ へったよ。だいじょうぶ、あわてずに いこう。"
+    },
+    {
+        "id":  "CMN_014",
+        "file":  "res://assets/voice/vo_cmn_014_last_star.wav",
+        "text":  "スターは あと ひとつ。ゆっくり、よく みてね。"
+    },
+    {
+        "id":  "CMN_015",
+        "file":  "res://assets/voice/vo_cmn_015_fever_ready.wav",
+        "text":  "ピカピカゲージ、まんたん！"
+    },
+    {
+        "id":  "CMN_016",
+        "file":  "res://assets/voice/vo_cmn_016_fever_start.wav",
+        "text":  "あわフィーバー！いっきに きれいにしよう！"
+    },
+    {
+        "id":  "CMN_017",
+        "file":  "res://assets/voice/vo_cmn_017_pause.wav",
+        "text":  "おやすみするときは、みぎうえの ボタンを おしてね。"
+    },
+    {
+        "id":  "CMN_018",
+        "file":  "res://assets/voice/vo_cmn_018_game_over.wav",
+        "text":  "だいじょうぶ。ここで ひとやすみしよう。もういちど ちょうせんできるよ。"
+    },
+    {
+        "id":  "CMN_019",
+        "file":  "res://assets/voice/vo_cmn_019_continue.wav",
+        "text":  "このステージに、げんきスター三つで もういちど ちょうせんしよう！"
+    },
+    {
+        "id":  "CMN_020",
+        "file":  "res://assets/voice/vo_cmn_020_restart.wav",
+        "text":  "はじめからなら、ステージ一から はじめるよ。"
+    },
+    {
+        "id":  "CMN_021",
+        "file":  "res://assets/voice/vo_cmn_021_save_failed.wav",
+        "text":  "きろくを ほぞんできなかったよ。でも、ゲームは そのまま あそべるよ。"
+    },
+    {
+        "id":  "CMN_022",
+        "file":  "res://assets/voice/vo_cmn_022_replay.wav",
+        "text":  "もういちど ききたいときは、わたしの かおを おしてね。"
+    },
+    {
+        "id":  "ST1_001",
+        "file":  "res://assets/voice/vo_st1_001_intro.wav",
+        "text":  "ステージ一、てあらいラボ！あわブラスターの でばんだよ！"
+    },
+    {
+        "id":  "ST1_002",
+        "file":  "res://assets/voice/vo_st1_002_goal.wav",
+        "text":  "かくれている バイキンを、十たい みつけよう！"
+    },
+    {
+        "id":  "ST1_003",
+        "file":  "res://assets/voice/vo_st1_003_tutorial.wav",
+        "text":  "まんなかを あわせて、あわボタンを おしてね。"
+    },
+    {
+        "id":  "ST1_004",
+        "file":  "res://assets/voice/vo_st1_004_hint.wav",
+        "text":  "ゆびの あいだに、かくれている こも いるよ。"
+    },
+    {
+        "id":  "ST1_005",
+        "file":  "res://assets/voice/vo_st1_005_clear.wav",
+        "text":  "てあらいラボ、ピカピカ！はじめての さくせん、だいせいこう！"
+    },
+    {
+        "id":  "ST1_006",
+        "file":  "res://assets/voice/vo_st1_006_learning.wav",
+        "text":  "せっけんで、ゆびの あいだまで、ていねいに あらおうね。"
+    },
+    {
+        "id":  "ST2_001",
+        "file":  "res://assets/voice/vo_st2_001_intro.wav",
+        "text":  "ステージ二、はみがき どうくつ！おくの ほうも、よく みてみよう！"
+    },
+    {
+        "id":  "ST2_002",
+        "file":  "res://assets/voice/vo_st2_002_tool.wav",
+        "text":  "はみがきライトで、しろく ひかる よごれを みつけよう！"
+    },
+    {
+        "id":  "ST2_003",
+        "file":  "res://assets/voice/vo_st2_003_tutorial.wav",
+        "text":  "ひかりが かさなったら、あわボタンを おしつづけてね。"
+    },
+    {
+        "id":  "ST2_004",
+        "file":  "res://assets/voice/vo_st2_004_hint.wav",
+        "text":  "おくばと、はの あいだも、みてみよう。"
+    },
+    {
+        "id":  "ST2_005",
+        "file":  "res://assets/voice/vo_st2_005_clear.wav",
+        "text":  "はみがき どうくつが、きらきらに なったよ！"
+    },
+    {
+        "id":  "ST2_006",
+        "file":  "res://assets/voice/vo_st2_006_learning.wav",
+        "text":  "はぶらしを ちいさく うごかして、おくばまで ていねいに みがこうね。"
+    },
+    {
+        "id":  "ST3_001",
+        "file":  "res://assets/voice/vo_st3_001_intro.wav",
+        "text":  "ステージ三、おさら ピカピカこうじょう！おさらが どんどん ながれてくるよ！"
+    },
+    {
+        "id":  "ST3_002",
+        "file":  "res://assets/voice/vo_st3_002_goal.wav",
+        "text":  "よごれた おさらにだけ、あわシャワーを あてよう！"
+    },
+    {
+        "id":  "ST3_003",
+        "file":  "res://assets/voice/vo_st3_003_warning.wav",
+        "text":  "きれいな おさらは、そのまま とおしてあげてね。"
+    },
+    {
+        "id":  "ST3_004",
+        "file":  "res://assets/voice/vo_st3_004_wrong.wav",
+        "text":  "その おさらは きれいだよ。よごれマークを さがしてみよう。"
+    },
+    {
+        "id":  "ST3_005",
+        "file":  "res://assets/voice/vo_st3_005_hint.wav",
+        "text":  "あかい よごれマークを、よく みてね。"
+    },
+    {
+        "id":  "ST3_006",
+        "file":  "res://assets/voice/vo_st3_006_clear.wav",
+        "text":  "こうじょうの おさらが、ぜんぶ ピカピカ！すばらしいよ！"
+    },
+    {
+        "id":  "ST3_007",
+        "file":  "res://assets/voice/vo_st3_007_learning.wav",
+        "text":  "つかった おさらは、おうちの ひとと いっしょに、せんざいで あらって よく すすごうね。"
+    },
+    {
+        "id":  "ST4_001",
+        "file":  "res://assets/voice/vo_st4_001_intro.wav",
+        "text":  "ステージ四、おなか フローラガーデン！いろいろな きんが くらしているよ。"
+    },
+    {
+        "id":  "ST4_002",
+        "file":  "res://assets/voice/vo_st4_002_good_germs.wav",
+        "text":  "きんは、みんな わるものでは ないよ。からだを たすける きんも いるんだ。"
+    },
+    {
+        "id":  "ST4_003",
+        "file":  "res://assets/voice/vo_st4_003_target.wav",
+        "text":  "あおい トゲの マークがある、いたずらきんだけを ねらってね。"
+    },
+    {
+        "id":  "ST4_004",
+        "file":  "res://assets/voice/vo_st4_004_protect.wav",
+        "text":  "みどりの はっぱマークは、みかたの きんだよ。まもってあげよう。"
+    },
+    {
+        "id":  "ST4_005",
+        "file":  "res://assets/voice/vo_st4_005_friendly_hit.wav",
+        "text":  "その こは みかただよ。あわを とめて、マークを みてみよう。"
+    },
+    {
+        "id":  "ST4_006",
+        "file":  "res://assets/voice/vo_st4_006_hint.wav",
+        "text":  "トゲの マークを、ゆっくり さがしてみよう。"
+    },
+    {
+        "id":  "ST4_007",
+        "file":  "res://assets/voice/vo_st4_007_clear.wav",
+        "text":  "みかたの きんを まもれたよ！フローラガーデン、だいせいこう！"
+    },
+    {
+        "id":  "ST4_008",
+        "file":  "res://assets/voice/vo_st4_008_learning.wav",
+        "text":  "おなかの なかには、からだを たすける きんも いるよ。みんな おなじでは ないんだ。"
+    },
+    {
+        "id":  "ST5_001",
+        "file":  "res://assets/voice/vo_st5_001_intro.wav",
+        "text":  "さいしゅうステージ、バイキンだいおうの ひみつきち！いっしょに がんばろう！"
+    },
+    {
+        "id":  "ST5_002",
+        "file":  "res://assets/voice/vo_st5_002_cores.wav",
+        "text":  "まずは、四つの よごれコアを みつけて、きれいにしよう！"
+    },
+    {
+        "id":  "ST5_003",
+        "file":  "res://assets/voice/vo_st5_003_dodge.wav",
+        "text":  "ゆかが あかく ひかったら、よこへ よけよう。"
+    },
+    {
+        "id":  "ST5_004",
+        "file":  "res://assets/voice/vo_st5_004_phase_two.wav",
+        "text":  "バリアが きえたよ！いまが チャンス！"
+    },
+    {
+        "id":  "ST5_005",
+        "file":  "res://assets/voice/vo_st5_005_safe_target.wav",
+        "text":  "みどりに ひかった ところへ、あわを あてよう！"
+    },
+    {
+        "id":  "ST5_006",
+        "file":  "res://assets/voice/vo_st5_006_final.wav",
+        "text":  "あと すこし！おおきな あわを、まんなかに あてよう！"
+    },
+    {
+        "id":  "ST5_007",
+        "file":  "res://assets/voice/vo_st5_007_clear.wav",
+        "text":  "やったね！バイキンだいおうも、きれいな あわで、おとなしく なったよ！"
+    },
+    {
+        "id":  "ST5_008",
+        "file":  "res://assets/voice/vo_st5_008_learning.wav",
+        "text":  "てあらい、はみがき、きれいな おさら。まいにちの しゅうかんを、たいせつにしようね。"
+    },
+    {
+        "id":  "END_001",
+        "file":  "res://assets/voice/vo_end_001_success.wav",
+        "text":  "バイキンたいじ だいさくせん、だいせいこう！"
+    },
+    {
+        "id":  "END_002",
+        "file":  "res://assets/voice/vo_end_002_praise.wav",
+        "text":  "五つの ステージを、ぜんぶ クリアしたよ。さいごまで、よく がんばったね！"
+    },
+    {
+        "id":  "END_003",
+        "file":  "res://assets/voice/vo_end_003_goodbye.wav",
+        "text":  "きょうの ことを、おうちの ひとにも おしえてあげてね。また あおう！"
+    }
+]

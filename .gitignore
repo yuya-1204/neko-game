@@ -1,0 +1,4 @@
+web3d-src/node_modules/
+web3d-src/.vite/
+web3d-src/.DS_Store
+web3d-src/npm-debug.log*

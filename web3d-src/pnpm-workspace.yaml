@@ -1,0 +1,4 @@
+allowBuilds:
+  babylonjs: true
+minimumReleaseAgeExclude:
+  - babylonjs@9.18.1

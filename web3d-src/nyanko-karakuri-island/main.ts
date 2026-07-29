@@ -932,7 +932,7 @@ class KarakuriController implements SceneController {
     this.elapsed += delta;
 
     const look = input.lookX + input.moveX * 0.18;
-    this.camera.alpha = lerp(this.camera.alpha, -Math.PI / 2 + look * 0.16, delta * 2.2);
+    this.camera.alpha = lerp(this.camera.alpha, -Math.PI / 2 - look * 0.16, delta * 2.2);
     this.goal.rotation.z += delta * 0.55;
 
     for (const part of this.animatedParts) {

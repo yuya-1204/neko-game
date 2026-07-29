@@ -753,7 +753,7 @@ class SeaRescueController implements SceneController {
     this.propeller.rotation.z += delta * (moving ? 12 : 3.5);
     this.submarine.position.y += Math.sin(this.elapsed * 2.1) * delta * 0.035;
 
-    this.camera.alpha = lerp(this.camera.alpha, -Math.PI / 2 + input.lookX * 0.18, delta * 2);
+    this.camera.alpha = lerp(this.camera.alpha, -Math.PI / 2 - input.lookX * 0.18, delta * 2);
     this.camera.setTarget(
       Vector3.Lerp(
         this.camera.target,

@@ -97,6 +97,10 @@ function routeHash(value: string): number {
   return result;
 }
 
+const RING_COLORS = ["#ff3f7f", "#ff9f1c", "#7657ff", "#00a86b", "#e83cff"] as const;
+const SPIRIT_COLORS = ["#ff4f87", "#ffad24", "#795cff", "#16b968", "#df45d3"] as const;
+const SPIRIT_ACCENTS = ["#ffd83d", "#ff5f45", "#39dfc1", "#ff82c2", "#55d7ff"] as const;
+
 class CloudFlightController implements SceneController {
   readonly scene: Scene;
   private readonly context: GameFactoryContext;
@@ -408,13 +412,14 @@ class CloudFlightController implements SceneController {
     for (let index = 0; index < ringTotal; index += 1) {
       const progress = 0.055 + (index / Math.max(1, ringTotal - 1)) * 0.83;
       const point = this.flightPoint(progress, (random() - 0.5) * 1.4);
+      const ringColor = RING_COLORS[(index + this.stage.areaIndex) % RING_COLORS.length]!;
       const ring = createRing(this.scene, {
         name: `ひかりリング-${index + 1}`,
         position: point,
         radius: 1.55 + (index % 5 === 4 ? 0.28 : 0),
-        thickness: 0.2,
-        color: index % 5 === 4 ? "#ffffff" : this.stage.palette[2],
-        emissiveStrength: 1.25,
+        thickness: 0.29,
+        color: ringColor,
+        emissiveStrength: 1.45,
         shadowGenerator
       });
       const beacon = MeshBuilder.CreateSphere(
@@ -426,10 +431,10 @@ class CloudFlightController implements SceneController {
       beacon.material = mat(
         this.scene,
         `リングの ひかりマテリアル-${index + 1}`,
-        "#ffffff",
+        ringColor,
         {
-          emissive: index % 5 === 4 ? "#ffffff" : this.stage.palette[2],
-          emissiveStrength: 1.25,
+          emissive: ringColor,
+          emissiveStrength: 1.45,
           roughness: 0.2
         }
       );
@@ -441,12 +446,16 @@ class CloudFlightController implements SceneController {
       const progress = 0.13 + (index / Math.max(1, this.stage.targets - 1)) * 0.68;
       const side = index % 2 === 0 ? 1 : -1;
       const point = this.flightPoint(progress, side * (2.6 + random() * 2.4));
+      const spiritColor =
+        SPIRIT_COLORS[(index + this.stage.areaIndex) % SPIRIT_COLORS.length]!;
+      const spiritAccent =
+        SPIRIT_ACCENTS[(index * 2 + this.stage.areaIndex) % SPIRIT_ACCENTS.length]!;
       const spirit = createSpirit(this.scene, {
         name: `迷子の精霊-${index + 1}`,
         position: point,
-        size: 0.72 + this.stage.difficulty * 0.06,
-        color: index % 3 === 0 ? this.stage.palette[2] : "#ffffff",
-        accent: index % 2 === 0 ? this.stage.palette[0] : this.stage.palette[1],
+        size: 1.02 + this.stage.difficulty * 0.08,
+        color: spiritColor,
+        accent: spiritAccent,
         wings: true,
         particles: this.context.ui.getSettings().quality !== "eco",
         shadowGenerator
@@ -473,8 +482,8 @@ class CloudFlightController implements SceneController {
     this.dashAmount = lerp(this.dashAmount, dashTarget, delta * 5.5);
     const speed = 8.3 + this.stage.difficulty * 1.1 + this.dashAmount * 5.2;
 
-    // At alpha +PI/2 the chase camera's screen-right is world +X.
-    this.cat.position.x = clamp(this.cat.position.x + horizontal * delta * 9.5, -20, 20);
+    // At alpha +PI/2 the chase camera's screen-right is world -X.
+    this.cat.position.x = clamp(this.cat.position.x - horizontal * delta * 9.5, -20, 20);
     this.cat.position.y = clamp(this.cat.position.y + vertical * delta * 7.7, 3.9, 18.5);
     this.cat.position.z -= speed * delta;
     const routeProgress = clamp((9 - this.cat.position.z) / this.trackLength, 0, 1);
@@ -483,6 +492,7 @@ class CloudFlightController implements SceneController {
     const verticalAssist = Math.abs(vertical) < 0.08 ? 0.38 : 0.1;
     this.cat.position.x = lerp(this.cat.position.x, routeGuide.x, delta * horizontalAssist);
     this.cat.position.y = lerp(this.cat.position.y, routeGuide.y, delta * verticalAssist);
+    // Positive Z roll leans local-up toward world -X, which is screen-right for this camera.
     this.cat.rotation.z = lerp(this.cat.rotation.z, horizontal * 0.38, delta * 5);
     this.cat.rotation.x = lerp(this.cat.rotation.x, vertical * 0.18, delta * 4);
     this.cat.rotation.y = Math.sin(this.elapsed * 0.6) * 0.025;

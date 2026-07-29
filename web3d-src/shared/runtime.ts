@@ -49,6 +49,7 @@ interface RuntimeElements {
   shell: HTMLDivElement;
   canvas: HTMLCanvasElement;
   screen: HTMLDivElement;
+  fullscreenHelp: HTMLDivElement;
   hud: HTMLElement;
   mission: HTMLElement;
   counter: HTMLElement;
@@ -63,6 +64,22 @@ interface RuntimeElements {
   loading: HTMLDivElement;
   loadingText: HTMLElement;
   backend: HTMLElement;
+}
+
+interface WebkitFullscreenDocument extends Document {
+  webkitFullscreenElement?: Element | null;
+  webkitCurrentFullScreenElement?: Element | null;
+  webkitFullscreenEnabled?: boolean;
+  webkitExitFullscreen?: () => void | Promise<void>;
+  webkitCancelFullScreen?: () => void | Promise<void>;
+}
+
+interface WebkitFullscreenElement extends HTMLDivElement {
+  webkitRequestFullscreen?: () => void | Promise<void>;
+}
+
+interface StandaloneNavigator extends Navigator {
+  standalone?: boolean;
 }
 
 function clamp(value: number, minimum: number, maximum: number): number {
@@ -772,6 +789,8 @@ class NekoRuntime {
   private quizOpen = false;
   private quizFinish: ((answer: boolean) => void) | null = null;
   private pausedBySystem = false;
+  private fullscreenHelpOpen = false;
+  private fullscreenRequestPending = false;
   private ready = false;
 
   constructor(definition: GameDefinition, factory: GameFactory) {
@@ -793,6 +812,7 @@ class NekoRuntime {
 
     const shell = document.createElement("div");
     shell.className = "neko-shell";
+    shell.dataset.game = this.definition.id;
     shell.style.setProperty("--accent", cssColor(this.definition.accent, "#62d4d6"));
     shell.style.setProperty("--accent-2", cssColor(this.definition.accent2, "#ffd66f"));
     shell.innerHTML = `
@@ -816,6 +836,16 @@ class NekoRuntime {
         </div>
       </div>
       <div class="neko-screen"></div>
+      <button
+        class="neko-fullscreen-toggle"
+        type="button"
+        data-runtime-action="fullscreen"
+        aria-pressed="false"
+        aria-label="全画面にする"
+      >
+        <span data-fullscreen-icon aria-hidden="true">⛶</span>
+        <span data-fullscreen-label>全画面</span>
+      </button>
       <div class="neko-quiz" hidden></div>
       <div class="neko-toast-stack" aria-live="polite" aria-atomic="false"></div>
       <div class="neko-loading">
@@ -832,6 +862,30 @@ class NekoRuntime {
           <p>iPhoneを よこにすると、ひろい画面で あそべます。</p>
         </div>
       </div>
+      <div class="neko-fullscreen-help" hidden>
+        <section
+          class="neko-fullscreen-help__card"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="neko-fullscreen-help-title"
+        >
+          <div class="neko-fullscreen-help__icon" aria-hidden="true">📱✨</div>
+          <h2 id="neko-fullscreen-help-title">ホーム画面から 大きくあそぼう</h2>
+          <p class="neko-fullscreen-help__lead">
+            このiPhoneでは、Safariのページをそのまま全画面にできません。<br>
+            おうちの人と いっしょに、つぎの3つを やってね。
+          </p>
+          <ol class="neko-fullscreen-help__steps">
+            <li><strong>1</strong><span>Safariの <b>共有ボタン「□↑」</b>を おします</span></li>
+            <li><strong>2</strong><span><b>「ホーム画面に追加」</b>を えらび、「Web Appとして開く」が出たら オンにします</span></li>
+            <li><strong>3</strong><span>ホーム画面にできたアイコンから ゲームを ひらきます</span></li>
+          </ol>
+          <p class="neko-fullscreen-help__note">ゲームのつづきは、このiPhoneの中に のこります。</p>
+          <button class="neko-button neko-button--primary" type="button" data-runtime-action="close-fullscreen-help">
+            わかった
+          </button>
+        </section>
+      </div>
     `;
     host.append(shell);
 
@@ -845,6 +899,7 @@ class NekoRuntime {
       shell,
       canvas: requireElement<HTMLCanvasElement>(".neko-canvas"),
       screen: requireElement<HTMLDivElement>(".neko-screen"),
+      fullscreenHelp: requireElement<HTMLDivElement>(".neko-fullscreen-help"),
       hud: requireElement<HTMLElement>(".neko-hud"),
       mission: requireElement<HTMLElement>(".neko-hud__mission"),
       counter: requireElement<HTMLElement>(".neko-hud__counter"),
@@ -901,7 +956,19 @@ class NekoRuntime {
       void this.handleAction(target);
     });
 
+    const handleFullscreenChange = (): void => {
+      this.fullscreenRequestPending = false;
+      this.syncFullscreenUi();
+      this.engine?.resize();
+      this.handleSystemPause();
+    };
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    document.addEventListener("webkitfullscreenchange", handleFullscreenChange);
+    document.addEventListener("fullscreenerror", () => this.handleFullscreenError());
+    document.addEventListener("webkitfullscreenerror", () => this.handleFullscreenError());
+
     document.addEventListener("visibilitychange", () => this.handleSystemPause());
+    window.addEventListener("pageshow", () => this.syncFullscreenUi());
     window.addEventListener("pagehide", () => {
       this.persist();
       this.currentController?.pause?.();
@@ -913,6 +980,7 @@ class NekoRuntime {
     screen.orientation?.addEventListener?.("change", () => this.handleSystemPause());
     document.addEventListener("contextmenu", (event) => event.preventDefault());
     document.addEventListener("gesturestart", (event) => event.preventDefault());
+    this.syncFullscreenUi();
   }
 
   async init(): Promise<void> {
@@ -972,6 +1040,7 @@ class NekoRuntime {
         controller &&
         this.mode === "playing" &&
         !this.quizOpen &&
+        !this.fullscreenHelpOpen &&
         !this.pausedBySystem &&
         !document.hidden
       ) {
@@ -992,7 +1061,12 @@ class NekoRuntime {
           this.toast("うごきを なおしています。メニューにもどって もういちど ためしてね。", "warn");
           this.showPause();
         }
-        if (this.mode === "playing" && !this.quizOpen && !this.pausedBySystem) {
+        if (
+          this.mode === "playing" &&
+          !this.quizOpen &&
+          !this.fullscreenHelpOpen &&
+          !this.pausedBySystem
+        ) {
           try {
             controller.scene.render();
           } catch (error) {
@@ -1062,7 +1136,10 @@ class NekoRuntime {
         if (this.currentStageIndex !== null) await this.startStage(this.currentStageIndex + 1);
         break;
       case "fullscreen":
-        await this.requestFullscreen();
+        await this.toggleFullscreen();
+        break;
+      case "close-fullscreen-help":
+        this.closeFullscreenHelp();
         break;
     }
   }
@@ -1108,7 +1185,16 @@ class NekoRuntime {
             </div>
             <button class="neko-button neko-button--quiet" type="button" data-runtime-action="profiles">👤 プレイヤーを かえる</button>
             <button class="neko-button neko-button--quiet" type="button" data-runtime-action="settings">⚙️ おと・そうさ・がしつ</button>
-            <button class="neko-button neko-button--quiet" type="button" data-runtime-action="fullscreen">↗ 大きな がめんにする</button>
+            <button
+              class="neko-button neko-button--quiet"
+              type="button"
+              data-runtime-action="fullscreen"
+              aria-pressed="false"
+              aria-label="全画面にする"
+            >
+              <span data-fullscreen-icon aria-hidden="true">⛶</span>
+              <span data-fullscreen-label>全画面</span>
+            </button>
           </section>
         </main>
       </div>
@@ -1182,7 +1268,13 @@ class NekoRuntime {
               <h2>${this.definition.stages.length}${escapeHtml(this.definition.stageNoun)}から えらぼう</h2>
               <p>★を あつめながら、すこしずつ すすもう</p>
             </div>
-            <div class="neko-quality-pill">${Object.keys(this.save.stages).length} クリア</div>
+            <div class="neko-toolbar__actions">
+              <div class="neko-quality-pill">${Object.keys(this.save.stages).length} クリア</div>
+              <button class="neko-toolbar__fullscreen" type="button" data-runtime-action="fullscreen" aria-pressed="false" aria-label="全画面にする">
+                <span data-fullscreen-icon aria-hidden="true">⛶</span>
+                <span data-fullscreen-label>全画面</span>
+              </button>
+            </div>
           </header>
           <div class="neko-stage-groups">${groupHtml || '<div class="neko-empty">ステージを じゅんびちゅうです。</div>'}</div>
         </main>
@@ -1217,7 +1309,10 @@ class NekoRuntime {
               <h2>だれが あそぶ？</h2>
               <p>3人まで、べつべつに つづきを のこせます</p>
             </div>
-            <div></div>
+            <button class="neko-toolbar__fullscreen" type="button" data-runtime-action="fullscreen" aria-pressed="false" aria-label="全画面にする">
+              <span data-fullscreen-icon aria-hidden="true">⛶</span>
+              <span data-fullscreen-label>全画面</span>
+            </button>
           </header>
           <div class="neko-profile-grid">${cards}</div>
         </main>
@@ -1256,7 +1351,13 @@ class NekoRuntime {
               <h2>おと・そうさ・がしつ</h2>
               <p>このプレイヤーだけの せっていです</p>
             </div>
-            <div class="neko-quality-pill">${escapeHtml(this.backend)}</div>
+            <div class="neko-toolbar__actions">
+              <div class="neko-quality-pill">${escapeHtml(this.backend)}</div>
+              <button class="neko-toolbar__fullscreen" type="button" data-runtime-action="fullscreen" aria-pressed="false" aria-label="全画面にする">
+                <span data-fullscreen-icon aria-hidden="true">⛶</span>
+                <span data-fullscreen-label>全画面</span>
+              </button>
+            </div>
           </header>
           <div class="neko-settings">
             ${booleanSetting("sound", "♪ おと", "こうかおんを ならします")}
@@ -1437,6 +1538,10 @@ class NekoRuntime {
               ${hasNext ? '<button class="neko-button neko-button--primary" type="button" data-runtime-action="next">つぎの ステージへ →</button>' : '<button class="neko-button neko-button--primary" type="button" data-runtime-action="stages">30ステージ ぜんぶ できた！</button>'}
               <button class="neko-button" type="button" data-runtime-action="retry">↻ もういちど</button>
               <button class="neko-button" type="button" data-runtime-action="menu">⌂ メニュー</button>
+              <button class="neko-button neko-button--quiet neko-button--fullscreen-wide" type="button" data-runtime-action="fullscreen" aria-pressed="false" aria-label="全画面にする">
+                <span data-fullscreen-icon aria-hidden="true">⛶</span>
+                <span data-fullscreen-label>全画面</span>
+              </button>
             </div>
           </section>
         </main>
@@ -1460,6 +1565,10 @@ class NekoRuntime {
           <div class="neko-pause__actions">
             <button class="neko-button neko-button--primary" type="button" data-runtime-action="resume">あそびに もどる</button>
             <button class="neko-button" type="button" data-runtime-action="retry">このステージを やりなおす</button>
+            <button class="neko-button" type="button" data-runtime-action="fullscreen" aria-pressed="false" aria-label="全画面にする">
+              <span data-fullscreen-icon aria-hidden="true">⛶</span>
+              <span data-fullscreen-label>全画面</span>
+            </button>
             <button class="neko-button neko-button--quiet" type="button" data-runtime-action="menu">メニューに もどる</button>
           </div>
         </main>
@@ -1553,7 +1662,7 @@ class NekoRuntime {
         this.elements.quiz.hidden = true;
         this.elements.quiz.innerHTML = "";
         this.quizOpen = false;
-        if (this.mode === "playing" && !this.pausedBySystem) {
+        if (this.mode === "playing" && !this.pausedBySystem && !this.fullscreenHelpOpen) {
           this.input?.setEnabled(true);
           this.currentController?.resume?.();
         }
@@ -1635,7 +1744,7 @@ class NekoRuntime {
       this.audio.stopSpeech();
     } else if (!shouldPause && this.mode === "playing" && this.pausedBySystem) {
       this.pausedBySystem = false;
-      if (!this.quizOpen) {
+      if (!this.quizOpen && !this.fullscreenHelpOpen) {
         this.currentController?.resume?.();
         this.input?.setEnabled(true);
       }
@@ -1660,6 +1769,7 @@ class NekoRuntime {
   private showScreen(content: string): void {
     this.elements.screen.innerHTML = content;
     this.elements.screen.hidden = false;
+    this.syncFullscreenUi();
   }
 
   private hideScreen(): void {
@@ -1697,14 +1807,199 @@ class NekoRuntime {
     `);
   }
 
-  private async requestFullscreen(): Promise<void> {
-    try {
-      if (!document.fullscreenElement && this.elements.shell.requestFullscreen) {
-        await this.elements.shell.requestFullscreen();
-      }
-    } catch {
-      this.toast("Safariの共有ボタンから「ホーム画面に追加」すると、大きな画面であそべます。", "info");
+  private fullscreenElement(): Element | null {
+    const fullscreenDocument = document as WebkitFullscreenDocument;
+    return (
+      document.fullscreenElement ??
+      fullscreenDocument.webkitFullscreenElement ??
+      fullscreenDocument.webkitCurrentFullScreenElement ??
+      null
+    );
+  }
+
+  private isStandaloneMode(): boolean {
+    return (
+      window.matchMedia("(display-mode: standalone)").matches ||
+      window.matchMedia("(display-mode: fullscreen)").matches ||
+      (navigator as StandaloneNavigator).standalone === true
+    );
+  }
+
+  private supportsFullscreen(): boolean {
+    const fullscreenDocument = document as WebkitFullscreenDocument;
+    const fullscreenShell = this.elements.shell as WebkitFullscreenElement;
+    const hasRequest =
+      typeof fullscreenShell.requestFullscreen === "function" ||
+      typeof fullscreenShell.webkitRequestFullscreen === "function";
+    const enabledFlags = [
+      typeof document.fullscreenEnabled === "boolean" ? document.fullscreenEnabled : undefined,
+      typeof fullscreenDocument.webkitFullscreenEnabled === "boolean"
+        ? fullscreenDocument.webkitFullscreenEnabled
+        : undefined
+    ].filter((value): value is boolean => value !== undefined);
+    return hasRequest && (enabledFlags.length === 0 || enabledFlags.some(Boolean));
+  }
+
+  private syncFullscreenUi(): void {
+    const active = Boolean(this.fullscreenElement());
+    const supported = this.supportsFullscreen();
+    const standalone = this.isStandaloneMode();
+    const displayActive = active || standalone;
+    const label = active ? "元に戻す" : standalone ? "全画面中" : "全画面";
+    const icon = active ? "↙" : standalone ? "✓" : "⛶";
+
+    this.elements.shell.classList.toggle("is-browser-fullscreen", active);
+    this.elements.shell.classList.toggle("is-standalone", standalone);
+    for (const button of this.elements.shell.querySelectorAll<HTMLElement>(
+      '[data-runtime-action="fullscreen"]'
+    )) {
+      button.setAttribute("aria-pressed", String(displayActive));
+      button.setAttribute(
+        "aria-label",
+        active
+          ? "全画面を終了して元に戻す"
+          : standalone
+            ? "ホーム画面の全画面モードで開いています"
+            : "全画面にする"
+      );
+      button.dataset.fullscreenAvailable = String(supported);
+      button.title =
+        !displayActive && !supported
+          ? "ホーム画面に追加する方法を見ます"
+          : active
+            ? "元の大きさに戻します"
+            : standalone
+              ? "ホーム画面の全画面モードで開いています"
+              : "ゲームを全画面にします";
+      const labelElement = button.querySelector<HTMLElement>("[data-fullscreen-label]");
+      const iconElement = button.querySelector<HTMLElement>("[data-fullscreen-icon]");
+      if (labelElement) labelElement.textContent = label;
+      if (iconElement) iconElement.textContent = icon;
     }
+  }
+
+  private handleFullscreenError(): void {
+    if (!this.fullscreenRequestPending) return;
+    this.fullscreenRequestPending = false;
+    this.syncFullscreenUi();
+    this.showFullscreenHelp();
+  }
+
+  private async toggleFullscreen(): Promise<void> {
+    if (this.fullscreenElement()) {
+      await this.exitFullscreen();
+      return;
+    }
+    if (this.isStandaloneMode()) {
+      this.toast("いまは ホーム画面モードです。もう大きな画面で あそべています。", "good");
+      return;
+    }
+    if (!this.supportsFullscreen()) {
+      this.showFullscreenHelp();
+      return;
+    }
+
+    const fullscreenShell = this.elements.shell as WebkitFullscreenElement;
+    this.fullscreenRequestPending = true;
+    try {
+      if (typeof fullscreenShell.requestFullscreen === "function") {
+        try {
+          await fullscreenShell.requestFullscreen({ navigationUI: "hide" });
+        } catch (error) {
+          if (error instanceof TypeError && !this.fullscreenElement()) {
+            await fullscreenShell.requestFullscreen();
+          } else {
+            throw error;
+          }
+        }
+      } else if (typeof fullscreenShell.webkitRequestFullscreen === "function") {
+        await Promise.resolve(fullscreenShell.webkitRequestFullscreen());
+      }
+      await nextFrame();
+      const enteredFullscreen = Boolean(this.fullscreenElement());
+      this.fullscreenRequestPending = false;
+      if (!enteredFullscreen) {
+        this.showFullscreenHelp();
+      }
+    } catch (error) {
+      console.info("Fullscreen is unavailable in this browser context.", error);
+      this.fullscreenRequestPending = false;
+      this.showFullscreenHelp();
+    } finally {
+      this.syncFullscreenUi();
+      this.engine?.resize();
+    }
+  }
+
+  private async exitFullscreen(): Promise<void> {
+    const fullscreenDocument = document as WebkitFullscreenDocument;
+    try {
+      if (typeof document.exitFullscreen === "function") {
+        await document.exitFullscreen();
+      } else if (typeof fullscreenDocument.webkitExitFullscreen === "function") {
+        await Promise.resolve(fullscreenDocument.webkitExitFullscreen());
+      } else if (typeof fullscreenDocument.webkitCancelFullScreen === "function") {
+        await Promise.resolve(fullscreenDocument.webkitCancelFullScreen());
+      } else {
+        this.toast("ブラウザの「戻る」で 元の画面に もどれます。", "info");
+      }
+    } catch (error) {
+      console.info("Fullscreen could not be exited.", error);
+      this.toast("画面の上にある「完了」や「戻る」を おしてね。", "info");
+    } finally {
+      this.syncFullscreenUi();
+      this.engine?.resize();
+    }
+  }
+
+  private showFullscreenHelp(): void {
+    if (this.fullscreenHelpOpen) return;
+    this.fullscreenRequestPending = false;
+    this.fullscreenHelpOpen = true;
+
+    const isIos =
+      /iPad|iPhone|iPod/i.test(navigator.userAgent) ||
+      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    const title = this.elements.fullscreenHelp.querySelector<HTMLElement>(
+      "#neko-fullscreen-help-title"
+    );
+    const lead = this.elements.fullscreenHelp.querySelector<HTMLElement>(
+      ".neko-fullscreen-help__lead"
+    );
+    if (!isIos) {
+      if (title) title.textContent = "大きな画面で あそぶには";
+      if (lead) {
+        lead.innerHTML =
+          "このブラウザでは、ページをそのまま全画面にできません。<br>おうちの人と いっしょに、ブラウザのメニューから「ホーム画面に追加」を えらんでね。";
+      }
+    }
+
+    this.elements.fullscreenHelp.hidden = false;
+    if (this.mode === "playing") {
+      this.currentController?.pause?.();
+      this.input?.setEnabled(false);
+      this.elements.canvas.classList.add("is-dimmed");
+    }
+    window.setTimeout(() => {
+      this.elements.fullscreenHelp
+        .querySelector<HTMLButtonElement>('[data-runtime-action="close-fullscreen-help"]')
+        ?.focus();
+    }, 0);
+  }
+
+  private closeFullscreenHelp(): void {
+    if (!this.fullscreenHelpOpen) return;
+    this.fullscreenHelpOpen = false;
+    this.elements.fullscreenHelp.hidden = true;
+    if (this.mode === "playing") {
+      this.elements.canvas.classList.remove("is-dimmed");
+      if (!this.quizOpen && !this.pausedBySystem && !document.hidden) {
+        this.currentController?.resume?.();
+        this.input?.setEnabled(true);
+        this.lastFrame = performance.now();
+      }
+    }
+    this.syncFullscreenUi();
   }
 
   private async tryLandscapeLock(): Promise<void> {

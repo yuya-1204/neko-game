@@ -13,14 +13,14 @@ const CORE = [
   "./iro-seirei-zukan/manifest.webmanifest",
   "./web3d-icons/neko-web3d-icon.svg",
   "./web3d-assets/babylon-C0TpWJxa.js",
-  "./web3d-assets/fushigi-photo-safari-DW9HkNZR.js",
-  "./web3d-assets/iro-seirei-zukan-Dr7KI9Ep.js",
+  "./web3d-assets/fushigi-photo-safari-CLMnol_K.js",
+  "./web3d-assets/iro-seirei-zukan-C85uAVka.js",
   "./web3d-assets/modulepreload-polyfill-DxF70BK8.js",
-  "./web3d-assets/neko-game-core-BpZHEwed.js",
-  "./web3d-assets/neko-game-core-CdstdYmX.css",
-  "./web3d-assets/neko-kumojima-CDdte1BG.js",
-  "./web3d-assets/nyanko-karakuri-island-etO5p4NK.js",
-  "./web3d-assets/shinkai-hikari-rescue-CUWQGYyG.js"
+  "./web3d-assets/neko-game-core-DpJkVLj7.js",
+  "./web3d-assets/neko-game-core-DTr5Ocfq.css",
+  "./web3d-assets/neko-kumojima-Cu4rjJwa.js",
+  "./web3d-assets/nyanko-karakuri-island-CkbRWLCK.js",
+  "./web3d-assets/shinkai-hikari-rescue-Dfcn6rYE.js"
 ];
 const OWNED_PATHS = [
   "neko-kumojima/",

@@ -22,6 +22,16 @@ function assert(condition, message) {
 for (const [game, exportName] of games) {
   const file = resolve(root, game, "stages.ts");
   const source = await readFile(file, "utf8");
+  const html = await readFile(resolve(root, game, "index.html"), "utf8");
+  const manifest = JSON.parse(
+    await readFile(resolve(root, "public", game, "manifest.webmanifest"), "utf8")
+  );
+  assert(
+    html.includes('name="apple-mobile-web-app-capable" content="yes"'),
+    `${game}: missing iPhone home-screen mode`
+  );
+  assert(manifest.display === "fullscreen", `${game}: manifest display must be fullscreen`);
+  assert(manifest.orientation === "landscape", `${game}: manifest orientation must be landscape`);
   const output = ts.transpileModule(source, {
     compilerOptions: {
       target: ts.ScriptTarget.ES2022,

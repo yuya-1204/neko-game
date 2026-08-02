@@ -1,0 +1,1720 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ネコをさがせ！だいぼうけん2 〜ネズミのおねがい〜</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%}
+body{background:#1a1c2c;color:#fff;font-family:"Hiragino Maru Gothic ProN","Yu Gothic UI","Meiryo",sans-serif;overflow:hidden;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+#wrap{position:relative;width:100%;height:100%;display:flex;flex-direction:column}
+#topbar{flex:0 0 auto;display:flex;align-items:center;gap:6px;padding:6px 8px;background:#24263c;flex-wrap:wrap}
+#obj{flex:1 1 180px;font-size:13px;line-height:1.4;color:#ffe9a8;min-width:150px}
+#topbar button{border:none;border-radius:10px;padding:8px 10px;font-size:13px;font-weight:bold;cursor:pointer;font-family:inherit}
+.catbtn{color:#222;opacity:0.55;border:2px solid transparent}
+.catbtn.active{opacity:1;border:2px solid #ffe9a8;box-shadow:0 0 6px #ffe9a8}
+#cat_sharo{background:#f5a742}
+#cat_yuki{background:#555a70;color:#fff}
+#cat_hotate{background:#f4f4ee}
+#btnHint{background:#7ec8a0;color:#1c3328}
+#btnSound{background:#8fa2d4;color:#1c2340}
+#game{flex:1 1 auto;position:relative;min-height:0}
+#game canvas{image-rendering:pixelated}
+#pad{display:none;position:absolute;left:10px;bottom:10px;z-index:20;grid-template-columns:52px 52px 52px;grid-template-rows:52px 52px 52px;gap:2px;opacity:0.8}
+#btnA{display:none;position:absolute;right:12px;bottom:26px;z-index:20;width:96px;height:64px;border-radius:20px;border:none;background:#ff8fa3;color:#4a1220;font-size:14px;font-weight:bold;opacity:0.85;font-family:inherit}
+.pbtn{border:none;border-radius:12px;background:#3a3e5c;color:#fff;font-size:20px;font-family:inherit}
+.pbtn:active,#btnA:active{filter:brightness(1.4)}
+body.touch #pad{display:grid}
+body.touch #btnA{display:block}
+#err{display:none;position:absolute;inset:0;background:#1a1c2c;color:#ffcf6e;z-index:99;padding:30px;font-size:15px;line-height:2}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div id="topbar">
+    <div id="obj">よみこみちゅう…</div>
+    <button class="catbtn active" id="cat_sharo" data-cat="sharo">シャロ</button>
+    <button class="catbtn" id="cat_yuki" data-cat="yuki">ゆき</button>
+    <button class="catbtn" id="cat_hotate" data-cat="hotate">ほたて</button>
+    <button id="btnHint">ヒント</button>
+    <button id="btnSound">おと ON</button>
+  </div>
+  <div id="game">
+    <div id="err">ゲームの よみこみに しっぱいしたよ。<br>インターネットに つないで、もういちど ページを ひらいてね。</div>
+    <div id="pad">
+      <div></div><button class="pbtn" data-dir="up">▲</button><div></div>
+      <button class="pbtn" data-dir="left">◀</button><div></div><button class="pbtn" data-dir="right">▶</button>
+      <div></div><button class="pbtn" data-dir="down">▼</button><div></div>
+    </div>
+    <button id="btnA">はなす・しらべる</button>
+  </div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.80.1/phaser.min.js"></script>
+<script>
+"use strict";
+/* =========================================================
+   ネコをさがせ！だいぼうけん2 〜ネズミのおねがい〜
+   (c) 山岸産業医事務所  /  音声：VOICEVOX:ずんだもん
+   ========================================================= */
+
+// ===== グローバル状態 =====
+const SAVE_KEY = 'nekoRPG2save_v1';
+const TILE = 32, MAPW = 20, MAPH = 15;
+const G = { soundOn: true };
+let S = null; // セーブされるゲーム状態
+
+function newState(){
+  return {
+    cat:'sharo', area:'village', x:4, y:7,
+    q:{q1:0,q2:0,q3:0,q4:0,q5:0,q6:0,q7:0,q8:0,q9:0}, // 0=未 1=受注 2=達成
+    f:{},        // こまかいフラグ (metDoc, rope, lever, babyFollow など)
+    got:{},      // ひろったアイテム位置 (再出現ふせぎ)
+    acorns:0, items:{}, boxPlaced:false, ended:false
+  };
+}
+function saveGame(){ try{ if(S) localStorage.setItem(SAVE_KEY, JSON.stringify(S)); }catch(e){} }
+function loadGame(){
+  try{
+    const d = localStorage.getItem(SAVE_KEY);
+    if(!d) return null;
+    const o = JSON.parse(d);
+    const b = newState();
+    Object.assign(b, o);
+    b.q = Object.assign(newState().q, o.q||{});
+    b.f = o.f||{}; b.got = o.got||{}; b.items = o.items||{};
+    return b;
+  }catch(e){ return null; }
+}
+function hasSave(){ try{ return !!localStorage.getItem(SAVE_KEY); }catch(e){ return false; } }
+function questDoneCount(){ let n=0; for(const k in S.q){ if(S.q[k]===2) n++; } return n; }
+
+// ===== こうかおん (WebAudio) =====
+let actx = null;
+function ac(){
+  if(!actx){ try{ actx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ actx=null; } }
+  if(actx && actx.state==='suspended'){ try{ actx.resume(); }catch(e){} }
+  return actx;
+}
+function tone(freq,dur,type,vol,delay,slide){
+  const a = ac(); if(!a) return;
+  try{
+    const o=a.createOscillator(), g=a.createGain();
+    o.type = type||'square';
+    const t = a.currentTime + (delay||0);
+    o.frequency.setValueAtTime(freq,t);
+    if(slide) o.frequency.linearRampToValueAtTime(slide, t+dur);
+    g.gain.setValueAtTime(vol||0.1, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t+dur);
+    o.connect(g); g.connect(a.destination);
+    o.start(t); o.stop(t+dur+0.05);
+  }catch(e){}
+}
+function sfx(name){
+  if(!G.soundOn) return;
+  switch(name){
+    case 'blip':   tone(660,0.04,'square',0.04); break;
+    case 'talk':   tone(440,0.05,'square',0.06); tone(560,0.05,'square',0.05,0.06); break;
+    case 'pickup': tone(660,0.07,'square',0.1); tone(880,0.09,'square',0.1,0.07); break;
+    case 'quest':  [523,659,784,1047].forEach(function(f,i){ tone(f,0.13,'square',0.1,i*0.11); }); break;
+    case 'fanfare':[523,523,659,784,659,1047].forEach(function(f,i){ tone(f,0.15,'square',0.1,i*0.13); }); break;
+    case 'bump':   tone(120,0.08,'sawtooth',0.07); break;
+    case 'push':   tone(95,0.16,'sawtooth',0.1,0,55); break;
+    case 'splash': tone(300,0.18,'sine',0.09,0,900); tone(200,0.25,'sine',0.07,0.1,700); break;
+    case 'ok':     tone(880,0.08,'square',0.09); tone(1175,0.12,'square',0.09,0.09); break;
+    case 'ng':     tone(220,0.15,'square',0.07); tone(180,0.2,'square',0.07,0.13); break;
+    case 'switch': tone(500,0.05,'triangle',0.1); tone(720,0.07,'triangle',0.1,0.06); break;
+    case 'open':   tone(392,0.1,'triangle',0.09); tone(523,0.16,'triangle',0.09,0.1); break;
+    case 'rumble': tone(55,0.5,'sawtooth',0.12,0,38); break;
+    case 'step':   tone(300,0.02,'triangle',0.02); break;
+  }
+}
+
+// ===== ずんだもんボイス (./voice/NN.wav が無ければ 無音スキップ) =====
+const VOICE = {
+  hello:'01', help:'02', thanks:'03', yatta:'04', onegai:'05',
+  donguri:'06', karuta:'07', cave:'08', fish:'09', math:'10',
+  bridge:'11', maigo:'12', taihen:'13', sugoi:'14', zannen:'15',
+  ganbaru:'16', mura:'17', eiyu:'18', mata:'19', hint:'20'
+};
+let curVoice = null;
+function voice(key){
+  if(!G.soundOn || !VOICE[key]) return;
+  try{
+    if(curVoice){ try{ curVoice.pause(); }catch(e){} }
+    const a = new Audio('./voice/' + VOICE[key] + '.wav');
+    a.onerror = function(){};
+    curVoice = a;
+    const p = a.play();
+    if(p && p.catch) p.catch(function(){});
+  }catch(e){}
+}
+
+// ===== ドットえ データ (16x16) =====
+// . = とうめい / それ以外はパレットの色
+const CAT_ROWS = [
+"................",
+"..OO........OO..",
+"..OPO......OPO..",
+"..OPPO....OPPO..",
+".OBBBBOOOOBBBBO.",
+".OBBBBBBBBBBBBO.",
+".OBEBBBBBBBBEBO.",
+".OBBBBBPPBBBBBO.",
+".OBBBBWPPWBBBBO.",
+"..OBBBBBBBBBBO..",
+"..OBBBBBBBBBBO..",
+".OBSBBSBBSBBSBO.",
+".OBBBBBBBBBBBBO.",
+".OBBBBBBBBBBBBO.",
+"..OOBBOBBOBBOO..",
+"................"
+];
+const DOC_ROWS = [
+"................",
+"..OO........OO..",
+"..OPO......OPO..",
+"..OPPO....OPPO..",
+".OBBBBOOOOBBBBO.",
+".OBBBBBBBBBBBBO.",
+".OGEGBBBBBBGEGO.",
+".OBBBBBPPBBBBBO.",
+".OBBBBWPPWBBBBO.",
+"..OBBBBBBBBBBO..",
+"..OCCCCCCCCCCO..",
+".OCCCCCUUCCCCCO.",
+".OCCCCCCCCCCCCO.",
+".OCCCCCUUCCCCCO.",
+"..OOCCOCCOCCOO..",
+"................"
+];
+const MOUSE_ROWS = [
+"................",
+"..OOO......OOO..",
+".OPPPO....OPPPO.",
+".OPPPPO..OPPPPO.",
+"..OOBBBBBBBBOO..",
+".OBBBBBBBBBBBBO.",
+".OBEBBBBBBBBEBO.",
+".OBBBBBPPBBBBBO.",
+"..OBBBBBBBBBBO..",
+"..OBBBBBBBBBBO..",
+".OBBWWWWWWWWBBO.",
+".OBBWWWWWWWWBBO.",
+".OBBBBBBBBBBBBO.",
+"..OBBBBBBBBBBO..",
+"...OBOOOOOOBO...",
+"................"
+];
+const PAL = {
+  cat_sharo:{O:'#4a3020',B:'#f5a742',S:'#d9822b',P:'#ff9d9d',E:'#3b2b20',W:'#ffe9c9'},
+  cat_yuki:{O:'#15151b',B:'#3a3a46',S:'#3a3a46',P:'#ff9d9d',E:'#ffd93b',W:'#c9c9d4'},
+  cat_hotate:{O:'#8a877e',B:'#f8f8f2',S:'#ebe7db',P:'#ffb3c1',E:'#4aa3ff',W:'#ffffff'},
+  doctor:{O:'#5a4632',B:'#d8c9a3',P:'#e8a5a5',E:'#2b2b33',W:'#f2e8d2',C:'#f5f5f0',U:'#7a8699',G:'#444a58'},
+  mouse:{O:'#4c505c',B:'#9aa3b0',P:'#f0a8b8',W:'#dde2ea',E:'#2b2b33'},
+  mouse_baby:{O:'#7a5560',B:'#e3bccb',P:'#ff9db4',W:'#f7e6ec',E:'#2b2b33'},
+  mouse_elder:{O:'#4c4a44',B:'#b0a894',P:'#e0b0b8',W:'#e8e2d2',E:'#2b2b33'}
+};
+function makePixelTexture(scene, key, rows, pal, px){
+  px = px||2;
+  const w = rows[0].length, h = rows.length;
+  const cv = document.createElement('canvas');
+  cv.width = w*px; cv.height = h*px;
+  const c = cv.getContext('2d');
+  for(let y=0;y<h;y++){
+    for(let x=0;x<w;x++){
+      const ch = rows[y][x];
+      if(ch==='.') continue;
+      const col = pal[ch];
+      if(col){ c.fillStyle = col; c.fillRect(x*px,y*px,px,px); }
+    }
+  }
+  scene.textures.addCanvas(key, cv);
+}
+
+// ===== タイルえがき (32x32 canvas) =====
+function makeTileTexture(scene, key, painter){
+  const cv = document.createElement('canvas');
+  cv.width = TILE; cv.height = TILE;
+  painter(cv.getContext('2d'));
+  scene.textures.addCanvas(key, cv);
+}
+const SPECK = [[4,6],[12,3],[22,9],[7,20],[18,25],[27,17],[14,14],[25,28],[3,27],[9,11],[20,20],[28,5]];
+function paintGrass(c){
+  c.fillStyle='#72b755'; c.fillRect(0,0,32,32);
+  SPECK.forEach(function(p,i){ c.fillStyle = i%2? '#639f49':'#7fc563'; c.fillRect(p[0],p[1],3,2); });
+}
+function paintPath(c){
+  c.fillStyle='#dfc188'; c.fillRect(0,0,32,32);
+  SPECK.forEach(function(p,i){ if(i%2){ c.fillStyle='#c9a86a'; c.fillRect(p[0],p[1],3,2); } });
+}
+function paintWater(c){
+  c.fillStyle='#3f8fd6'; c.fillRect(0,0,32,32);
+  c.fillStyle='#6fb3e8';
+  c.fillRect(3,7,10,2); c.fillRect(17,15,10,2); c.fillRect(7,25,10,2);
+}
+function paintTree(c){
+  paintGrass(c);
+  c.fillStyle='#7a4e26'; c.fillRect(13,20,6,10);
+  c.fillStyle='#2f7a35'; c.beginPath(); c.arc(16,13,11,0,7); c.fill();
+  c.fillStyle='#3f9647'; c.beginPath(); c.arc(12,10,7,0,7); c.fill();
+  c.fillStyle='#54b05c'; c.beginPath(); c.arc(20,9,5,0,7); c.fill();
+}
+function paintFlower(c){
+  paintGrass(c);
+  const f=[[7,7,'#ffffff'],[20,12,'#ffd9e8'],[12,22,'#fff3a8']];
+  f.forEach(function(p){
+    c.fillStyle=p[2];
+    c.fillRect(p[0]-2,p[1],2,2); c.fillRect(p[0]+2,p[1],2,2);
+    c.fillRect(p[0],p[1]-2,2,2); c.fillRect(p[0],p[1]+2,2,2);
+    c.fillStyle='#ffb13b'; c.fillRect(p[0],p[1],2,2);
+  });
+}
+function paintHouse(c, roof){
+  paintGrass(c);
+  c.fillStyle='#f4e6c8'; c.fillRect(4,14,24,16);
+  c.fillStyle=roof; c.beginPath(); c.moveTo(1,15); c.lineTo(16,2); c.lineTo(31,15); c.closePath(); c.fill();
+  c.fillStyle='#7a4e26'; c.fillRect(13,20,7,10);
+  c.fillStyle='#5a7a9e'; c.fillRect(6,17,5,5); c.fillRect(21,17,5,5);
+}
+function paintMouseHouse(c){
+  paintGrass(c);
+  c.fillStyle='#e0cfa8'; c.beginPath(); c.arc(16,20,12,3.14,0); c.fill();
+  c.fillRect(4,20,24,10);
+  c.fillStyle='#4c505c'; c.beginPath(); c.arc(16,30,6,3.14,0); c.fill();
+  c.fillStyle='#8a6a3a'; c.fillRect(14,8,4,6);
+}
+function paintCaveWall(c){
+  c.fillStyle='#3a3450'; c.fillRect(0,0,32,32);
+  c.fillStyle='#2b2740'; c.fillRect(2,3,8,5); c.fillRect(18,10,9,6); c.fillRect(6,20,8,6);
+  c.fillStyle='#4c4468'; c.fillRect(13,4,6,4); c.fillRect(3,13,5,4); c.fillRect(20,22,7,4);
+}
+function paintCaveFloor(c){
+  c.fillStyle='#565064'; c.fillRect(0,0,32,32);
+  SPECK.forEach(function(p,i){ if(i%3===0){ c.fillStyle='#484254'; c.fillRect(p[0],p[1],3,2); } });
+}
+function paintGap(c){
+  paintGrass(c);
+  c.fillStyle='#2f6b35';
+  c.beginPath(); c.arc(5,10,7,0,7); c.fill();
+  c.beginPath(); c.arc(5,24,7,0,7); c.fill();
+  c.beginPath(); c.arc(27,10,7,0,7); c.fill();
+  c.beginPath(); c.arc(27,24,7,0,7); c.fill();
+  c.fillStyle='#3f8a47';
+  c.beginPath(); c.arc(4,16,6,0,7); c.fill();
+  c.beginPath(); c.arc(28,16,6,0,7); c.fill();
+}
+function paintBridge(c){
+  paintWater(c);
+  c.fillStyle='#a8763e'; c.fillRect(0,4,32,24);
+  c.fillStyle='#8a5f30'; c.fillRect(0,4,32,3); c.fillRect(0,25,32,3);
+  c.fillStyle='#c08a4c'; c.fillRect(6,7,2,18); c.fillRect(15,7,2,18); c.fillRect(24,7,2,18);
+}
+function paintHole(c){
+  paintWater(c);
+  c.fillStyle='#8a5f30';
+  c.fillRect(0,4,3,6); c.fillRect(0,22,3,6); c.fillRect(29,4,3,6); c.fillRect(29,22,3,6);
+  c.fillStyle='#2b6da8'; c.fillRect(8,10,16,12);
+}
+function paintDry(c){
+  c.fillStyle='#cbb28c'; c.fillRect(0,0,32,32);
+  c.strokeStyle='#a88f68'; c.lineWidth=1;
+  c.beginPath(); c.moveTo(5,2); c.lineTo(9,12); c.lineTo(4,22); c.stroke();
+  c.beginPath(); c.moveTo(20,5); c.lineTo(24,14); c.lineTo(19,26); c.stroke();
+  c.fillStyle='#b09a74'; c.fillRect(13,17,5,3); c.fillRect(24,26,4,3);
+}
+function paintSign(c){
+  paintGrass(c);
+  c.fillStyle='#8a6a3a'; c.fillRect(14,14,4,14);
+  c.fillStyle='#c9a05c'; c.fillRect(5,6,22,12);
+  c.fillStyle='#7a5a2c'; c.fillRect(8,10,16,2); c.fillRect(8,14,10,2);
+}
+function paintCaveEnt(c){
+  paintCaveWall(c);
+  c.fillStyle='#100e18'; c.beginPath(); c.arc(16,22,10,3.14,0); c.fill(); c.fillRect(6,22,20,10);
+}
+function paintTunnelEnt(c){
+  paintGrass(c);
+  c.fillStyle='#8a8578'; c.beginPath(); c.arc(16,18,13,3.14,0); c.fill(); c.fillRect(3,18,26,14);
+  c.fillStyle='#15121e'; c.beginPath(); c.arc(16,24,7,3.14,0); c.fill(); c.fillRect(9,24,14,8);
+}
+function paintRock(c){ // おせるいわ (スプライト用・とうめい背景)
+  c.clearRect(0,0,32,32);
+  c.fillStyle='#8d8d99'; c.beginPath(); c.arc(16,18,12,0,7); c.fill();
+  c.fillStyle='#a8a8b4'; c.beginPath(); c.arc(12,13,6,0,7); c.fill();
+  c.fillStyle='#6e6e7a'; c.fillRect(8,24,16,4);
+}
+function paintBox(c){ // 木のはこ (スプライト用)
+  c.clearRect(0,0,32,32);
+  c.fillStyle='#b5824a'; c.fillRect(3,3,26,26);
+  c.strokeStyle='#7a5228'; c.lineWidth=3;
+  c.strokeRect(4,4,24,24);
+  c.beginPath(); c.moveTo(4,4); c.lineTo(28,28); c.moveTo(28,4); c.lineTo(4,28); c.stroke();
+}
+function makeBoulderTexture(scene){ // おおいわ 64x48
+  const cv = document.createElement('canvas');
+  cv.width=64; cv.height=48;
+  const c = cv.getContext('2d');
+  c.fillStyle='#7a7a8a'; c.beginPath(); c.arc(32,28,26,0,7); c.fill();
+  c.fillStyle='#9393a3'; c.beginPath(); c.arc(22,18,12,0,7); c.fill();
+  c.fillStyle='#60606e'; c.fillRect(10,40,44,8);
+  c.fillStyle='#555562'; c.fillRect(24,26,8,4); c.fillRect(40,32,6,3);
+  scene.textures.addCanvas('boulder', cv);
+}
+// ===== マップデータ (20x15 / 1文字=1タイル) =====
+// . くさ  # き  ~ みず  = みち  * はな  h いえ  L けんきゅうじょ  m ネズミのいえ
+// W いわかべ  , どうくつゆか  n せまいすきま  B はし  x こわれたはし  d かれたかわ
+// s かんばん  C どうくついりぐち  T トンネルいりぐち  R いわ(おせる)  K はこ(おせる)
+// G おおいわ  a どんぐり  g めがね  r ロープばしょ  v てこぼう  b こネズミ
+const MAPS = {
+  village: [
+    "####################",
+    "#...*..........*...#",
+    "#..h......L....h...#",
+    "#..................#",
+    "#....*....=...*....#",
+    "#.........=........#",
+    "#.........=........#",
+    "#..=================",
+    "#...........s......#",
+    "#..h....*.....h....#",
+    "#..................#",
+    "#....*.......*.....#",
+    "#..................#",
+    "#...*..........*...#",
+    "####################"
+  ],
+  forest: [
+    "####################",
+    "#a...###WWWWW###...#",
+    "#....#..WWCWW..#...#",
+    "##R##..............#",
+    "#...#..............#",
+    "#...#....*.......*.#",
+    "#..#...............#",
+    "====================",
+    "#....#.....#.....#.#",
+    "#..a...#......#....#",
+    "#.....#...a....#...#",
+    "#..#.....#.....a...#",
+    "##n#...............#",
+    "#a.#....*......*...#",
+    "####################"
+  ],
+  cave: [
+    "WWWWWWWWWWWWWWWWWWWW",
+    "W,,,,,,,,,,,,,,,,,,W",
+    "W,,WW,,,,WW,,,WW,,,W",
+    "W,,WW,,,,WW,,,WW,,,W",
+    "W,,,,,,,,,,,,,,,,,,W",
+    "W,,,,WW,,,,,WW,,,,,W",
+    "W,,,,WW,,,,,WW,,,,,W",
+    "W,,,,,,,,,,,,,,,,,,W",
+    "W,WW,,,,WW,,,,,WW,,W",
+    "Wg,,,,,,WW,,,,,,,,,W",
+    "W,WW,,,,,,,,WW,,,,,W",
+    "W,,,,,,,,,,,WW,,,,,W",
+    "W,,,WW,,,,,,,,,,,,,W",
+    "W,,,,,,,,,C,,,,,,,,W",
+    "WWWWWWWWWWWWWWWWWWWW"
+  ],
+  lake: [
+    "####################",
+    "#......~~~~~~......#",
+    "#....~~~~~~~~~~....#",
+    "#...~~~~~~~~~~~~...#",
+    "#...~~~~~~~~~~~~...#",
+    "#....~~~~~~~~~~....#",
+    "#......~~~~~~..~~~~#",
+    "=======.......BBxBB=",
+    "#...........#..~~~~#",
+    "#.....*........~~~~#",
+    "#..............~~~~#",
+    "#...*..........~~~~#",
+    "#..............~~~~#",
+    "#.....*........~~~~#",
+    "####################"
+  ],
+  mousevillage: [
+    "####WWWW~~~~WWWW####",
+    "####W..r~~~~...W####",
+    "####Wn.WWGGWW..W####",
+    "#.....W..dd........#",
+    "#..m.....dd.....m..#",
+    "#........dd........#",
+    "#..m.....dd....m...#",
+    "=........BB........#",
+    "#........dd........#",
+    "#...m....dd...m....#",
+    "#........dd........#",
+    "#..T.....dd........#",
+    "#........dd...##n###",
+    "#........dd...#b..##",
+    "####################"
+  ],
+  tunnel: [
+    "WWWWWWWWWWWWWWWWWWWW",
+    "Wv,,,,,,,,,,,,,,,,,W",
+    "WWWWWWWWWWWWWWWWW,,W",
+    "W,,,,,,,,,,,,,,,,,,W",
+    "W,,WWWWWWWWWWWWWWWWW",
+    "W,,,,,,,,,,,,,,,,,,W",
+    "WWWWWWWWWWWWWWWWW,,W",
+    "W,,,,,,,,,,,,,,,,,,W",
+    "W,,WWWWWWWWWWWWWWWWW",
+    "W,,,,,,,,,,,,,,,,,,W",
+    "WWWWWWWWWWWWWWWWW,,W",
+    "W,,,,,,,,,,,,,,,,,,W",
+    "W,,WWWWWWWWWWWWWWWWW",
+    "W,T,,,,,,,,,,,,,,,,W",
+    "WWWWWWWWWWWWWWWWWWWW"
+  ]
+};
+const AREA_NAME = {
+  village:'ねこのむら', forest:'もり', cave:'くらい どうくつ',
+  lake:'みずうみ', mousevillage:'ネズミのむら', tunnel:'くらい トンネル'
+};
+const DARK_AREAS = { cave:true, tunnel:true };
+const PORTALS = {
+  village:      { '19,7':{area:'forest',x:1,y:7} },
+  forest:       { '0,7':{area:'village',x:18,y:7}, '19,7':{area:'lake',x:1,y:7}, '10,2':{area:'cave',x:10,y:12} },
+  cave:         { '10,13':{area:'forest',x:10,y:3} },
+  lake:         { '0,7':{area:'forest',x:18,y:7}, '19,7':{area:'mousevillage',x:1,y:7} },
+  mousevillage: { '0,7':{area:'lake',x:18,y:7}, '3,11':{area:'tunnel',x:3,y:13} },
+  tunnel:       { '2,13':{area:'mousevillage',x:3,y:12} }
+};
+// タイル文字 → テクスチャキー（うごくものは別スプライト）
+const TILE_TEX = {
+  '.':'t_grass', '=':'t_path', '~':'t_water', '#':'t_tree', '*':'t_flower',
+  'h':'t_house', 'L':'t_lab', 'm':'t_mhouse', 'W':'t_cwall', ',':'t_cfloor',
+  'n':'t_gap', 'B':'t_bridge', 'x':'t_hole', 'd':'t_dry', 's':'t_sign',
+  'C':'t_cent', 'T':'t_tent',
+  'R':'t_grass', 'K':'t_path', 'G':'t_dry',
+  'a':'t_grass', 'g':'t_cfloor', 'r':'t_grass', 'v':'t_cfloor', 'b':'t_grass'
+};
+// あるけるタイル（ネコによる特別ルールは canWalk() で）
+const WALKABLE = { '.':1,'=':1,'*':1,'B':1,',':1,'d':1,'s':0,'a':1,'g':1,'r':1,'v':1,'b':1,'C':1,'T':1 };
+// NPC ていぎ
+const NPCS = {
+  village: [
+    {id:'doc', x:10, y:3, tex:'doctor', name:'ドクターやまねこ'},
+    {id:'chukichi', x:6, y:6, tex:'mouse', name:'チューきち'}
+  ],
+  forest: [
+    {id:'don', x:8, y:8, tex:'mouse', name:'チューどん'},
+    {id:'ko', x:16, y:10, tex:'mouse', name:'チューこ'},
+    {id:'zo', x:12, y:3, tex:'mouse', name:'チューぞう'}
+  ],
+  cave: [],
+  lake: [
+    {id:'ta', x:5, y:6, tex:'mouse', name:'チューた'},
+    {id:'ri', x:3, y:4, tex:'mouse', name:'チューり'},
+    {id:'go', x:13, y:8, tex:'mouse', name:'チューご'}
+  ],
+  mousevillage: [
+    {id:'mama', x:13, y:6, tex:'mouse', name:'ママネズミ'},
+    {id:'jii', x:4, y:8, tex:'mouse_elder', name:'チューじい'},
+    {id:'suke', x:2, y:5, tex:'mouse', name:'チューすけ'},
+    {id:'baby', x:15, y:13, tex:'mouse_baby', name:'チューちゃん'}
+  ],
+  tunnel: []
+};
+// うごかせるもの
+const PUSHABLES = {
+  forest: [ {kind:'rock', x:2, y:3} ],
+  lake:   [ {kind:'box',  x:10, y:7} ]
+};
+const BOX_START = {x:10,y:7};
+
+// ===== もくひょう（クエストじょうたいから けいさん） =====
+function currentObjective(){
+  if(!S) return '';
+  const q = S.q;
+  if(S.ended) return 'クリア おめでとう！ じゆうに たんけんしよう';
+  if(q.q1<2){
+    if(!S.f.metDoc) return 'ドクターやまねこと はなそう';
+    return 'ネズミの チューきちと はなそう';
+  }
+  if(q.q9===1){
+    if(!S.f.rope) return 'ほたてで すきまを とおり ロープを かけよう';
+    if(!S.f.lever) return 'ゆきで トンネルの おくから ぼうを とろう';
+    return 'シャロで おおいわを おそう！';
+  }
+  if(q.q2===1) return S.acorns>=5 ? 'どんぐりを チューどんに とどけよう' : 'もりで どんぐりを あと '+(5-S.acorns)+'こ さがそう';
+  if(q.q4===1) return S.items.megane ? 'めがねを チューぞうに とどけよう' : 'ゆきで どうくつの めがねを さがそう';
+  if(q.q3===1) return 'チューこと ひらがなカルタで あそぼう';
+  if(q.q2<2 || q.q3<2 || q.q4<2) return 'もりで ネズミたちの おねがいを きこう';
+  if(q.q5===1) return 'チューたと おさかなを つかまえよう';
+  if(q.q6===1) return 'チューりの たしざんを てつだおう';
+  if(q.q7===1) return 'シャロで はこを おして はしを なおそう';
+  if(q.q5<2 || q.q6<2 || q.q7<2) return 'みずうみで ネズミたちの おねがいを きこう';
+  if(q.q8===1) return S.f.babyFollow ? 'チューちゃんを ママの ところへ つれていこう' : 'ほたてで みなみの すきまの おくを さがそう';
+  if(q.q8<2) return 'ネズミのむらで こまっているひとを さがそう';
+  if(q.q9===0) return 'チューじいと はなそう';
+  return 'ネズミのむらの みんなと はなそう';
+}
+function updateObjective(){
+  const el = document.getElementById('obj');
+  if(el && S) el.textContent = 'もくひょう： ' + currentObjective() + '　(おねがい ' + questDoneCount() + '/9)';
+}
+function updateCatButtons(){
+  ['sharo','yuki','hotate'].forEach(function(c){
+    const b = document.getElementById('cat_'+c);
+    if(b){ b.classList.toggle('active', S && S.cat===c); }
+  });
+}
+
+// ===== Boot シーン =====
+class BootScene extends Phaser.Scene {
+  constructor(){ super('Boot'); }
+  create(){
+    // マップの けんしょう（かいはつよう）
+    for(const k in MAPS){
+      const m = MAPS[k];
+      if(m.length !== MAPH) console.error('map rows!', k, m.length);
+      m.forEach(function(r,i){ if(r.length !== MAPW) console.error('map cols!', k, i, r.length); });
+    }
+    // テクスチャ生成
+    makePixelTexture(this,'cat_sharo',CAT_ROWS,PAL.cat_sharo);
+    makePixelTexture(this,'cat_yuki',CAT_ROWS,PAL.cat_yuki);
+    makePixelTexture(this,'cat_hotate',CAT_ROWS,PAL.cat_hotate);
+    makePixelTexture(this,'doctor',DOC_ROWS,PAL.doctor);
+    makePixelTexture(this,'mouse',MOUSE_ROWS,PAL.mouse);
+    makePixelTexture(this,'mouse_baby',MOUSE_ROWS,PAL.mouse_baby);
+    makePixelTexture(this,'mouse_elder',MOUSE_ROWS,PAL.mouse_elder);
+    makeTileTexture(this,'t_grass',paintGrass);
+    makeTileTexture(this,'t_path',paintPath);
+    makeTileTexture(this,'t_water',paintWater);
+    makeTileTexture(this,'t_tree',paintTree);
+    makeTileTexture(this,'t_flower',paintFlower);
+    makeTileTexture(this,'t_house',function(c){ paintHouse(c,'#c8503c'); });
+    makeTileTexture(this,'t_lab',function(c){ paintHouse(c,'#4a7fd6'); });
+    makeTileTexture(this,'t_mhouse',paintMouseHouse);
+    makeTileTexture(this,'t_cwall',paintCaveWall);
+    makeTileTexture(this,'t_cfloor',paintCaveFloor);
+    makeTileTexture(this,'t_gap',paintGap);
+    makeTileTexture(this,'t_bridge',paintBridge);
+    makeTileTexture(this,'t_hole',paintHole);
+    makeTileTexture(this,'t_dry',paintDry);
+    makeTileTexture(this,'t_sign',paintSign);
+    makeTileTexture(this,'t_cent',paintCaveEnt);
+    makeTileTexture(this,'t_tent',paintTunnelEnt);
+    makeTileTexture(this,'rock',paintRock);
+    makeTileTexture(this,'box',paintBox);
+    makeBoulderTexture(this);
+    this.scene.start('Title');
+  }
+}
+
+// ===== タイトル =====
+class TitleScene extends Phaser.Scene {
+  constructor(){ super('Title'); }
+  create(){
+    const objEl = document.getElementById('obj');
+    if(objEl) objEl.textContent = 'ネコをさがせ！だいぼうけん2 〜ネズミのおねがい〜';
+    const W = 640, H = 480;
+    const g = this.add.graphics();
+    g.fillGradientStyle(0x2a3c78,0x2a3c78,0x4a72b8,0x4a72b8,1);
+    g.fillRect(0,0,W,340);
+    g.fillStyle(0x5aa348,1); g.fillRect(0,340,W,140);
+    // ほし
+    for(let i=0;i<24;i++){
+      const sx=(i*97)%W, sy=(i*53)%200;
+      this.add.rectangle(sx,sy+10,3,3,0xfff7c9).setAlpha(0.8);
+    }
+    this.add.text(W/2,90,'ネコをさがせ！だいぼうけん2',{
+      fontFamily:'sans-serif', fontSize:'36px', color:'#ffe066',
+      stroke:'#5a3010', strokeThickness:8, fontStyle:'bold'
+    }).setOrigin(0.5);
+    this.add.text(W/2,140,'〜ネズミのおねがい〜',{
+      fontFamily:'sans-serif', fontSize:'24px', color:'#ffffff',
+      stroke:'#2a3c78', strokeThickness:6
+    }).setOrigin(0.5);
+    // ネコ3びき + ネズミ
+    const cats=['cat_sharo','cat_yuki','cat_hotate'];
+    const names=['シャロ','ゆき','ほたて'];
+    const self=this;
+    cats.forEach(function(k,i){
+      const x = W/2 + (i-1)*110;
+      const s = self.add.image(x,300,k).setScale(3.5);
+      self.tweens.add({targets:s, y:290, duration:600+i*120, yoyo:true, repeat:-1, ease:'Sine.inOut'});
+      self.add.text(x,345,names[i],{fontFamily:'sans-serif',fontSize:'16px',color:'#fff',stroke:'#333',strokeThickness:4}).setOrigin(0.5);
+    });
+    const ms = this.add.image(W/2+200,310,'mouse').setScale(2.5);
+    this.tweens.add({targets:ms, x:W/2+190, duration:900, yoyo:true, repeat:-1});
+    // ボタン
+    this.makeButton(W/2, 395, 'はじめから', function(){
+      S = newState(); saveGame();
+      sfx('quest'); voice('hello');
+      self.scene.start('World');
+    });
+    const has = hasSave();
+    this.makeButton(W/2, 445, 'つづきから', function(){
+      if(!has) return;
+      const d = loadGame();
+      S = d || newState();
+      sfx('ok'); voice('hello');
+      self.scene.start('World');
+    }, !has);
+    this.add.text(8, H-38, 'そうさ： やじるしキー か WASD で あるく ／ スペースで はなす・しらべる ／ 1・2・3で ネコこうたい',{
+      fontFamily:'sans-serif', fontSize:'11px', color:'#dce8ff'
+    });
+    this.add.text(8, H-20, '音声：VOICEVOX:ずんだもん ／ © 山岸産業医事務所',{
+      fontFamily:'sans-serif', fontSize:'11px', color:'#dce8ff'
+    });
+    this.input.once('pointerdown', function(){ ac(); });
+  }
+  makeButton(x,y,label,cb,disabled){
+    const w=220,h=42;
+    const bg = this.add.rectangle(x,y,w,h, disabled?0x777777:0xff8fa3).setStrokeStyle(3,0xffffff);
+    const tx = this.add.text(x,y,label,{fontFamily:'sans-serif',fontSize:'20px',color: disabled?'#bbbbbb':'#4a1220',fontStyle:'bold'}).setOrigin(0.5);
+    if(!disabled){
+      bg.setInteractive({useHandCursor:true});
+      bg.on('pointerover',function(){ bg.setFillStyle(0xffb3c1); });
+      bg.on('pointerout',function(){ bg.setFillStyle(0xff8fa3); });
+      bg.on('pointerdown',function(){ ac(); cb(); });
+    }
+    return bg;
+  }
+}
+// ===== ワールド（マップたんけん） =====
+class WorldScene extends Phaser.Scene {
+  constructor(){ super('World'); }
+
+  create(){
+    const self = this;
+    this.cutscene = false;
+    this.minigameOpen = false;
+    this.moving = false;
+    this.dialog = null;
+    this.facing = {dx:0, dy:1};
+    this.player = null;
+    this.babySpr = null;
+    this.worldObjs = [];
+    this.npcs = [];
+    this.items = [];
+    this.pushables = [];
+    this.boulderSpr = null;
+    this.toastTxt = null;
+
+    this.keys = this.input.keyboard.addKeys({
+      up:'UP', down:'DOWN', left:'LEFT', right:'RIGHT',
+      w:'W', a:'A', s:'S', d:'D'
+    });
+    this.input.keyboard.on('keydown-SPACE', function(e){ e.preventDefault(); self.onAction(); });
+    this.input.keyboard.on('keydown-ENTER', function(){ self.onAction(); });
+    this.input.keyboard.on('keydown-ONE', function(){ self.trySwitchCat('sharo'); });
+    this.input.keyboard.on('keydown-TWO', function(){ self.trySwitchCat('yuki'); });
+    this.input.keyboard.on('keydown-THREE', function(){ self.trySwitchCat('hotate'); });
+    this.input.keyboard.on('keydown-C', function(){
+      const order=['sharo','yuki','hotate'];
+      self.trySwitchCat(order[(order.indexOf(S.cat)+1)%3]);
+    });
+    this.input.on('pointerdown', function(){ ac(); if(self.dialog) self.advanceDialog(); });
+
+    const onAct = function(){ self.onAction(); };
+    const onCat = function(c){ self.trySwitchCat(c); };
+    const onHint = function(){ self.showHint(); };
+    GEV.on('action', onAct); GEV.on('cat', onCat); GEV.on('hint', onHint);
+    this.events.once('shutdown', function(){
+      GEV.off('action', onAct); GEV.off('cat', onCat); GEV.off('hint', onHint);
+    });
+
+    // ダイアログUI
+    this.dlgBox = this.add.rectangle(320,418,624,116,0x1c1e30,0.95).setStrokeStyle(3,0xffe9a8).setDepth(100).setVisible(false);
+    this.dlgName = this.add.text(20,352,'',{fontFamily:'sans-serif',fontSize:'15px',color:'#8adba8',fontStyle:'bold',backgroundColor:'#1c1e30',padding:{x:8,y:3}}).setDepth(101).setVisible(false);
+    this.dlgText = this.add.text(24,378,'',{fontFamily:'sans-serif',fontSize:'19px',color:'#ffffff',wordWrap:{width:592},lineSpacing:8}).setDepth(101).setVisible(false);
+    this.dlgNext = this.add.text(606,452,'▼',{fontFamily:'sans-serif',fontSize:'16px',color:'#ffe9a8'}).setDepth(101).setVisible(false);
+    this.tweens.add({targets:this.dlgNext, alpha:0.2, duration:400, yoyo:true, repeat:-1});
+
+    this.darkG = this.add.graphics().setDepth(50);
+    this.areaTitle = this.add.text(320,50,'',{fontFamily:'sans-serif',fontSize:'26px',color:'#fff',stroke:'#1c1e30',strokeThickness:6,fontStyle:'bold'}).setOrigin(0.5).setDepth(80).setAlpha(0);
+
+    this.loadArea(S.area, S.x, S.y);
+    updateObjective(); updateCatButtons();
+    this.cameras.main.fadeIn(300);
+  }
+
+  // ---- エリアよみこみ ----
+  loadArea(area, x, y){
+    const self = this;
+    this.worldObjs.forEach(function(o){ if(o && o.destroy) o.destroy(); });
+    this.worldObjs = []; this.npcs = []; this.items = []; this.pushables = [];
+    this.boulderSpr = null;
+    if(this.babySpr){ this.babySpr.destroy(); this.babySpr = null; }
+
+    S.area = area; S.x = x; S.y = y;
+    this.grid = MAPS[area].map(function(r){ return r.split(''); });
+    // いわ・はこの スタートちてんは じめんに もどす（スプライトで ふさぐ）
+    for(let yy=0; yy<MAPH; yy++) for(let xx=0; xx<MAPW; xx++){
+      if(this.grid[yy][xx]==='R') this.grid[yy][xx]='.';
+      if(this.grid[yy][xx]==='K') this.grid[yy][xx]='=';
+    }
+    // セーブじょうたいの はんえい
+    if(area==='lake' && S.boxPlaced) this.grid[7][16] = 'B';
+    if(area==='mousevillage' && S.q.q9===2){
+      for(let yy=0; yy<MAPH; yy++) for(let xx=0; xx<MAPW; xx++){
+        if(this.grid[yy][xx]==='d' || this.grid[yy][xx]==='G') this.grid[yy][xx]='~';
+      }
+    }
+    this.isDark = !!DARK_AREAS[area];
+
+    this.rt = this.add.renderTexture(0,0,640,480).setOrigin(0,0).setDepth(0);
+    this.worldObjs.push(this.rt);
+    this.redrawTiles();
+
+    // NPC
+    (NPCS[area]||[]).forEach(function(def){
+      let nx = def.x, ny = def.y;
+      if(def.id==='baby'){
+        if(S.f.babyFollow || S.q.q8===2){
+          if(S.q.q8===2){ nx=12; ny=6; } else return; // ついてくるので NPCとしては出さない
+        }
+      }
+      const spr = self.add.image(nx*TILE+16, ny*TILE+16, def.tex).setScale(2).setDepth(7);
+      if(def.id==='baby') spr.setScale(1.5);
+      self.worldObjs.push(spr);
+      self.npcs.push({def:def, spr:spr, tx:nx, ty:ny});
+    });
+
+    // アイテム
+    this.spawnItems();
+
+    // おせるもの
+    (PUSHABLES[area]||[]).forEach(function(p){
+      if(p.kind==='box' && S.boxPlaced) return;
+      const spr = self.add.image(p.x*TILE+16, p.y*TILE+16, p.kind==='rock'?'rock':'box').setDepth(6);
+      self.worldObjs.push(spr);
+      self.pushables.push({kind:p.kind, tx:p.x, ty:p.y, spr:spr});
+    });
+
+    // おおいわ
+    if(area==='mousevillage' && S.q.q9!==2){
+      this.boulderSpr = this.add.image(10*TILE, 2*TILE+12, 'boulder').setDepth(6);
+      this.worldObjs.push(this.boulderSpr);
+    }
+
+    // プレイヤー
+    if(!this.player){
+      this.player = this.add.image(x*TILE+16, y*TILE+16, 'cat_'+S.cat).setScale(2).setDepth(8);
+    } else {
+      this.player.setPosition(x*TILE+16, y*TILE+16).setTexture('cat_'+S.cat);
+    }
+
+    // ついてくる こネズミ
+    if(S.f.babyFollow && S.q.q8!==2){
+      this.babySpr = this.add.image(x*TILE+16, (y+1)*TILE+16, 'mouse_baby').setScale(1.5).setDepth(7);
+      this.worldObjs.push(this.babySpr);
+    }
+
+    // エリアめい ひょうじ
+    this.areaTitle.setText('― ' + AREA_NAME[area] + ' ―').setAlpha(1);
+    this.tweens.add({targets:this.areaTitle, alpha:0, delay:1200, duration:600});
+    this.updateDarkness();
+    saveGame();
+  }
+
+  redrawTiles(){
+    this.rt.clear();
+    for(let y=0; y<MAPH; y++){
+      for(let x=0; x<MAPW; x++){
+        const k = TILE_TEX[this.grid[y][x]] || 't_grass';
+        this.rt.drawFrame(k, undefined, x*TILE, y*TILE);
+      }
+    }
+  }
+
+  spawnItems(){
+    const self = this;
+    this.items.forEach(function(it){ if(it.spr) it.spr.destroy(); });
+    this.items = [];
+    for(let y=0; y<MAPH; y++){
+      for(let x=0; x<MAPW; x++){
+        const ch = MAPS[S.area][y][x];
+        let kind = null, emoji = '';
+        if(ch==='a' && S.q.q2===1 && !S.got['a'+x+'_'+y]){ kind='acorn'; emoji='🌰'; }
+        if(ch==='g' && S.q.q4===1 && !S.items.megane){ kind='megane'; emoji='👓'; }
+        if(ch==='r' && S.q.q9===1 && !S.f.rope){ kind='rope'; emoji='🪢'; }
+        if(ch==='v' && S.q.q9===1 && !S.f.lever){ kind='lever'; emoji='🪵'; }
+        if(kind){
+          const spr = self.add.text(x*TILE+16, y*TILE+16, emoji, {fontSize:'22px'}).setOrigin(0.5).setDepth(5);
+          self.worldObjs.push(spr);
+          self.items.push({kind:kind, tx:x, ty:y, spr:spr});
+        }
+      }
+    }
+  }
+
+  npcAt(x,y){ return this.npcs.find(function(n){ return n.tx===x && n.ty===y; }) || null; }
+  pushableAt(x,y){ return this.pushables.find(function(p){ return p.tx===x && p.ty===y; }) || null; }
+  itemAt(x,y){ return this.items.find(function(i){ return i.tx===x && i.ty===y && i.spr; }) || null; }
+  boulderBlocks(x,y){
+    return !!(this.boulderSpr && S.area==='mousevillage' && y===2 && (x===9||x===10));
+  }
+  canWalk(ch){
+    if(ch==='n') return S.cat==='hotate';
+    return !!WALKABLE[ch];
+  }
+
+  // ---- まいフレーム ----
+  update(){
+    if(!S || !this.player) return;
+    if(this.dialog || this.cutscene || this.minigameOpen || this.moving){ this.updateDarkness(); return; }
+    let dx=0, dy=0;
+    const k = this.keys;
+    if(k.left.isDown || k.a.isDown || PadInput.dir==='left') dx=-1;
+    else if(k.right.isDown || k.d.isDown || PadInput.dir==='right') dx=1;
+    else if(k.up.isDown || k.w.isDown || PadInput.dir==='up') dy=-1;
+    else if(k.down.isDown || k.s.isDown || PadInput.dir==='down') dy=1;
+    if(dx||dy) this.tryMove(dx,dy);
+    this.updateDarkness();
+  }
+
+  tryMove(dx,dy){
+    this.facing = {dx:dx, dy:dy};
+    this.player.setFlipX(dx<0);
+    const nx=S.x+dx, ny=S.y+dy;
+    if(nx<0||nx>=MAPW||ny<0||ny>=MAPH) return;
+    if(this.npcAt(nx,ny)) return;
+    const p = this.pushableAt(nx,ny);
+    if(p){ this.tryPush(p,dx,dy); return; }
+    if(this.boulderBlocks(nx,ny)){ this.touchBoulder(); return; }
+    const ch = this.grid[ny][nx];
+    if(!this.canWalk(ch)){
+      if(ch==='n' && S.cat!=='hotate') this.toast('せまい！ ほたてなら とおれそう');
+      return;
+    }
+    this.moveTo(nx,ny);
+  }
+
+  moveTo(nx,ny){
+    const self=this;
+    this.moving = true;
+    const ox=S.x, oy=S.y;
+    this.tweens.add({
+      targets:this.player, x:nx*TILE+16, y:ny*TILE+16, duration:150,
+      onComplete:function(){
+        self.moving=false;
+        S.x=nx; S.y=ny;
+        if(self.babySpr){
+          self.tweens.add({targets:self.babySpr, x:ox*TILE+16, y:oy*TILE+16, duration:150});
+        }
+        self.afterStep();
+      }
+    });
+  }
+
+  tryPush(p,dx,dy){
+    const self=this;
+    if(S.cat!=='sharo'){ sfx('bump'); this.toast('おもくて うごかない… シャロなら おせそう！'); return; }
+    if(p.kind==='box' && dy!==0){ this.toast('はこは よこにしか おせないみたい'); return; }
+    const bx=p.tx+dx, by=p.ty+dy;
+    if(bx<0||bx>=MAPW||by<0||by>=MAPH) return;
+    const bch = this.grid[by][bx];
+    const intoHole = (p.kind==='box' && bch==='x');
+    if(this.npcAt(bx,by) || this.pushableAt(bx,by) || this.boulderBlocks(bx,by) ||
+       (!intoHole && !(WALKABLE[bch] && bch!=='C' && bch!=='T'))){
+      sfx('bump'); this.toast('そっちには うごかせないみたい'); return;
+    }
+    sfx('push');
+    this.moving = true;
+    const px=p.tx, py=p.ty;
+    this.tweens.add({targets:p.spr, x:bx*TILE+16, y:by*TILE+16, duration:200});
+    this.tweens.add({
+      targets:this.player, x:px*TILE+16, y:py*TILE+16, duration:200,
+      onComplete:function(){
+        self.moving=false;
+        S.x=px; S.y=py; p.tx=bx; p.ty=by;
+        if(intoHole) self.placeBox(p);
+        self.afterStep();
+      }
+    });
+  }
+
+  placeBox(p){
+    const self=this;
+    sfx('splash');
+    this.pushables = this.pushables.filter(function(q){ return q!==p; });
+    this.tweens.add({targets:p.spr, y:p.spr.y+6, alpha:0.9, scale:0.92, duration:300,
+      onComplete:function(){ p.spr.destroy(); }});
+    this.grid[7][16]='B';
+    this.redrawTiles();
+    S.boxPlaced = true;
+    this.toast('はしが なおった！');
+    voice('yatta');
+    this.completeQuest('q7');
+  }
+
+  afterStep(){
+    const it = this.itemAt(S.x,S.y);
+    if(it) this.pickItem(it);
+    const pt = PORTALS[S.area] && PORTALS[S.area][S.x+','+S.y];
+    if(pt){ this.transition(pt); return; }
+    this.updateDarkness();
+  }
+
+  pickItem(it){
+    sfx('pickup');
+    it.spr.destroy(); it.spr=null;
+    this.items = this.items.filter(function(q){ return q!==it; });
+    if(it.kind==='acorn'){
+      S.got['a'+it.tx+'_'+it.ty]=1; S.acorns++;
+      if(S.acorns>=5){ this.toast('どんぐり 5こ あつまった！ チューどんへ！'); voice('yatta'); }
+      else this.toast('どんぐりを ひろった！ ('+S.acorns+'/5)');
+    }
+    if(it.kind==='megane'){ S.items.megane=true; this.toast('めがねを みつけた！'); voice('yatta'); }
+    if(it.kind==='rope'){ S.f.rope=true; this.toast('おおいわに ロープを かけた！'); voice('yatta'); }
+    if(it.kind==='lever'){ S.f.lever=true; this.toast('てこの ぼうを ひろった！'); voice('yatta'); }
+    updateObjective(); saveGame();
+  }
+
+  transition(pt){
+    const self=this;
+    if(this.cutscene) return;
+    this.cutscene=true;
+    this.cameras.main.fadeOut(250);
+    this.time.delayedCall(280,function(){
+      self.loadArea(pt.area, pt.x, pt.y);
+      updateObjective();
+      self.cameras.main.fadeIn(250);
+      self.cutscene=false;
+    });
+  }
+
+  // ---- はなす・しらべる ----
+  onAction(){
+    if(this.dialog){ this.advanceDialog(); return; }
+    if(this.cutscene || this.moving || this.minigameOpen) return;
+    const fx=S.x+this.facing.dx, fy=S.y+this.facing.dy;
+    const npc=this.npcAt(fx,fy);
+    if(npc){ this.talkTo(npc); return; }
+    const p=this.pushableAt(fx,fy);
+    if(p){ this.toast(p.kind==='rock' ? 'おもそうな いわ。シャロなら おせそう' : 'おもそうな はこ。シャロなら おせそう'); return; }
+    if(this.boulderBlocks(fx,fy)){ this.touchBoulder(); return; }
+    if(fx<0||fx>=MAPW||fy<0||fy>=MAPH) return;
+    const ch=this.grid[fy][fx];
+    if(ch==='s'){ this.showDialog(['「ひがしへ いくと もり」','「もりの さきには みずうみと ネズミのむらが あるよ」'],{name:'かんばん'}); return; }
+    if(ch==='~'){ this.toast('みずが キラキラ ひかっている'); return; }
+    if(ch==='d'){ this.toast('かわが カラカラに かわいている…'); return; }
+    if(ch==='C'){ this.toast('くらーい どうくつの いりぐちだ'); return; }
+    if(ch==='T'){ this.toast('ふるい トンネルの いりぐちだ'); return; }
+    if(ch==='h'||ch==='L'||ch==='m'){ this.toast('だれかの おうちだ'); return; }
+  }
+
+  touchBoulder(){
+    if(S.q.q9===2) return;
+    if(S.q.q9!==1){ this.toast('おおきな いわが かわを ふさいでいる…！'); return; }
+    if(!S.f.rope){ this.toast('まず ほたてで すきまから ロープを かけよう'); return; }
+    if(!S.f.lever){ this.toast('つぎは ゆきで トンネルの ぼうを とろう'); return; }
+    if(S.cat!=='sharo'){ this.toast('さいごは ちからもちの シャロの でばん！'); return; }
+    this.finale();
+  }
+
+  // ---- ダイアログ ----
+  showDialog(lines, opt){
+    opt = opt||{};
+    this.dialog = {
+      lines: lines.map(function(l){ return typeof l==='string' ? {t:l} : l; }),
+      idx:0, onEnd:opt.onEnd||null, timer:null, full:'', pos:0
+    };
+    this.dlgBox.setVisible(true);
+    this.dlgText.setVisible(true).setText('');
+    this.dlgName.setVisible(!!opt.name).setText(opt.name||'');
+    this.showLine();
+  }
+  showLine(){
+    const self=this, d=this.dialog, L=d.lines[d.idx];
+    if(L.v) voice(L.v);
+    sfx('talk');
+    d.full = L.t; d.pos = 0;
+    this.dlgText.setText('');
+    this.dlgNext.setVisible(false);
+    if(d.timer) d.timer.remove();
+    d.timer = this.time.addEvent({delay:26, loop:true, callback:function(){
+      d.pos++;
+      self.dlgText.setText(d.full.slice(0,d.pos));
+      if(d.pos>=d.full.length){ d.timer.remove(); d.timer=null; self.dlgNext.setVisible(true); }
+    }});
+  }
+  advanceDialog(){
+    const d=this.dialog; if(!d) return;
+    if(d.timer){ d.timer.remove(); d.timer=null; this.dlgText.setText(d.full); this.dlgNext.setVisible(true); return; }
+    d.idx++;
+    if(d.idx < d.lines.length){ this.showLine(); return; }
+    this.dlgBox.setVisible(false); this.dlgText.setVisible(false);
+    this.dlgName.setVisible(false); this.dlgNext.setVisible(false);
+    const cb = d.onEnd;
+    this.dialog = null;
+    if(cb) cb();
+  }
+
+  // ---- トースト ----
+  toast(msg){
+    const self=this;
+    if(this.toastTxt){ this.toastTxt.destroy(); this.toastTxt=null; }
+    let tx = Phaser.Math.Clamp(this.player.x, 90, 550);
+    let ty = Math.max(24, this.player.y-34);
+    const t = this.add.text(tx, ty, msg, {
+      fontFamily:'sans-serif', fontSize:'14px', color:'#ffe9a8',
+      backgroundColor:'#1c1e30', padding:{x:8,y:5}
+    }).setOrigin(0.5).setDepth(60);
+    this.toastTxt = t;
+    this.tweens.add({targets:t, alpha:0, delay:1500, duration:400,
+      onComplete:function(){ if(self.toastTxt===t){ self.toastTxt=null; } t.destroy(); }});
+  }
+
+  completeQuest(id){
+    if(S.q[id]===2) return;
+    S.q[id]=2;
+    sfx('fanfare');
+    const self=this;
+    const t=this.add.text(320,150,'⭐ おねがい たっせい！ ('+questDoneCount()+'/9) ⭐',{
+      fontFamily:'sans-serif', fontSize:'22px', color:'#fff', stroke:'#c8503c', strokeThickness:6, fontStyle:'bold'
+    }).setOrigin(0.5).setDepth(90).setScale(0.3);
+    this.tweens.add({targets:t, scale:1, duration:300, ease:'Back.out'});
+    this.tweens.add({targets:t, alpha:0, delay:1600, duration:500, onComplete:function(){ t.destroy(); }});
+    updateObjective(); saveGame();
+  }
+
+  // ---- ネコこうたい ----
+  trySwitchCat(cat){
+    if(!S || this.dialog || this.cutscene || this.minigameOpen) return;
+    if(S.cat===cat) return;
+    S.cat = cat;
+    sfx('switch');
+    this.player.setTexture('cat_'+cat);
+    const names={sharo:'シャロ！ ちからもち だよ', yuki:'ゆき！ くらやみも へいき だよ', hotate:'ほたて！ せまいみちも とおれるよ'};
+    this.toast(names[cat]);
+    updateCatButtons();
+    this.updateDarkness();
+    saveGame();
+  }
+
+  // ---- くらやみ ----
+  updateDarkness(){
+    const g=this.darkG;
+    g.clear();
+    if(!this.isDark || !this.player) return;
+    if(S.cat==='yuki'){
+      g.fillStyle(0x000030, 0.22);
+      g.fillRect(0,0,640,480);
+      return;
+    }
+    const r=54, px=this.player.x, py=this.player.y;
+    g.fillStyle(0x02020a, 0.95);
+    g.fillRect(0,0,640,Math.max(0,py-r));
+    g.fillRect(0,py+r,640,Math.max(0,480-(py+r)));
+    g.fillRect(0,Math.max(0,py-r),Math.max(0,px-r),r*2);
+    g.fillRect(px+r,Math.max(0,py-r),Math.max(0,640-(px+r)),r*2);
+  }
+
+  // ---- ヒント ----
+  showHint(){
+    if(this.dialog || this.cutscene || this.minigameOpen) return;
+    const q=S.q; let h;
+    if(q.q1<2) h='むらの まんなかにいる わしと、ネズミの チューきちに はなしかけるのじゃ';
+    else if(q.q2===1 && S.acorns<5) h='どんぐりは もりに 5こ。いわは シャロで おす、すきまは ほたてで とおるのじゃ';
+    else if(q.q4===1 && !S.items.megane) h='どうくつの なかは ゆきに こうたいじゃ。くらやみでも みえるぞ';
+    else if(q.q9===1 && !S.f.rope) h='いわの ひだりの すきまは ほたてなら とおれる。うえの ロープを ふむのじゃ';
+    else if(q.q9===1 && !S.f.lever) h='むらの ひだりしたの トンネルへ。なかは くらいから ゆきの でばんじゃ';
+    else if(q.q9===1) h='ロープと ぼうが そろったら、シャロで おおいわに ドン！ じゃ';
+    else h=currentObjective();
+    this.showDialog([{t:h, v:'hint'}], {name:'ドクターやまねこ（むせん）'});
+  }
+
+  // ---- かいわ ----
+  faceNpc(npc){
+    npc.spr.setFlipX(npc.tx > S.x ? false : false);
+    const self=this;
+    this.tweens.add({targets:npc.spr, y:npc.ty*TILE+12, duration:120, yoyo:true,
+      onComplete:function(){ npc.spr.setY(npc.ty*TILE+16); }});
+  }
+  talkTo(npc){
+    const self=this, id=npc.def.id, q=S.q;
+    this.faceNpc(npc);
+    const D=function(lines,opt){ opt=opt||{}; opt.name=opt.name||npc.def.name; self.showDialog(lines,opt); };
+
+    if(id==='doc'){
+      if(!S.f.metDoc){
+        D(['おお！ シャロ、ゆき、ほたて。よく きたのう',
+           'わしは ドクターやまねこ。なんでも しっておる はかせ じゃよ',
+           'となりに いる ネズミの チューきちが こまって おるようじゃ。はなしを きいて おくれ',
+           'そうそう。3びきには それぞれ とくいわざが ある。うえの ボタンか 1・2・3の キーで こうたい できるぞ',
+           'シャロは ちからもち。ゆきは くらやみに つよい。ほたては せまいみちも とおれる。おぼえて おくのじゃ'],
+          {onEnd:function(){ S.f.metDoc=true; updateObjective(); saveGame(); }});
+      } else if(q.q1<2){
+        D(['チューきちと はなして みるのじゃ']);
+      } else {
+        self.showHint();
+      }
+      return;
+    }
+    if(id==='chukichi'){
+      if(!S.f.metDoc){ D([{t:'こんにちは なのだ！', v:'hello'}, 'まずは はかせに ごあいさつ するのだ']); return; }
+      if(q.q1<2){
+        D([{t:'たすけて ほしいのだ！', v:'help'},
+           'ぼくの すんでいる ネズミのむらが おおピンチ なのだ。かわの みずが とまって しまったのだ…',
+           {t:'みちの とちゅうに いる みんなの おねがいも きいて あげて ほしいのだ', v:'onegai'},
+           'ひがしの もり → みずうみ の さきが ネズミのむら なのだ。おねがい なのだ！'],
+          {onEnd:function(){ self.completeQuest('q1'); }});
+      } else {
+        D([{t:'ひがしの もりから すすむのだ。がんばるのだ！', v:'ganbaru'}]);
+      }
+      return;
+    }
+    if(id==='don'){
+      if(q.q2===0){
+        D([{t:'おなかが ぺこぺこ なのだ…', v:'onegai'},
+           {t:'もりの どんぐりを 5こ あつめて ほしいのだ', v:'donguri'},
+           'おもい いわの おくと、せまい すきまの さきにも あるみたい なのだ'],
+          {onEnd:function(){ S.q.q2=1; self.spawnItems(); updateObjective(); saveGame(); }});
+      } else if(q.q2===1 && S.acorns<5){
+        D(['あと '+(5-S.acorns)+'こ なのだ！ いわは シャロ、すきまは ほたて なのだ']);
+      } else if(q.q2===1){
+        D([{t:'わーい！ どんぐり ありがとうなのだ！', v:'thanks'}, 'これで ふゆも あんしん なのだ'],
+          {onEnd:function(){ self.completeQuest('q2'); }});
+      } else {
+        D(['もぐもぐ… どんぐり おいしいのだ']);
+      }
+      return;
+    }
+    if(id==='ko'){
+      const startQuiz=function(){ self.startMinigame('Quiz', {after:function(){
+        D([{t:'すごいのだ！ ものしり なのだ！', v:'sugoi'}], {onEnd:function(){ self.completeQuest('q3'); }});
+      }}); };
+      if(q.q3===0){
+        D([{t:'ひらがなカルタで あそんで ほしいのだ！', v:'karuta'}, 'えを みて あう ことばを えらぶのだ！'],
+          {onEnd:function(){ S.q.q3=1; saveGame(); startQuiz(); }});
+      } else if(q.q3===1){
+        D(['もういちど ちょうせん するのだ！'], {onEnd:startQuiz});
+      } else {
+        D(['また あそびたく なったら こえを かけるのだ'],
+          {onEnd:function(){ self.startMinigame('Quiz',{after:function(){ self.toast('チューこは よろこんだ！'); }}); }});
+      }
+      return;
+    }
+    if(id==='zo'){
+      if(q.q4===0){
+        D([{t:'どうくつに めがねを おとして しまったのだ', v:'cave'},
+           'なかは まっくらで こわくて はいれないのだ…',
+           'くろネコの ゆきなら くらやみでも みえるって はかせが いってたのだ！'],
+          {onEnd:function(){ S.q.q4=1; updateObjective(); saveGame(); }});
+      } else if(q.q4===1 && !S.items.megane){
+        D(['どうくつは きたの いわやまの いりぐちからなのだ。ゆきに こうたい なのだ']);
+      } else if(q.q4===1){
+        D([{t:'めがね みつけてくれたのだ！ ありがとうなのだ！', v:'thanks'}],
+          {onEnd:function(){ S.items.megane=false; self.completeQuest('q4'); }});
+      } else {
+        D(['めがねで よーく みえるのだ！']);
+      }
+      return;
+    }
+    if(id==='ta'){
+      const startFish=function(){ self.startMinigame('Fish', {after:function(){
+        D([{t:'おさかな ありがとうなのだ！', v:'thanks'}], {onEnd:function(){ self.completeQuest('q5'); }});
+      }}); };
+      if(q.q5===0){
+        D([{t:'おさかなを 3びき つかまえて ほしいのだ', v:'fish'}, 'わっかに おさかなが きたら ボタン！ なのだ'],
+          {onEnd:function(){ S.q.q5=1; saveGame(); startFish(); }});
+      } else if(q.q5===1){
+        D(['もういちど ちょうせん なのだ！'], {onEnd:startFish});
+      } else {
+        D(['つりの めいじん なのだ！'],
+          {onEnd:function(){ self.startMinigame('Fish',{after:function(){ self.toast('チューたは おおよろこび！'); }}); }});
+      }
+      return;
+    }
+    if(id==='ri'){
+      const startMath=function(){ self.startMinigame('Math', {after:function(){
+        D([{t:'すごいのだ！ けいさん はかせ なのだ！', v:'sugoi'}], {onEnd:function(){ self.completeQuest('q6'); }});
+      }}); };
+      if(q.q6===0){
+        D([{t:'たしざんの おべんきょうを てつだって ほしいのだ', v:'math'}, 'くだものの かずを あわせて こたえるのだ'],
+          {onEnd:function(){ S.q.q6=1; saveGame(); startMath(); }});
+      } else if(q.q6===1){
+        D(['もういちど おべんきょう なのだ！'], {onEnd:startMath});
+      } else {
+        D(['たしざん もう バッチリ なのだ！'],
+          {onEnd:function(){ self.startMinigame('Math',{after:function(){ self.toast('チューりは よろこんだ！'); }}); }});
+      }
+      return;
+    }
+    if(id==='go'){
+      const resetBoxIfMoved=function(){
+        const b=self.pushables.find(function(p){ return p.kind==='box'; });
+        if(b && (b.tx!==BOX_START.x || b.ty!==BOX_START.y)){
+          b.tx=BOX_START.x; b.ty=BOX_START.y;
+          b.spr.setPosition(BOX_START.x*TILE+16, BOX_START.y*TILE+16);
+          self.toast('はこを もとの ばしょに もどしたのだ！');
+        }
+      };
+      if(S.boxPlaced){
+        D([{t:'はしが なおったのだ！ ありがとうなのだ！', v:'thanks'}, 'この さきが ネズミのむら なのだ']);
+      } else if(q.q7===0){
+        D([{t:'はしの いたが ながされて しまったのだ', v:'bridge'},
+           'あの おおきな はこを よこに おして、はしの あなに はめて ほしいのだ',
+           'ちからもちの シャロに おねがい なのだ！'],
+          {onEnd:function(){ S.q.q7=1; updateObjective(); saveGame(); }});
+      } else {
+        D(['シャロで はこを よこに おして、あなに ストン！ なのだ'], {onEnd:resetBoxIfMoved});
+      }
+      return;
+    }
+    if(id==='mama'){
+      if(q.q8===0){
+        D([{t:'うちのこ チューちゃんが まいごなのだ！', v:'maigo'},
+           'みなみの しげみの すきまの おくから なきごえが するのだ…',
+           'すばしっこい ほたてなら すきまを とおれるのだ！ おねがいなのだ！'],
+          {onEnd:function(){ S.q.q8=1; updateObjective(); saveGame(); }});
+      } else if(q.q8===1 && !S.f.babyFollow){
+        D(['チューちゃーん！ どこなのだ〜！']);
+      } else if(q.q8===1){
+        D([{t:'チューちゃん！！ よかったのだ〜！', v:'thanks'}, 'つれてきてくれて ありがとうなのだ！'],
+          {onEnd:function(){
+            S.f.babyFollow=false; S.f.babyHome=true;
+            if(self.babySpr){
+              self.tweens.add({targets:self.babySpr, x:12*TILE+16, y:6*TILE+16, duration:500});
+              const bs=self.babySpr; self.babySpr=null;
+              self.npcs.push({def:{id:'baby', name:'チューちゃん', tex:'mouse_baby'}, spr:bs, tx:12, ty:6});
+            }
+            self.completeQuest('q8');
+          }});
+      } else {
+        D(['チューちゃんは もう だいじょうぶ なのだ！']);
+      }
+      return;
+    }
+    if(id==='baby'){
+      if(q.q8===1 && !S.f.babyFollow){
+        D(['えーん… ママは どこ なのだ…', '（チューちゃんは ついてくることにした）'],
+          {onEnd:function(){
+            S.f.babyFollow=true;
+            const n=self.npcs.find(function(x){ return x.def.id==='baby'; });
+            if(n){ self.npcs=self.npcs.filter(function(x){ return x!==n; }); self.babySpr=n.spr; }
+            updateObjective(); saveGame();
+          }});
+      } else {
+        D(['えへへ、なのだ！']);
+      }
+      return;
+    }
+    if(id==='jii'){
+      if(q.q8<2 && q.q9===0){
+        D(['ようこそ なのだ… でも むらは おおさわぎ なのだ', 'まずは ママネズミを てつだって あげて ほしいのだ']);
+      } else if(q.q9===0){
+        D([{t:'たいへんなのだ！ かわが おおいわで せきとめられたのだ！', v:'taihen'},
+           'みずが ないと はたけも のども カラカラ なのだ…',
+           '3びきの ちからを あわせれば きっと うごかせるのだ！',
+           'その1: ほたてが ひだりの すきまから いわの うえへ いき、ロープを かけるのだ',
+           'その2: ゆきが ひだりしたの くらい トンネルの おくから てこの ぼうを とってくるのだ',
+           {t:'その3: シャロが ちからいっぱい おすのだ！ がんばるのだ！', v:'ganbaru'}],
+          {onEnd:function(){ S.q.q9=1; self.spawnItems(); updateObjective(); saveGame(); }});
+      } else if(q.q9===1){
+        if(!S.f.rope) D(['まずは ほたてで いわの ひだりの すきまへ なのだ']);
+        else if(!S.f.lever) D(['つぎは ゆきで トンネルの おくへ なのだ']);
+        else D(['じゅんび ばんたん！ シャロで おおいわを おすのだ！']);
+      } else {
+        D([{t:'むらを すくってくれて ありがとうなのだ！', v:'thanks'}]);
+      }
+      return;
+    }
+    if(id==='suke'){
+      if(q.q9===2) D([{t:'みずが もどって うれしいのだ！', v:'yatta'}]);
+      else D(['かわに みずが もどれば おいしい チーズが つくれるのに なのだ…']);
+      return;
+    }
+  }
+
+  // ---- ミニゲーム ----
+  startMinigame(key, data){
+    const self=this;
+    this.minigameOpen = true;
+    this.scene.launch(key, {onDone:function(res){
+      self.scene.stop(key);
+      self.scene.resume();
+      self.minigameOpen = false;
+      if(data && data.after) data.after(res);
+    }});
+    this.scene.pause();
+  }
+
+  // ---- フィナーレ ----
+  finale(){
+    const self=this;
+    if(this.cutscene) return;
+    this.cutscene = true;
+    const cam=this.cameras.main;
+    this.tweens.add({targets:this.player, x:7*TILE+16, y:4*TILE+16, duration:400});
+    if(this.babySpr) this.tweens.add({targets:this.babySpr, x:6*TILE+16, y:4*TILE+16, duration:400});
+    this.time.delayedCall(500, function(){ self.toast('せーの！'); sfx('rumble'); cam.shake(350,0.004); });
+    this.time.delayedCall(1100, function(){ sfx('push'); cam.shake(300,0.006);
+      if(self.boulderSpr) self.tweens.add({targets:self.boulderSpr, x:self.boulderSpr.x+6, duration:120, yoyo:true, repeat:2});
+    });
+    this.time.delayedCall(1900, function(){
+      sfx('rumble');
+      if(self.boulderSpr){
+        self.tweens.add({targets:self.boulderSpr, x:13.5*TILE, y:1.5*TILE, angle:24, duration:700, ease:'Quad.out'});
+      }
+    });
+    this.time.delayedCall(2700, function(){ self.restoreRiver(); });
+  }
+
+  restoreRiver(){
+    const self=this;
+    let row = 0;
+    const ev = this.time.addEvent({delay:110, repeat:MAPH-1, callback:function(){
+      for(let x=0;x<MAPW;x++){
+        if(self.grid[row] && (self.grid[row][x]==='d'||self.grid[row][x]==='G')) self.grid[row][x]='~';
+      }
+      if(row%3===0) sfx('splash');
+      self.redrawTiles();
+      row++;
+      if(row>=MAPH){
+        if(self.boulderSpr){ self.boulderSpr.destroy(); self.boulderSpr=null; }
+        self.time.delayedCall(400, function(){ self.finaleTalk(); });
+      }
+    }});
+  }
+
+  finaleTalk(){
+    const self=this;
+    this.completeQuest('q9');
+    // ネズミたちが あつまる
+    this.npcs.forEach(function(n,i){
+      self.tweens.add({targets:n.spr, y:n.spr.y-8, duration:250, yoyo:true, repeat:3, delay:i*80});
+    });
+    this.showDialog([
+      {t:'みずが もどったのだーー！！', v:'mura'},
+      {t:'シャロ、ゆき、ほたては むらの えいゆう なのだ！', v:'eiyu'},
+      'ドクターやまねこ「3びきの ちからを あわせた けっか じゃな。あっぱれ！」',
+      {t:'ありがとう なのだ！ また あそびに きてほしいのだ！', v:'mata'}
+    ], {name:'ネズミのむらの みんな', onEnd:function(){
+      S.ended = true;
+      saveGame();
+      self.cutscene = false;
+      self.cameras.main.fadeOut(600);
+      self.time.delayedCall(700, function(){ self.scene.start('Ending'); });
+    }});
+  }
+}
+// ===== ミニゲームきょうつう =====
+function drawPanel(scene, title){
+  scene.add.rectangle(320,240,640,480,0x000000,0.55);
+  scene.add.rectangle(320,240,570,400,0x22345c,0.97).setStrokeStyle(4,0xffe9a8);
+  scene.add.text(320,70,title,{fontFamily:'sans-serif',fontSize:'24px',color:'#ffe066',fontStyle:'bold',stroke:'#1c1e30',strokeThickness:5}).setOrigin(0.5);
+}
+function makeChoiceButton(scene,x,y,w,label,cb){
+  const bg=scene.add.rectangle(x,y,w,52,0x7ec8a0).setStrokeStyle(3,0xffffff).setInteractive({useHandCursor:true});
+  const tx=scene.add.text(x,y,label,{fontFamily:'sans-serif',fontSize:'22px',color:'#173326',fontStyle:'bold'}).setOrigin(0.5);
+  bg.on('pointerover',function(){ bg.setFillStyle(0xa4e0c2); });
+  bg.on('pointerout',function(){ bg.setFillStyle(0x7ec8a0); });
+  bg.on('pointerdown',function(){ cb(); });
+  return {bg:bg,tx:tx};
+}
+function shuffleArr(a){
+  const b=a.slice();
+  for(let i=b.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); const t=b[i]; b[i]=b[j]; b[j]=t; }
+  return b;
+}
+
+// ===== ひらがなカルタ =====
+const QUIZ_WORDS=[
+  {e:'🍎',w:'りんご'},{e:'🐟',w:'さかな'},{e:'🌸',w:'さくら'},{e:'🐭',w:'ねずみ'},
+  {e:'🐱',w:'ねこ'},{e:'🍙',w:'おにぎり'},{e:'⭐',w:'ほし'},{e:'🍓',w:'いちご'},
+  {e:'🌙',w:'つき'},{e:'🐸',w:'かえる'},{e:'🌂',w:'かさ'},{e:'🚗',w:'くるま'}
+];
+class QuizScene extends Phaser.Scene {
+  constructor(){ super('Quiz'); }
+  init(d){ this.onDone=d.onDone; }
+  create(){
+    const self=this;
+    drawPanel(this,'ひらがなカルタ');
+    this.round=0; this.busy=false;
+    this.qs=shuffleArr(QUIZ_WORDS).slice(0,5);
+    this.emojiTx=this.add.text(320,160,'',{fontSize:'72px'}).setOrigin(0.5);
+    this.qTx=this.add.text(320,235,'この えは なにかな？',{fontFamily:'sans-serif',fontSize:'20px',color:'#fff'}).setOrigin(0.5);
+    this.progTx=this.add.text(320,105,'',{fontFamily:'sans-serif',fontSize:'16px',color:'#a8d8ff'}).setOrigin(0.5);
+    this.markTx=this.add.text(320,160,'',{fontSize:'64px'}).setOrigin(0.5).setDepth(5);
+    this.btns=[];
+    this.keyHandlers=[];
+    [ 'ONE','TWO','THREE' ].forEach(function(k,i){
+      self.input.keyboard.on('keydown-'+k, function(){ if(self.btns[i]) self.btns[i].cb(); });
+    });
+    this.showRound();
+  }
+  showRound(){
+    const self=this;
+    this.busy=false;
+    this.markTx.setText('');
+    if(this.round>=5){
+      this.qTx.setText('ぜんぶ せいかい！ すごい！');
+      this.emojiTx.setText('🎉');
+      sfx('quest');
+      this.time.delayedCall(1100,function(){ if(self.onDone) self.onDone(true); });
+      return;
+    }
+    this.progTx.setText('だい '+(this.round+1)+' もん / 5もん');
+    const q=this.qs[this.round];
+    this.emojiTx.setText(q.e);
+    this.qTx.setText('この えは なにかな？');
+    const others=shuffleArr(QUIZ_WORDS.filter(function(o){ return o.w!==q.w; })).slice(0,2).map(function(o){ return o.w; });
+    const opts=shuffleArr([q.w].concat(others));
+    this.btns.forEach(function(b){ b.bg.destroy(); b.tx.destroy(); });
+    this.btns=[];
+    opts.forEach(function(w,i){
+      const x=320+(i-1)*180;
+      const cb=function(){ self.answer(w===q.w, w); };
+      const b=makeChoiceButton(self,x,320,160,w,cb);
+      b.cb=cb;
+      self.btns.push(b);
+    });
+  }
+  answer(right){
+    const self=this;
+    if(this.busy) return;
+    if(right){
+      this.busy=true;
+      sfx('ok'); this.markTx.setText('⭕');
+      this.time.delayedCall(700,function(){ self.round++; self.showRound(); });
+    } else {
+      sfx('ng'); this.markTx.setText('❌');
+      if(Math.random()<0.5) voice('zannen');
+      this.qTx.setText('ちがうみたい… もういちど！');
+      this.time.delayedCall(700,function(){ if(!self.busy) self.markTx.setText(''); });
+    }
+  }
+}
+
+// ===== かず・たしざん =====
+class MathScene extends Phaser.Scene {
+  constructor(){ super('Math'); }
+  init(d){ this.onDone=d.onDone; }
+  create(){
+    const self=this;
+    drawPanel(this,'たしざんの おてつだい');
+    this.round=0; this.busy=false;
+    this.fruitTx=this.add.text(320,165,'',{fontSize:'34px'}).setOrigin(0.5);
+    this.qTx=this.add.text(320,235,'ぜんぶで いくつかな？',{fontFamily:'sans-serif',fontSize:'20px',color:'#fff'}).setOrigin(0.5);
+    this.progTx=this.add.text(320,105,'',{fontFamily:'sans-serif',fontSize:'16px',color:'#a8d8ff'}).setOrigin(0.5);
+    this.markTx=this.add.text(320,165,'',{fontSize:'60px'}).setOrigin(0.5).setDepth(5);
+    this.btns=[];
+    ['ONE','TWO','THREE'].forEach(function(k,i){
+      self.input.keyboard.on('keydown-'+k, function(){ if(self.btns[i]) self.btns[i].cb(); });
+    });
+    this.showRound();
+  }
+  showRound(){
+    const self=this;
+    this.busy=false;
+    this.markTx.setText('');
+    if(this.round>=5){
+      this.qTx.setText('ぜんぶ せいかい！ けいさん バッチリ！');
+      this.fruitTx.setText('🎉');
+      sfx('quest');
+      this.time.delayedCall(1100,function(){ if(self.onDone) self.onDone(true); });
+      return;
+    }
+    this.progTx.setText('だい '+(this.round+1)+' もん / 5もん');
+    const fruits=['🍓','🍎','🍊','🍇','🌰'];
+    const f=fruits[Math.floor(Math.random()*fruits.length)];
+    const a=1+Math.floor(Math.random()*4);
+    const b=1+Math.floor(Math.random()*Math.min(4, 9-a));
+    const ans=a+b;
+    this.fruitTx.setText(f.repeat(a)+' と '+f.repeat(b));
+    this.qTx.setText('ぜんぶで いくつかな？');
+    let opts=[ans];
+    while(opts.length<3){
+      const c=ans+(Math.floor(Math.random()*5)-2);
+      if(c>=1 && c<=9 && opts.indexOf(c)<0) opts.push(c);
+    }
+    opts=shuffleArr(opts);
+    this.btns.forEach(function(x){ x.bg.destroy(); x.tx.destroy(); });
+    this.btns=[];
+    opts.forEach(function(n,i){
+      const x=320+(i-1)*150;
+      const cb=function(){ self.answer(n===ans); };
+      const btn=makeChoiceButton(self,x,320,110,String(n),cb);
+      btn.cb=cb;
+      self.btns.push(btn);
+    });
+  }
+  answer(right){
+    const self=this;
+    if(this.busy) return;
+    if(right){
+      this.busy=true;
+      sfx('ok'); this.markTx.setText('⭕');
+      this.time.delayedCall(700,function(){ self.round++; self.showRound(); });
+    } else {
+      sfx('ng'); this.markTx.setText('❌');
+      if(Math.random()<0.5) voice('zannen');
+      this.qTx.setText('あれれ？ もういちど かぞえてみよう！');
+      this.time.delayedCall(700,function(){ if(!self.busy) self.markTx.setText(''); });
+    }
+  }
+}
+
+// ===== おさかなキャッチ（タイミングアクション） =====
+class FishScene extends Phaser.Scene {
+  constructor(){ super('Fish'); }
+  init(d){ this.onDone=d.onDone; }
+  create(){
+    const self=this;
+    drawPanel(this,'おさかなキャッチ！');
+    this.caught=0; this.finished=false;
+    this.add.rectangle(320,250,520,170,0x2b6da8).setStrokeStyle(3,0x6fb3e8);
+    this.ring=this.add.circle(320,250,40).setStrokeStyle(5,0xffe066);
+    this.fish=this.add.text(-60,250,'🐟',{fontSize:'40px'}).setOrigin(0.5);
+    this.countTx=this.add.text(320,110,'つかまえた： 0 / 3',{fontFamily:'sans-serif',fontSize:'18px',color:'#fff'}).setOrigin(0.5);
+    this.msgTx=this.add.text(320,355,'わっかの なかに きたら ボタン！',{fontFamily:'sans-serif',fontSize:'16px',color:'#a8d8ff'}).setOrigin(0.5);
+    const b=makeChoiceButton(this,320,410,220,'キャッチ！',function(){ self.attempt(); });
+    this.input.keyboard.on('keydown-SPACE',function(e){ e.preventDefault(); self.attempt(); });
+    const onAct=function(){ self.attempt(); };
+    GEV.on('action',onAct);
+    this.events.once('shutdown',function(){ GEV.off('action',onAct); });
+    this.spawnFish();
+  }
+  spawnFish(){
+    this.fromLeft = Math.random()<0.5;
+    this.speed = 2.6 + this.caught*0.8 + Math.random()*0.8;
+    this.fish.x = this.fromLeft ? 40 : 600;
+    this.fish.setFlipX(!this.fromLeft);
+    this.baseY = 225 + Math.random()*50;
+  }
+  update(){
+    if(this.finished) return;
+    this.fish.x += (this.fromLeft?1:-1)*this.speed;
+    this.fish.y = this.baseY + Math.sin(this.fish.x/26)*16;
+    if(this.fish.x>620 || this.fish.x<20) this.spawnFish();
+  }
+  attempt(){
+    const self=this;
+    if(this.finished) return;
+    const dx=this.fish.x-320, dy=this.fish.y-250;
+    if(Math.sqrt(dx*dx+dy*dy) < 46){
+      this.caught++;
+      sfx('ok');
+      this.countTx.setText('つかまえた： '+this.caught+' / 3');
+      this.msgTx.setText('ナイスキャッチ！');
+      this.tweens.add({targets:this.fish, y:this.fish.y-60, alpha:0, duration:300, onComplete:function(){
+        self.fish.setAlpha(1);
+        if(self.caught>=3){
+          self.finished=true;
+          self.fish.setVisible(false);
+          self.msgTx.setText('3びき つかまえた！ やったね！');
+          sfx('quest');
+          self.time.delayedCall(1100,function(){ if(self.onDone) self.onDone(true); });
+        } else {
+          self.spawnFish();
+        }
+      }});
+    } else {
+      sfx('ng');
+      this.msgTx.setText('あら はやい？ タイミングを あわせよう');
+      if(Math.random()<0.34) voice('zannen');
+    }
+  }
+}
+
+// ===== エンディング =====
+class EndingScene extends Phaser.Scene {
+  constructor(){ super('Ending'); }
+  create(){
+    const self=this, W=640, H=480;
+    const g=this.add.graphics();
+    g.fillGradientStyle(0x1c2a5c,0x1c2a5c,0x4a72b8,0x4a72b8,1);
+    g.fillRect(0,0,W,360);
+    g.fillStyle(0x5aa348,1); g.fillRect(0,360,W,120);
+    for(let i=0;i<30;i++){
+      const s=this.add.rectangle((i*83)%W,(i*47)%250+10,3,3,0xfff7c9).setAlpha(0);
+      this.tweens.add({targets:s,alpha:0.9,duration:800,delay:i*60,yoyo:true,repeat:-1});
+    }
+    g.fillStyle(0x3f8fd6,1); g.fillRect(280,360,80,120);
+    const cats=['cat_sharo','cat_yuki','cat_hotate'];
+    cats.forEach(function(k,i){
+      const s=self.add.image(180+i*60,380,k).setScale(3);
+      self.tweens.add({targets:s,y:370,duration:500+i*90,yoyo:true,repeat:-1,ease:'Sine.inOut'});
+    });
+    const doc=this.add.image(420,380,'doctor').setScale(3);
+    ['mouse','mouse_baby','mouse_elder','mouse'].forEach(function(k,i){
+      const s=self.add.image(470+i*45,395,k).setScale(2);
+      self.tweens.add({targets:s,y:388,duration:420+i*70,yoyo:true,repeat:-1,ease:'Sine.inOut'});
+    });
+    const lines=[
+      'ネズミのむらに みずが もどりました',
+      'シャロ・ゆき・ほたての 3びきは',
+      'むらの えいゆうに なりました',
+      '',
+      'おしまい'
+    ];
+    lines.forEach(function(t,i){
+      const tx=self.add.text(W/2,90+i*38,t,{fontFamily:'sans-serif',fontSize:'22px',color:'#fff',stroke:'#1c1e30',strokeThickness:5}).setOrigin(0.5).setAlpha(0);
+      self.tweens.add({targets:tx,alpha:1,duration:600,delay:500+i*900});
+    });
+    this.time.delayedCall(500,function(){ sfx('fanfare'); });
+    const cred=this.add.text(W/2,320,'音声：VOICEVOX:ずんだもん　　© 山岸産業医事務所',{
+      fontFamily:'sans-serif',fontSize:'14px',color:'#dce8ff'
+    }).setOrigin(0.5).setAlpha(0);
+    this.tweens.add({targets:cred,alpha:1,duration:800,delay:5200});
+    this.time.delayedCall(5600,function(){
+      const bg=self.add.rectangle(W/2,450,240,44,0xff8fa3).setStrokeStyle(3,0xffffff).setInteractive({useHandCursor:true});
+      self.add.text(W/2,450,'タイトルへ もどる',{fontFamily:'sans-serif',fontSize:'18px',color:'#4a1220',fontStyle:'bold'}).setOrigin(0.5);
+      bg.on('pointerdown',function(){ sfx('ok'); self.scene.start('Title'); });
+    });
+  }
+}
+
+// ===== きどう =====
+let GEV = null;
+const PadInput = { dir:null };
+
+function setupDom(){
+  const touch = ('ontouchstart' in window) || (navigator.maxTouchPoints>0);
+  if(touch) document.body.classList.add('touch');
+  document.querySelectorAll('.pbtn').forEach(function(b){
+    const dir=b.getAttribute('data-dir');
+    const on=function(e){ e.preventDefault(); ac(); PadInput.dir=dir; };
+    const off=function(e){ e.preventDefault(); if(PadInput.dir===dir) PadInput.dir=null; };
+    b.addEventListener('touchstart',on,{passive:false});
+    b.addEventListener('touchend',off);
+    b.addEventListener('touchcancel',off);
+    b.addEventListener('mousedown',on);
+    b.addEventListener('mouseup',off);
+    b.addEventListener('mouseleave',off);
+  });
+  const bA=document.getElementById('btnA');
+  const act=function(e){ e.preventDefault(); ac(); if(GEV) GEV.emit('action'); };
+  bA.addEventListener('touchstart',act,{passive:false});
+  bA.addEventListener('mousedown',act);
+  document.querySelectorAll('.catbtn').forEach(function(b){
+    b.addEventListener('click',function(){ ac(); if(GEV) GEV.emit('cat', b.getAttribute('data-cat')); });
+  });
+  document.getElementById('btnHint').addEventListener('click',function(){ ac(); if(GEV) GEV.emit('hint'); });
+  const bs=document.getElementById('btnSound');
+  bs.addEventListener('click',function(){
+    G.soundOn=!G.soundOn;
+    if(!G.soundOn && curVoice){ try{ curVoice.pause(); }catch(e){} }
+    bs.textContent = G.soundOn ? 'おと ON' : 'おと OFF';
+    if(G.soundOn){ ac(); sfx('ok'); }
+  });
+}
+
+if(typeof Phaser === 'undefined'){
+  document.getElementById('err').style.display='block';
+} else {
+  GEV = new Phaser.Events.EventEmitter();
+  setupDom();
+  new Phaser.Game({
+    type: Phaser.AUTO,
+    parent: 'game',
+    width: 640,
+    height: 480,
+    backgroundColor: '#101223',
+    pixelArt: true,
+    scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
+    scene: [BootScene, TitleScene, WorldScene, QuizScene, MathScene, FishScene, EndingScene]
+  });
+}
+</script>
+</body>
+</html>

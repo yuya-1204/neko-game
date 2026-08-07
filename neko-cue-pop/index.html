@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+  <meta name="theme-color" content="#17133f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="description" content="音とネコの合図を聞いて、画面をポン！ 6〜9歳向けの1タップ・リズムコメディゲームです。">
+  <title>ネコの合図でポン！ ふしぎなリズム劇場</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main id="app">
+    <section id="screenTitle" class="screen screen--active" aria-labelledby="gameTitle">
+      <div class="title-stars" aria-hidden="true"></div>
+      <div class="title-shell">
+        <p class="eyebrow">1タップ・リズムコメディ</p>
+        <h1 id="gameTitle"><span>ネコの合図で</span><strong>ポン！</strong></h1>
+        <p class="subtitle">ふしぎなリズム劇場</p>
+
+        <div class="title-stage" aria-label="Dr.やまねことゆきちゃんがリズム劇場を案内します">
+          <div class="curtain curtain--left" aria-hidden="true"></div>
+          <div class="curtain curtain--right" aria-hidden="true"></div>
+          <div class="host-card host-card--doctor">
+            <img src="assets/dr_yamaneko.jpg" alt="白衣を着たDr.やまねこ">
+            <span>Dr.やまねこ</span>
+          </div>
+          <div class="stage-center" aria-hidden="true">
+            <div class="tap-burst"><span>♪</span><b>ポン！</b><span>★</span></div>
+            <div class="mini-scenes"><i>☔</i><i>🥷</i><i>🎧</i><i>⚡</i></div>
+          </div>
+          <div class="host-card host-card--yuki">
+            <div class="yuki-crop" role="img" aria-label="白いネコのゆきちゃん"></div>
+            <span>ゆきちゃん</span>
+          </div>
+        </div>
+
+        <p class="title-lead">声・動き・「間」をよく聞いて、画面のどこでもタップ！</p>
+        <button id="btnStart" class="button button--primary button--jumbo">🔊 音をONにして はじめる</button>
+        <div class="title-actions">
+          <button class="button button--soft" data-open-modal="helpModal">？ あそびかた</button>
+          <button class="button button--soft" data-open-modal="creditsModal">ⓘ クレジット</button>
+        </div>
+        <p class="small-note">スマホ・タブレットは横向きがおすすめです</p>
+      </div>
+    </section>
+
+    <section id="screenMap" class="screen" aria-labelledby="mapTitle">
+      <header class="topbar">
+        <button id="btnHome" class="icon-button" aria-label="タイトルへ戻る">⌂</button>
+        <div>
+          <p class="topbar-kicker">ふしぎなリズム劇場</p>
+          <h2 id="mapTitle">ステージをえらぼう</h2>
+        </div>
+        <div class="topbar-actions">
+          <button id="btnAlbum" class="icon-button" aria-label="ネコ劇場アルバム">▣</button>
+          <button class="icon-button js-sound" aria-label="音のオン・オフ">🔊</button>
+          <button class="icon-button js-fullscreen" aria-label="全画面表示">⛶</button>
+        </div>
+      </header>
+
+      <div class="map-summary">
+        <div><span id="clearedCount">0</span><small>/13 こうえん</small></div>
+        <div class="progress-track"><i id="mapProgress"></i></div>
+        <button id="btnAssistMap" class="assist-chip" aria-pressed="true">✨ おたすけ ON</button>
+      </div>
+      <div id="stageGrid" class="stage-grid" aria-label="ステージ一覧"></div>
+      <p class="map-tip">🔊 音を聞いて遊ぶゲームです。はじめに音量を確認してね。</p>
+    </section>
+
+    <section id="screenStage" class="screen" aria-labelledby="stageTitle">
+      <header class="topbar topbar--floating">
+        <button id="btnStageBack" class="icon-button" aria-label="ステージ一覧へ戻る">←</button>
+        <span id="stageNumber" class="stage-number">STAGE 1</span>
+        <div class="topbar-actions">
+          <button class="icon-button js-sound" aria-label="音のオン・オフ">🔊</button>
+          <button class="icon-button js-fullscreen" aria-label="全画面表示">⛶</button>
+        </div>
+      </header>
+      <div id="stageIntroCard" class="stage-intro-card">
+        <div class="stage-preview-wrap">
+          <canvas id="previewCanvas" width="960" height="540" aria-label="ステージの見本"></canvas>
+          <div id="moodBadge" class="mood-badge">かわいい・おだやか</div>
+        </div>
+        <div class="stage-copy">
+          <p id="stageIcon" class="stage-icon">☔</p>
+          <h2 id="stageTitle">まどべの雨つぶ</h2>
+          <p id="stageRule" class="stage-rule">「ぽつ、ぽつ、キラン！」のキランでポン！</p>
+          <div class="stage-meta">
+            <span id="stageTempo">ゆったり</span>
+            <span>画面のどこでもタップ</span>
+          </div>
+          <div class="mode-row">
+            <button id="btnAssistStage" class="mode-button mode-button--selected" aria-pressed="true">
+              <b>✨ おたすけ</b><small>合図が光って、判定もやさしい</small>
+            </button>
+            <button id="btnChallenge" class="mode-button" aria-pressed="false" disabled>
+              <b>🔥 チャレンジ</b><small>クリアすると遊べます</small>
+            </button>
+          </div>
+          <div class="stage-actions">
+            <button id="btnDemo" class="button button--soft">👀 おてほんをみる</button>
+            <button id="btnPlay" class="button button--primary">▶ ちょうせん！</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="screenPlay" class="screen screen--play" aria-label="リズムゲーム">
+      <div class="play-shell">
+        <div class="play-hud">
+          <div><small id="hudStage">STAGE 1</small><b id="hudTitle">まどべの雨つぶ</b></div>
+          <div class="hud-center"><span id="hudPaws">🐾 0</span><span id="hudCombo">0 コンボ</span></div>
+          <div class="play-tools">
+            <button id="btnPause" class="icon-button" aria-label="一時停止">Ⅱ</button>
+            <button class="icon-button js-sound" aria-label="音のオン・オフ">🔊</button>
+          </div>
+        </div>
+        <div id="canvasWrap" class="canvas-wrap">
+          <canvas id="gameCanvas" width="960" height="540" tabindex="0" aria-label="画面のどこでもタップして遊びます"></canvas>
+          <div id="countdown" class="countdown" aria-live="polite"></div>
+          <div id="judgeText" class="judge-text" aria-live="polite"></div>
+          <div id="tapHint" class="tap-hint">画面のどこでも ポン！</div>
+        </div>
+        <div class="play-progress"><i id="playProgress"></i></div>
+      </div>
+      <div id="pausePanel" class="pause-panel" hidden>
+        <div class="pause-card">
+          <h2>ひとやすみ</h2>
+          <p>音とゲームを止めています。</p>
+          <button id="btnResume" class="button button--primary">▶ つづける</button>
+          <button id="btnRetryFromPause" class="button button--soft">↻ さいしょから</button>
+          <button id="btnQuit" class="button button--soft">← ステージをえらぶ</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="screenResult" class="screen" aria-labelledby="resultTitle">
+      <div class="result-shell">
+        <p class="eyebrow">こうえん しゅうりょう！</p>
+        <h2 id="resultTitle">いいリズム！</h2>
+        <div id="resultPaws" class="result-paws" aria-label="評価">🐾🐾🐾</div>
+        <p id="resultMessage" class="result-message">音をよく聞けたね！</p>
+
+        <div class="result-body">
+          <div id="photoCard" class="photo-card">
+            <canvas id="photoCanvas" width="640" height="360" aria-label="ネコ劇場アルバムの写真"></canvas>
+            <div><b id="photoTitle">まどべの雨つぶ</b><span>ネコ劇場アルバムに追加！</span></div>
+          </div>
+          <dl class="result-stats">
+            <div><dt>ぴったり！</dt><dd id="resultPerfect">0</dd></div>
+            <div><dt>おしい！</dt><dd id="resultGood">0</dd></div>
+            <div><dt>もういちど</dt><dd id="resultMiss">0</dd></div>
+            <div><dt>さいこうコンボ</dt><dd id="resultCombo">0</dd></div>
+          </dl>
+        </div>
+        <div class="result-actions">
+          <button id="btnRetry" class="button button--soft">↻ もういちど</button>
+          <button id="btnResultMap" class="button button--soft">▦ ステージ一覧</button>
+          <button id="btnNext" class="button button--primary">つぎへ ▶</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="dialogOverlay" class="dialog-overlay" hidden>
+    <div class="dialog-card">
+      <button id="btnSkipDialog" class="dialog-skip">スキップ</button>
+      <div id="dialogPortrait" class="dialog-portrait"></div>
+      <div class="dialog-copy">
+        <span id="dialogSpeaker">Dr.やまねこ</span>
+        <p id="dialogText">ようこそ！</p>
+        <button id="btnDialogNext" class="button button--primary">つぎへ ▶</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="helpModal" class="modal" hidden>
+    <div class="modal-card">
+      <button class="modal-close" data-close-modal aria-label="閉じる">×</button>
+      <h2>あそびかた</h2>
+      <div class="howto-grid">
+        <div><b>① お手本をみる</b><span>ネコの声・動き・間を覚えよう</span></div>
+        <div><b>② 合図でポン！</b><span>画面のどこをさわってもOK</span></div>
+        <div><b>③ 最後まで楽しむ</b><span>まちがえても途中で終わりません</span></div>
+      </div>
+      <p>スマホ・タブレットは横向きがおすすめ。PCはクリックまたはスペースキーで遊べます。</p>
+      <p>6歳くらいは「おたすけ」、クリア後は9歳くらいまで楽しめる「チャレンジ」を選べます。</p>
+      <button class="button button--primary" data-close-modal>わかった！</button>
+    </div>
+  </div>
+
+  <div id="creditsModal" class="modal" hidden>
+    <div class="modal-card credits-card">
+      <button class="modal-close" data-close-modal aria-label="閉じる">×</button>
+      <h2>クレジット</h2>
+      <p><b>企画・制作</b><br>山岸産業医事務所</p>
+      <p><b>登場キャラクター</b><br>Dr.やまねこ、ゆきちゃん</p>
+      <p><b>音声</b><br>Dr.やまねこ：VOICEVOX:ずんだもん<br>ゆきちゃん：VOICEVOX:四国めたん</p>
+      <p><b>音楽・効果音・ゲーム</b><br>本作品のためのオリジナル構成</p>
+      <p class="credits-note">VOICEVOXで事前生成した音声を使用しています。ゲーム中に外部の音声サービスへ接続しません。</p>
+      <button class="button button--primary" data-close-modal>とじる</button>
+    </div>
+  </div>
+
+  <div id="albumModal" class="modal" hidden>
+    <div class="modal-card modal-card--wide">
+      <button class="modal-close" data-close-modal aria-label="閉じる">×</button>
+      <h2>ネコ劇場アルバム</h2>
+      <p>クリアした公演のおもしろ写真が集まるよ。</p>
+      <div id="albumGrid" class="album-grid"></div>
+      <button class="button button--primary" data-close-modal>とじる</button>
+    </div>
+  </div>
+
+  <div id="rotateNotice" class="rotate-notice" aria-hidden="true">
+    <div>↻</div><b>よこむきにしてね</b><span>このままでも遊べます</span>
+  </div>
+
+  <div id="srStatus" class="sr-only" aria-live="polite"></div>
+  <script src="game.js"></script>
+</body>
+</html>

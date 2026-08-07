@@ -1,0 +1,50 @@
+[
+  {
+    "id": "INTRO_01",
+    "file": "intro_01_dr.wav",
+    "speaker": 3,
+    "character": "Dr.やまねこ",
+    "credit": "VOICEVOX:ずんだもん",
+    "text": "ようこそ！ ネコの合図でポン、ふしぎなリズム劇場へ。合図をよく聞いて、画面をポンとタッチしてね。"
+  },
+  {
+    "id": "INTRO_02",
+    "file": "intro_02_yuki.wav",
+    "speaker": 2,
+    "character": "ゆきちゃん",
+    "credit": "VOICEVOX:四国めたん",
+    "text": "いっぱい押せばいいの？"
+  },
+  {
+    "id": "INTRO_03",
+    "file": "intro_03_dr.wav",
+    "speaker": 3,
+    "character": "Dr.やまねこ",
+    "credit": "VOICEVOX:ずんだもん",
+    "text": "じつは、押さない間もリズムなんだ。お手本を見てから挑戦しよう。"
+  },
+  {
+    "id": "INTRO_04",
+    "file": "intro_04_yuki.wav",
+    "speaker": 2,
+    "character": "ゆきちゃん",
+    "credit": "VOICEVOX:四国めたん",
+    "text": "えーっ！ よく聞いて、やってみよう！"
+  },
+  {
+    "id": "RESULT_01",
+    "file": "result_01_dr.wav",
+    "speaker": 3,
+    "character": "Dr.やまねこ",
+    "credit": "VOICEVOX:ずんだもん",
+    "text": "すごい！ 音も、間も、ばっちり聞けたね！"
+  },
+  {
+    "id": "RESULT_02",
+    "file": "result_02_yuki.wav",
+    "speaker": 2,
+    "character": "ゆきちゃん",
+    "credit": "VOICEVOX:四国めたん",
+    "text": "最後までできたね。もう一回やってみよう！"
+  }
+]

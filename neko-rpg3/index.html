@@ -1,0 +1,1106 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#17152b">
+<meta name="description" content="3びきの ネコを こうたいしながら、かわいい おばけホテルで 7つの かぎと こねこを さがす たんけんゲームです。">
+<title>ねこをさがせ！だいぼうけん3 ～おばけホテルの7つのかぎ～</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;height:100dvh}
+body{overflow:hidden;background:#121124;color:#fff;font-family:"Hiragino Maru Gothic ProN","Yu Gothic UI","Meiryo",sans-serif;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+button{font:inherit}
+#wrap{position:relative;width:100%;height:100%;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}
+#topbar{position:relative;z-index:30;display:grid;grid-template-columns:minmax(170px,1fr) auto;gap:5px 8px;padding:6px 8px;background:linear-gradient(180deg,#282544,#201e38);border-bottom:2px solid #5d5684;box-shadow:0 3px 12px #0008}
+#status{min-width:0;align-self:center}
+#obj{font-size:13px;line-height:1.35;color:#fff0a8;font-weight:700;white-space:normal}
+#keys{margin-top:2px;font-size:11px;letter-spacing:1px;color:#c9c5ed}
+#buttons{display:flex;align-items:center;justify-content:flex-end;gap:4px;flex-wrap:wrap}
+#topbar button{min-height:44px;border:2px solid #ffffff33;border-radius:11px;padding:7px 10px;color:#211e31;font-size:12px;font-weight:800;cursor:pointer;box-shadow:0 2px 0 #0004}
+#topbar button:active{transform:translateY(1px);box-shadow:none}
+.catbtn{opacity:.55;border-color:transparent!important}
+.catbtn.active{opacity:1;border-color:#fff1a8!important;box-shadow:0 0 8px #ffe774}
+#cat_sharo{background:#f5a742}
+#cat_yuki{background:#4b4c5d;color:#fff!important}
+#cat_hotate{background:#f6f3e9}
+#btnHint{background:#91dfbd}
+#btnReset{background:#d9c5ff}
+#btnTrouble{background:#ff9eb1}
+#btnSound{background:#aabaf0}
+#btnReset.disabled{opacity:.45}
+#game{position:relative;flex:1 1 auto;min-height:0;overflow:hidden;background:radial-gradient(circle at 50% 20%,#29264a,#121124 70%)}
+#game canvas{image-rendering:pixelated;image-rendering:crisp-edges}
+#pad{display:none;position:absolute;left:max(10px,env(safe-area-inset-left));bottom:10px;z-index:25;grid-template-columns:58px 58px 58px;grid-template-rows:58px 58px 58px;gap:3px;opacity:.9}
+.pbtn{border:2px solid #ffffff30;border-radius:15px;background:#3b3a5a;color:#fff;font-size:22px;font-weight:900;box-shadow:0 3px 0 #171629}
+.pbtn:active,#btnA:active{filter:brightness(1.35);transform:translateY(2px)}
+#btnA{display:none;position:absolute;right:max(12px,env(safe-area-inset-right));bottom:28px;z-index:25;width:112px;height:70px;border:3px solid #ffffff55;border-radius:24px;background:#ff9eb1;color:#54192a;font-size:14px;font-weight:900;line-height:1.25;box-shadow:0 4px 0 #8c4457}
+body.touch.world-controls #pad{display:grid}
+body.touch.world-controls #btnA{display:block}
+#err{display:none;position:absolute;inset:0;z-index:100;padding:32px 24px;background:#17152b;color:#ffe49b;font-size:16px;line-height:2;text-align:center}
+@media(max-width:760px){
+  #topbar{grid-template-columns:1fr;padding:5px 6px;gap:4px}
+  #buttons{justify-content:flex-start}
+  #topbar button{min-height:44px;padding:6px 9px;font-size:12px}
+  #obj{font-size:12px}#keys{font-size:10px}
+}
+@media(max-height:620px){#topbar button{min-height:44px;padding:4px 8px}#obj{font-size:11px}#keys{display:none}#pad{transform:scale(.82);transform-origin:left bottom}#btnA{transform:scale(.88);transform-origin:right bottom}}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <header id="topbar">
+    <div id="status">
+      <div id="obj" aria-live="polite">よみこみちゅう…</div>
+      <div id="keys">かぎ： A・B・C・D・E・F・G</div>
+    </div>
+    <div id="buttons">
+      <button class="catbtn active" id="cat_sharo" data-cat="sharo" aria-label="シャロに こうたい">シャロ</button>
+      <button class="catbtn" id="cat_yuki" data-cat="yuki" aria-label="ゆきに こうたい">ゆき</button>
+      <button class="catbtn" id="cat_hotate" data-cat="hotate" aria-label="ほたてに こうたい">ほたて</button>
+      <button id="btnHint">ヒント</button>
+      <button id="btnReset">やりなおす</button>
+      <button id="btnTrouble">こまった！</button>
+      <button id="btnSound">おと ON</button>
+    </div>
+  </header>
+  <main id="game">
+    <div id="err">ゲームを よみこめませんでした。<br>インターネットに つないで、もういちど ページを ひらいてね。</div>
+    <div id="pad" aria-label="いどうボタン">
+      <div></div><button class="pbtn" data-dir="up" aria-label="うえ">▲</button><div></div>
+      <button class="pbtn" data-dir="left" aria-label="ひだり">◀</button><div></div><button class="pbtn" data-dir="right" aria-label="みぎ">▶</button>
+      <div></div><button class="pbtn" data-dir="down" aria-label="した">▼</button><div></div>
+    </div>
+    <button id="btnA">はなす・<br>しらべる</button>
+  </main>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.80.1/phaser.min.js"></script>
+<script>
+"use strict";
+/* =========================================================
+   ねこをさがせ！だいぼうけん3 ～おばけホテルの7つのかぎ～
+   © 山岸産業医事務所
+   ========================================================= */
+
+const TILE=32, MAPW=20, MAPH=15;
+const SAVE_KEY='nekoRPG3_save_v3';
+const OLD_SAVE_KEYS=['nekoRPG3_save_v2','nekoRPG3_save_v1'];
+const CATS=['sharo','yuki','hotate'];
+const LETTERS=['A','B','C','D','E','F','G'];
+const MINI_SCENES=['ColorGame','NumberGame','AlphabetGame','KeyOrder'];
+const G={soundOn:true,justRescued:false,justReset:false};
+let S=null, GEV=null;
+const PadInput={dir:null};
+
+function cleanObject(v){ return v && typeof v==='object' && !Array.isArray(v) ? v : {}; }
+function newState(){
+  return {
+    version:3, cat:'sharo', area:'lobby', x:10, y:11,
+    q:{q1:1,q2:0,q3:0,q4:0,q5:0,q6:0,q7:0,q8:0,q9:0},
+    keys:{A:false,B:false,C:false,D:false,E:false,F:false,G:false},
+    got:{}, flags:{opening:false,cellarBell:false,cellarMoon:false,cellarBox:false,towerOpen:false},
+    puzzles:{push:{}}, hints:{}, ended:false
+  };
+}
+function clampQuest(v){ v=Number(v); return v===2?2:(v===1?1:0); }
+function migrateState(raw){
+  const b=newState(), o=cleanObject(raw);
+  if(CATS.indexOf(o.cat)>=0) b.cat=o.cat;
+  if(typeof o.area==='string') b.area=o.area;
+  if(Number.isFinite(Number(o.x))) b.x=Math.round(Number(o.x));
+  if(Number.isFinite(Number(o.y))) b.y=Math.round(Number(o.y));
+  const oq=cleanObject(o.q);
+  for(let i=1;i<=9;i++) b.q['q'+i]=clampQuest(oq['q'+i]);
+  let waiting=false;
+  for(let i=1;i<=9;i++){
+    const k='q'+i;
+    if(waiting){ b.q[k]=0; continue; }
+    if(b.q[k]!==2){ b.q[k]=1; waiting=true; }
+  }
+  if(!waiting) b.ended=true;
+  const keyForQuest={A:2,B:3,C:4,D:5,E:6,F:7,G:8};
+  LETTERS.forEach(function(k){ b.keys[k]=b.q['q'+keyForQuest[k]]===2; });
+  b.got=cleanObject(o.got);
+  b.flags=Object.assign(b.flags,cleanObject(o.flags));
+  b.puzzles={push:Object.assign({},cleanObject(cleanObject(o.puzzles).push))};
+  b.hints=cleanObject(o.hints);
+  // ふるい・とちゅうの セーブでも、ひろったものから しかけの じょうたいを なおす。
+  Object.keys(b.got).forEach(function(k){if(b.got[k]==='bell')b.flags.cellarBell=true;if(b.got[k]==='moon')b.flags.cellarMoon=true;});
+  const cp=cleanObject(b.puzzles.push.cellar_crate);
+  if(cp.x===14&&cp.y===9)b.flags.cellarBox=true;
+  if(b.q.q8===1&&b.flags.cellarBell&&b.flags.cellarMoon&&b.flags.cellarBox){b.q.q8=2;b.q.q9=1;}
+  LETTERS.forEach(function(k){ b.keys[k]=b.q['q'+keyForQuest[k]]===2; });
+  b.ended=b.q.q9===2 || o.ended===true;
+  b.version=3;
+  return b;
+}
+function saveGame(){
+  try{ if(S){ S.version=3; localStorage.setItem(SAVE_KEY,JSON.stringify(S)); } }catch(e){}
+}
+function loadGame(){
+  try{
+    let raw=null, used=null;
+    const keys=[SAVE_KEY].concat(OLD_SAVE_KEYS);
+    for(let i=0;i<keys.length;i++){
+      const t=localStorage.getItem(keys[i]);
+      if(t){ raw=JSON.parse(t); used=keys[i]; break; }
+    }
+    if(!raw) return null;
+    const m=migrateState(raw);
+    if(used!==SAVE_KEY) try{ localStorage.setItem(SAVE_KEY,JSON.stringify(m)); }catch(e){}
+    return m;
+  }catch(e){ return null; }
+}
+function hasSave(){ try{ return !!([SAVE_KEY].concat(OLD_SAVE_KEYS).find(function(k){return localStorage.getItem(k);})); }catch(e){return false;} }
+function questDoneCount(){ let n=0; for(let i=1;i<=9;i++) if(S.q['q'+i]===2)n++; return n; }
+function activeQuest(){ for(let i=1;i<=9;i++) if(S.q['q'+i]!==2)return 'q'+i; return 'q9'; }
+function startNextQuest(doneId){
+  const n=Number(doneId.slice(1))+1;
+  if(n<=9 && S.q['q'+n]===0) S.q['q'+n]=1;
+}
+function countKind(kind){ let n=0; Object.keys(S.got).forEach(function(k){if(S.got[k]===kind)n++;}); return n; }
+function findUncollectedMarker(area,kind,marker){
+  const map=MAPS[area]||[];
+  for(let y=0;y<map.length;y++)for(let x=0;x<map[y].length;x++){
+    const id=area+'_'+kind+'_'+x+'_'+y;
+    if(map[y][x]===marker&&!S.got[id])return {area:area,x:x,y:y};
+  }
+  return null;
+}
+
+let audioCtx=null;
+function audio(){
+  if(!audioCtx){ try{ audioCtx=new(window.AudioContext||window.webkitAudioContext)(); }catch(e){audioCtx=null;} }
+  if(audioCtx&&audioCtx.state==='suspended') try{audioCtx.resume();}catch(e){}
+  return audioCtx;
+}
+function tone(freq,dur,type,vol,delay,slide){
+  const a=audio(); if(!a)return;
+  try{
+    const o=a.createOscillator(),g=a.createGain(),t=a.currentTime+(delay||0);
+    o.type=type||'square';o.frequency.setValueAtTime(freq,t);if(slide)o.frequency.linearRampToValueAtTime(slide,t+dur);
+    g.gain.setValueAtTime(vol||.07,t);g.gain.exponentialRampToValueAtTime(.001,t+dur);
+    o.connect(g);g.connect(a.destination);o.start(t);o.stop(t+dur+.04);
+  }catch(e){}
+}
+function sfx(name){
+  if(!G.soundOn)return;
+  const seq=function(a,d){a.forEach(function(f,i){tone(f,.1,'square',.07,i*d);});};
+  if(name==='step')tone(260,.02,'triangle',.018);
+  else if(name==='talk'){tone(440,.04,'square',.035);tone(550,.04,'square',.03,.05);}
+  else if(name==='ok'){tone(784,.08,'square',.08);tone(1047,.12,'square',.08,.08);}
+  else if(name==='ng'){tone(220,.12,'square',.055);tone(175,.16,'square',.05,.1);}
+  else if(name==='pickup')seq([659,880,1175],.07);
+  else if(name==='switch')seq([440,659],.06);
+  else if(name==='push'){tone(105,.15,'sawtooth',.08,0,65);}
+  else if(name==='open')seq([392,523,659],.09);
+  else if(name==='quest')seq([523,659,784,1047],.1);
+  else if(name==='magic')seq([659,784,988,1319],.075);
+  else if(name==='fanfare')seq([523,659,784,1047,1319],.11);
+}
+
+function makeCanvasTexture(scene,key,w,h,paint){
+  const cv=document.createElement('canvas');cv.width=w;cv.height=h;
+  const c=cv.getContext('2d');c.imageSmoothingEnabled=false;paint(c,w,h);scene.textures.addCanvas(key,cv);
+}
+function pxRect(c,col,x,y,w,h){c.fillStyle=col;c.fillRect(x,y,w,h);}
+function makeCatTexture(scene,key,body,mark,eye){
+  makeCanvasTexture(scene,key,32,32,function(c){
+    pxRect(c,'#392b2d',5,7,22,20);pxRect(c,'#392b2d',4,4,7,8);pxRect(c,'#392b2d',21,4,7,8);
+    pxRect(c,body,7,8,18,17);pxRect(c,body,6,6,5,7);pxRect(c,body,21,6,5,7);
+    pxRect(c,'#f4a3ad',7,7,2,3);pxRect(c,'#f4a3ad',23,7,2,3);
+    pxRect(c,mark,13,8,6,3);pxRect(c,eye,10,13,3,3);pxRect(c,eye,19,13,3,3);
+    pxRect(c,'#fff5df',15,17,2,2);pxRect(c,'#d57378',14,19,4,2);
+    pxRect(c,'#392b2d',8,25,5,4);pxRect(c,'#392b2d',19,25,5,4);
+    pxRect(c,body,24,20,5,3);pxRect(c,body,27,17,3,5);
+  });
+}
+function makeGhostTexture(scene,key,body,cheek){
+  makeCanvasTexture(scene,key,32,32,function(c){
+    c.fillStyle='#3c3355';c.beginPath();c.arc(16,15,12,Math.PI,0);c.fill();pxRect(c,'#3c3355',4,15,24,12);
+    c.fillStyle=body;c.beginPath();c.arc(16,14,10,Math.PI,0);c.fill();pxRect(c,body,6,14,20,11);
+    c.beginPath();c.moveTo(6,25);c.lineTo(10,29);c.lineTo(14,25);c.lineTo(18,29);c.lineTo(22,25);c.lineTo(26,29);c.lineTo(26,22);c.lineTo(6,22);c.closePath();c.fill();
+    pxRect(c,'#2a2438',10,14,3,4);pxRect(c,'#2a2438',19,14,3,4);pxRect(c,cheek,7,19,4,2);pxRect(c,cheek,21,19,4,2);pxRect(c,'#6c4872',15,19,2,2);
+  });
+}
+function makeTileTexture(scene,key,paint){makeCanvasTexture(scene,key,TILE,TILE,paint);}
+const SPECK=[[3,4],[11,7],[24,5],[6,18],[17,14],[27,22],[13,27],[4,28],[22,29]];
+function paintFloor(c){
+  pxRect(c,'#6d617c',0,0,32,32);pxRect(c,'#756a86',0,0,32,2);pxRect(c,'#574d67',0,30,32,2);
+  SPECK.forEach(function(p,i){pxRect(c,i%2?'#625772':'#827594',p[0],p[1],3,2);});
+}
+function paintCarpet(c){paintFloor(c);pxRect(c,'#8a4562',0,4,32,24);pxRect(c,'#f0b778',0,4,32,2);pxRect(c,'#f0b778',0,26,32,2);pxRect(c,'#a95b75',14,7,4,18);}
+function paintWall(c){
+  pxRect(c,'#28243b',0,0,32,32);pxRect(c,'#3c3553',1,2,14,7);pxRect(c,'#49405f',17,2,14,7);pxRect(c,'#3a334f',1,11,9,8);pxRect(c,'#46405a',12,11,19,8);pxRect(c,'#352e48',1,21,14,8);pxRect(c,'#443b58',17,21,14,8);
+}
+function paintDark(c){pxRect(c,'#353148',0,0,32,32);SPECK.forEach(function(p,i){if(i%2===0)pxRect(c,'#292538',p[0],p[1],4,2);});}
+function paintDoor(c){paintFloor(c);pxRect(c,'#b18855',5,0,22,32);pxRect(c,'#6c4939',8,2,16,30);pxRect(c,'#33233c',11,5,10,25);pxRect(c,'#ffe18a',20,16,3,3);}
+function paintNarrow(c){paintFloor(c);pxRect(c,'#303044',0,0,11,32);pxRect(c,'#303044',21,0,11,32);pxRect(c,'#7d7190',12,0,8,32);pxRect(c,'#a991bc',15,0,2,32);}
+function paintGoal(c){paintDark(c);c.strokeStyle='#f5d66f';c.lineWidth=3;c.strokeRect(5,5,22,22);pxRect(c,'#fff0a8',14,10,4,12);pxRect(c,'#fff0a8',10,14,12,4);}
+function paintWindow(c){paintWall(c);pxRect(c,'#34234f',6,5,20,22);pxRect(c,'#7165b8',8,7,16,18);pxRect(c,'#d7d5ff',15,7,2,18);pxRect(c,'#d7d5ff',8,15,16,2);}
+function makeIconTextures(scene){
+  makeCanvasTexture(scene,'item_food',26,26,function(c){pxRect(c,'#f7d06b',5,5,16,16);pxRect(c,'#fff0b4',8,8,10,10);pxRect(c,'#e8798f',11,2,4,6);pxRect(c,'#8fd19e',15,3,6,4);});
+  makeCanvasTexture(scene,'item_light',26,26,function(c){c.fillStyle='#fff1a3';c.beginPath();c.arc(13,13,8,0,7);c.fill();pxRect(c,'#fffbdc',11,2,4,22);pxRect(c,'#fffbdc',2,11,22,4);});
+  makeCanvasTexture(scene,'item_star',26,26,function(c){c.fillStyle='#ffe06c';c.beginPath();for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI/5,r=i%2?5:11;c.lineTo(13+Math.cos(a)*r,13+Math.sin(a)*r);}c.closePath();c.fill();});
+  makeCanvasTexture(scene,'item_bell',26,26,function(c){c.fillStyle='#e2e8ff';c.beginPath();c.arc(13,13,8,Math.PI,0);c.fill();pxRect(c,'#e2e8ff',5,13,16,7);pxRect(c,'#9aa8d1',3,19,20,3);pxRect(c,'#f5d66f',11,22,4,3);});
+  makeCanvasTexture(scene,'item_moon',26,26,function(c){c.fillStyle='#fff0a8';c.beginPath();c.arc(12,12,10,0,7);c.fill();c.fillStyle='#353148';c.beginPath();c.arc(17,8,9,0,7);c.fill();});
+  makeCanvasTexture(scene,'push_crate',30,30,function(c){pxRect(c,'#b97c52',2,2,26,26);c.strokeStyle='#694638';c.lineWidth=3;c.strokeRect(3,3,24,24);c.beginPath();c.moveTo(4,4);c.lineTo(27,27);c.moveTo(27,4);c.lineTo(4,27);c.stroke();});
+  makeCanvasTexture(scene,'push_rock',30,30,function(c){c.fillStyle='#8d8799';c.beginPath();c.arc(15,17,13,0,7);c.fill();c.fillStyle='#aaa4b8';c.beginPath();c.arc(11,11,6,0,7);c.fill();pxRect(c,'#645f72',6,24,19,4);});
+  LETTERS.forEach(function(k){makeCanvasTexture(scene,'key_'+k,42,24,function(c){pxRect(c,'#f6d465',3,8,26,9);c.fillStyle='#f6d465';c.beginPath();c.arc(10,12,8,0,7);c.fill();pxRect(c,'#f6d465',27,5,5,7);pxRect(c,'#f6d465',34,5,5,12);pxRect(c,'#5d4377',8,10,4,4);c.fillStyle='#4a305f';c.font='bold 12px sans-serif';c.fillText(k,17,16);});});
+}
+
+// 20×15。P は とびら、n は ほたてだけが とおれる すきま。
+const MAPS={
+  lobby:[
+    '##########P#########',
+    '#.........=........#',
+    '#.........=........#',
+    '#..####...=...####.#',
+    '#.........=........#',
+    '#.........=........#',
+    '#..===============.#',
+    'P==================P',
+    '#..===============.#',
+    '#.........=........#',
+    '#.........=........#',
+    '#..####...=...####.#',
+    '#.........=........#',
+    '#.........=........#',
+    '##########P#########'
+  ],
+  kitchen:[
+    '####################',
+    '#f.....#....#......#',
+    '#......#....#......#',
+    '#......#....#..f...#',
+    '#......#....#......#',
+    '#......n....n......#',
+    '#......######......#',
+    '#..................P',
+    '#..f...............#',
+    '#........####......#',
+    '#........#..#......#',
+    '#....f...n.f#......#',
+    '#........####......#',
+    '#..................#',
+    '####################'
+  ],
+  ballroom:[
+    '####################',
+    '#w......====......w#',
+    '#.......====.......#',
+    '#..===..====..===..#',
+    '#..===........===..#',
+    '#..................#',
+    '#.================.#',
+    'P==================#',
+    '#.================.#',
+    '#..................#',
+    '#..===........===..#',
+    '#..===..====..===..#',
+    '#.......====.......#',
+    '#w......====......w#',
+    '####################'
+  ],
+  darkhall:[
+    '###P############P###',
+    '#,,,####,,,,####,,,#',
+    '#,l,,,,,,,,,,,,,,,l#',
+    '#,####,######,####,#',
+    '#,,,,,,#,,,,#,,,,,,#',
+    '####,#,#,##,#,#,####',
+    '#,,,,#,,,,,,,,#,,,,#',
+    'P,##,####,,####,##,P',
+    '#,,,,#,,,,,,,,#,,,,#',
+    '####,#,#,##,#,#,####',
+    '#,,,,,,#,,,,#,,,,,,#',
+    '#,####,######,####,#',
+    '#,,,,,,,,l,,,,,,,,,#',
+    '#,,,,,,,,,,,,,,,,,,#',
+    '##########P#########'
+  ],
+  playroom:[
+    '####################',
+    '#w................w#',
+    '#...===......===...#',
+    '#...===......===...#',
+    '#..................#',
+    '#..####......####..#',
+    '#..................#',
+    'P==================#',
+    '#..................#',
+    '#..####......####..#',
+    '#..................#',
+    '#...===......===...#',
+    '#...===......===...#',
+    '#w................w#',
+    '####################'
+  ],
+  library:[
+    '####################',
+    '#w..##..##..##....w#',
+    '#...##..##..##.....#',
+    '#..................#',
+    '#..####......####..#',
+    '#..................#',
+    '#.======....======.#',
+    '#==================P',
+    '#.======....======.#',
+    '#..................#',
+    '#..####......####..#',
+    '#..................#',
+    '#...##..##..##.....#',
+    '#w..##..##..##....w#',
+    '####################'
+  ],
+  garden:[
+    '##########P#########',
+    '#t.......=........t#',
+    '#..####..=..####...#',
+    '#..#.....=.....#...#',
+    '#..#..t..=.....#...#',
+    '#..####..=..####...#',
+    '#.........=........#',
+    '#.================.#',
+    '#.........=........#',
+    '#..######=..####...#',
+    '#..#....#=..t..#...#',
+    '#..n..t.#=.....n.t.#',
+    '#..######=..####...#',
+    '#.........=........#',
+    '####################'
+  ],
+  cellar:[
+    '####################',
+    '#b,n,,,,,,,,,,,,,,,#',
+    '###n####,######,####',
+    '#,,,,,,,,,,,,,,,,,,#',
+    '#,######,####,####,#',
+    '#,,,,,,,,#,,,,,,,,,#',
+    '####,###,#,###,###,#',
+    '#,,,,,,,,,,,,,,,,,,#',
+    '#,######,####,####,#',
+    '#,,,,,,,,,,,,,x,,,,#',
+    '#,####,######,####,#',
+    '#,,,,#,,,,,,,,,,,m,#',
+    '#,##,#,##########,,#',
+    '#,,,,,,,,,,,,,,,,,,#',
+    '###P################'
+  ],
+  tower:[
+    '####################',
+    '#,,,,,,,,,,,,,,,,,,#',
+    '#,,,,,,,,,,,,,,,,,,#',
+    '#,################,#',
+    '#,,,,,,,,,,,,,,,,,,#',
+    '#,################,#',
+    '#,,,,,,,,,,,,,,,,,,#',
+    '#,################,#',
+    '#,,,,,,,,,,,,,,,,,,#',
+    '#,################,#',
+    '#,,,,,,,,,,,,,,,,,,#',
+    '#,################,#',
+    '#,,,,,,,,,,,,,,,,,,#',
+    '#,,,,,,,,,,,,,,,,,,#',
+    '################P###'
+  ]
+};
+const AREA_NAME={lobby:'おばけホテルの ロビー',kitchen:'キッチン',ballroom:'ダンスホール',darkhall:'くらやみの ろうか',playroom:'あそびべや',library:'としょしつ',garden:'つきよの にわ',cellar:'ちかしつ',tower:'ほしの とう'};
+const DARK_AREAS={darkhall:true,cellar:true,tower:true};
+const TILE_TEX={'.':'t_floor','=':'t_carpet','#':'t_wall',',':'t_dark','P':'t_door','n':'t_narrow','x':'t_goal','w':'t_window',f:'t_floor',l:'t_dark',t:'t_floor',b:'t_dark',m:'t_dark'};
+const WALKABLE={'.':1,'=':1,',':1,'P':1,'n':1,'x':1,f:1,l:1,t:1,b:1,m:1};
+
+// とびらも とうちゃくちも、すべて なまえを つけて かんりする。
+const ANCHORS={
+  lobby:{start:{x:10,y:11},kitchenDoor:{x:0,y:7},fromKitchen:{x:1,y:7},ballroomDoor:{x:19,y:7},fromBallroom:{x:18,y:7},upperDoor:{x:10,y:0},fromUpper:{x:10,y:1},gardenDoor:{x:10,y:14},fromGarden:{x:10,y:13}},
+  kitchen:{lobbyDoor:{x:19,y:7},entry:{x:18,y:7}},
+  ballroom:{lobbyDoor:{x:0,y:7},entry:{x:1,y:7}},
+  darkhall:{lobbyDoor:{x:10,y:14},entry:{x:10,y:13},libraryDoor:{x:0,y:7},fromLibrary:{x:1,y:7},playDoor:{x:19,y:7},fromPlay:{x:18,y:7},cellarDoor:{x:3,y:0},fromCellar:{x:3,y:1},towerDoor:{x:16,y:0},fromTower:{x:16,y:1}},
+  playroom:{hallDoor:{x:0,y:7},entry:{x:1,y:7}},
+  library:{hallDoor:{x:19,y:7},entry:{x:18,y:7}},
+  garden:{lobbyDoor:{x:10,y:0},entry:{x:10,y:1}},
+  cellar:{hallDoor:{x:3,y:14},entry:{x:3,y:13}},
+  tower:{hallDoor:{x:16,y:14},entry:{x:16,y:13}}
+};
+const PORTALS=[
+  {from:'lobby',at:'kitchenDoor',to:'kitchen',dest:'entry'},
+  {from:'kitchen',at:'lobbyDoor',to:'lobby',dest:'fromKitchen'},
+  {from:'lobby',at:'ballroomDoor',to:'ballroom',dest:'entry',need:'q2',locked:'まず キッチンの おねがいを てつだおう'},
+  {from:'ballroom',at:'lobbyDoor',to:'lobby',dest:'fromBallroom'},
+  {from:'lobby',at:'upperDoor',to:'darkhall',dest:'entry',need:'q3',locked:'うえの ろうかは まだ まっくら。ダンスホールへ いこう'},
+  {from:'darkhall',at:'lobbyDoor',to:'lobby',dest:'fromUpper'},
+  {from:'darkhall',at:'playDoor',to:'playroom',dest:'entry',need:'q4',locked:'ひかりの かけらを 3こ あつめよう'},
+  {from:'playroom',at:'hallDoor',to:'darkhall',dest:'fromPlay'},
+  {from:'darkhall',at:'libraryDoor',to:'library',dest:'entry',need:'q5',locked:'あそびべやの おねがいを さきに てつだおう'},
+  {from:'library',at:'hallDoor',to:'darkhall',dest:'fromLibrary'},
+  {from:'lobby',at:'gardenDoor',to:'garden',dest:'entry',need:'q6',locked:'としょしつの おねがいを さきに てつだおう'},
+  {from:'garden',at:'lobbyDoor',to:'lobby',dest:'fromGarden'},
+  {from:'darkhall',at:'cellarDoor',to:'cellar',dest:'entry',need:'q7',locked:'つきよの にわで ほしを あつめよう'},
+  {from:'cellar',at:'hallDoor',to:'darkhall',dest:'fromCellar'},
+  {from:'darkhall',at:'towerDoor',to:'tower',dest:'entry',need:'q8',allKeys:true,locked:'7つの かぎを ぜんぶ あつめよう'},
+  {from:'tower',at:'hallDoor',to:'darkhall',dest:'fromTower'}
+];
+const NPCS={
+  lobby:[{id:'popo',x:10,y:5,tex:'ghost_purple',name:'しはいにん ポポ'}],
+  kitchen:[{id:'maro',x:15,y:10,tex:'ghost_yellow',name:'コックの マロ'}],
+  ballroom:[{id:'ruru',x:11,y:6,tex:'ghost_pink',name:'ダンサーの ルル'}],
+  darkhall:[{id:'pika',x:11,y:12,tex:'ghost_blue',name:'あかりばんの ピカ'}],
+  playroom:[{id:'nana',x:11,y:6,tex:'ghost_pink',name:'あそびずきの ナナ'}],
+  library:[{id:'moji',x:14,y:9,tex:'ghost_purple',name:'ほんずきの モジー'}],
+  garden:[{id:'hana',x:10,y:12,tex:'ghost_blue',name:'にわばんの ハナ'}],
+  cellar:[{id:'chibi',x:4,y:12,tex:'ghost_yellow',name:'ちびオバケ'}],
+  tower:[{id:'door',x:10,y:6,tex:'ghost_purple',name:'7つの とびら'},{id:'milk',x:10,y:2,tex:'kitten',name:'こねこの ミルク'}]
+};
+const PUSH_DEFS={
+  kitchen:[{id:'kitchen_crate',kind:'crate',x:12,y:7}],
+  garden:[{id:'garden_rock',kind:'rock',x:12,y:10}],
+  cellar:[{id:'cellar_crate',kind:'crate',x:9,y:9,goal:{x:14,y:9}}]
+};
+
+function isBaseWalkable(area,x,y){return !!(MAPS[area]&&y>=0&&y<MAPH&&x>=0&&x<MAPW&&WALKABLE[MAPS[area][y][x]]);}
+function validateWorld(){
+  const errors=[];
+  Object.keys(MAPS).forEach(function(area){
+    const m=MAPS[area];
+    if(m.length!==MAPH)errors.push(area+' rows '+m.length);
+    m.forEach(function(r,y){if(r.length!==MAPW)errors.push(area+' row '+y+' cols '+r.length);});
+    const aa=ANCHORS[area]||{};
+    Object.keys(aa).forEach(function(name){const p=aa[name];if(!isBaseWalkable(area,p.x,p.y))errors.push(area+'.'+name+' is not safe');});
+    const names=Object.keys(aa);
+    if(names.length){
+      const start=aa[names[0]],seen={},todo=[[start.x,start.y]];seen[start.x+','+start.y]=1;
+      while(todo.length){const p=todo.shift();[[1,0],[-1,0],[0,1],[0,-1]].forEach(function(d){const x=p[0]+d[0],y=p[1]+d[1],k=x+','+y;if(!seen[k]&&isBaseWalkable(area,x,y)){seen[k]=1;todo.push([x,y]);}});}
+      names.forEach(function(name){const p=aa[name];if(!seen[p.x+','+p.y])errors.push(area+'.'+name+' is disconnected');});
+    }
+    (NPCS[area]||[]).forEach(function(n){if(!isBaseWalkable(area,n.x,n.y))errors.push(area+'.npc.'+n.id+' is not walkable');});
+    (PUSH_DEFS[area]||[]).forEach(function(p){
+      if(!isBaseWalkable(area,p.x,p.y))errors.push(area+'.push.'+p.id+' start is not walkable');
+      if(p.goal&&!isBaseWalkable(area,p.goal.x,p.goal.y))errors.push(area+'.push.'+p.id+' goal is not walkable');
+    });
+  });
+  PORTALS.forEach(function(p){if(!ANCHORS[p.from]||!ANCHORS[p.from][p.at])errors.push('bad portal '+p.from+'.'+p.at);if(!ANCHORS[p.to]||!ANCHORS[p.to][p.dest])errors.push('bad destination '+p.to+'.'+p.dest);});
+  const areaSeen={lobby:1},todo=['lobby'];
+  while(todo.length){const a=todo.shift();PORTALS.filter(function(p){return p.from===a;}).forEach(function(p){if(!areaSeen[p.to]){areaSeen[p.to]=1;todo.push(p.to);}});}
+  Object.keys(MAPS).forEach(function(a){if(!areaSeen[a])errors.push(a+' has no route');});
+  return errors;
+}
+function isUnlockedArea(area){
+  if(area==='lobby'||area==='kitchen')return true;
+  if(area==='ballroom')return S.q.q2===2;
+  if(area==='darkhall')return S.q.q3===2;
+  if(area==='playroom')return S.q.q4===2;
+  if(area==='library')return S.q.q5===2;
+  if(area==='garden')return S.q.q6===2;
+  if(area==='cellar')return S.q.q7===2;
+  if(area==='tower')return S.q.q8===2&&LETTERS.every(function(k){return S.keys[k];});
+  return false;
+}
+function nearestSafe(area,x,y,cat){
+  if(!MAPS[area]){area='lobby';x=ANCHORS.lobby.start.x;y=ANCHORS.lobby.start.y;}
+  const ok=function(xx,yy){const ch=MAPS[area]&&MAPS[area][yy]&&MAPS[area][yy][xx];return !!WALKABLE[ch]&&(ch!=='n'||cat==='hotate');};
+  if(ok(x,y))return {area:area,x:x,y:y};
+  const todo=[[x,y]],seen={};seen[x+','+y]=1;
+  while(todo.length){const p=todo.shift();for(const d of [[1,0],[-1,0],[0,1],[0,-1]]){const nx=p[0]+d[0],ny=p[1]+d[1],k=nx+','+ny;if(nx<0||nx>=MAPW||ny<0||ny>=MAPH||seen[k])continue;seen[k]=1;if(ok(nx,ny))return {area:area,x:nx,y:ny};todo.push([nx,ny]);}}
+  return {area:'lobby',x:ANCHORS.lobby.start.x,y:ANCHORS.lobby.start.y};
+}
+function sanitizePosition(){
+  if(!MAPS[S.area]||!isUnlockedArea(S.area)){S.area='lobby';S.x=ANCHORS.lobby.start.x;S.y=ANCHORS.lobby.start.y;}
+  const p=nearestSafe(S.area,S.x,S.y,S.cat);S.area=p.area;S.x=p.x;S.y=p.y;
+}
+
+function currentObjective(){
+  if(!S)return '';
+  if(S.ended)return 'ミルクを みつけた！ ホテルを たんけんしよう';
+  const q=activeQuest();
+  if(q==='q1')return 'ロビーで しはいにん ポポの はなしを きこう';
+  if(q==='q2')return countKind('food')<5?'キッチンで ざいりょうを あと '+(5-countKind('food'))+'こ さがそう':'コックの マロに ざいりょうを とどけよう';
+  if(q==='q3')return 'ダンスホールで いろの なぞを とこう';
+  if(q==='q4')return countKind('light')<3?'くらやみの ろうかで ひかりを あと '+(3-countKind('light'))+'こ さがそう':'あかりばんの ピカに ひかりを とどけよう';
+  if(q==='q5')return 'あそびべやで かずの なぞを とこう';
+  if(q==='q6')return 'としょしつで AからGの なぞを とこう';
+  if(q==='q7')return countKind('star')<6?'つきよの にわで ほしを あと '+(6-countKind('star'))+'こ さがそう':'にわばんの ハナに ほしを とどけよう';
+  if(q==='q8'){
+    const left=[];if(!S.flags.cellarBell)left.push('ベル');if(!S.flags.cellarMoon)left.push('つき');if(!S.flags.cellarBox)left.push('はこ');
+    return 'ちかしつで '+left.join('・')+'の しかけを とこう';
+  }
+  if(q==='q9')return S.flags.towerOpen?'ほしの とうで ミルクを みつけよう':'7つの とびらに AからGの かぎを つかおう';
+  return 'ホテルを たんけんしよう';
+}
+function updateHUD(){
+  const obj=document.getElementById('obj'),keys=document.getElementById('keys');
+  if(obj&&S)obj.textContent='もくひょう：'+currentObjective()+'　（おねがい '+questDoneCount()+'/9）';
+  if(keys&&S)keys.textContent='かぎ： '+LETTERS.map(function(k){return S.keys[k]?'【'+k+'】':' '+k+' ';}).join('・');
+  CATS.forEach(function(c){const b=document.getElementById('cat_'+c);if(b)b.classList.toggle('active',S&&S.cat===c);});
+  const reset=document.getElementById('btnReset');if(reset){const active=S&&PUSH_DEFS[S.area]&&PUSH_DEFS[S.area].length&&!(S.area==='cellar'&&S.q.q8===2);reset.classList.toggle('disabled',!active);}
+}
+
+class BootScene extends Phaser.Scene{
+  constructor(){super('Boot');}
+  create(){
+    const errors=validateWorld();
+    if(errors.length){
+      console.error('world validation failed',errors);
+      const el=document.getElementById('err');el.style.display='block';el.textContent='ホテルの ちずを なおしています。しばらくしてから もういちど ひらいてね。';
+      return;
+    }
+    makeCatTexture(this,'cat_sharo','#f3a545','#d8792a','#33291f');
+    makeCatTexture(this,'cat_yuki','#41414d','#23232b','#ffe061');
+    makeCatTexture(this,'cat_hotate','#f4f1e7','#ddd8c8','#54a4e8');
+    makeCatTexture(this,'kitten','#f6e0b8','#d7a76b','#6a75b9');
+    makeGhostTexture(this,'ghost_purple','#bca5e8','#e99bb9');
+    makeGhostTexture(this,'ghost_pink','#f1a9c3','#ff789e');
+    makeGhostTexture(this,'ghost_blue','#9ed8e9','#ef9dac');
+    makeGhostTexture(this,'ghost_yellow','#f1d48b','#ef9da9');
+    makeTileTexture(this,'t_floor',paintFloor);makeTileTexture(this,'t_carpet',paintCarpet);
+    makeTileTexture(this,'t_wall',paintWall);makeTileTexture(this,'t_dark',paintDark);
+    makeTileTexture(this,'t_door',paintDoor);makeTileTexture(this,'t_narrow',paintNarrow);
+    makeTileTexture(this,'t_goal',paintGoal);makeTileTexture(this,'t_window',paintWindow);
+    makeIconTextures(this);
+    this.scene.start('Title');
+  }
+}
+
+class TitleScene extends Phaser.Scene{
+  constructor(){super('Title');}
+  create(){
+    const self=this,W=640,H=480;
+    document.body.classList.remove('world-controls');
+    document.getElementById('obj').textContent='ねこをさがせ！だいぼうけん3';
+    document.getElementById('keys').textContent='おばけホテルの7つのかぎ';
+    const g=this.add.graphics();
+    g.fillGradientStyle(0x17152b,0x17152b,0x494170,0x494170,1);g.fillRect(0,0,W,H);
+    g.fillStyle(0x151327,1);g.fillRect(70,155,500,300);
+    g.fillStyle(0x3d3558,1);g.fillTriangle(55,170,320,35,585,170);g.fillRect(95,130,450,320);
+    g.fillStyle(0x7a5c86,1);for(let y=175;y<370;y+=62)for(let x=125;x<530;x+=80)g.fillRect(x,y,32,42);
+    g.fillStyle(0xf7df87,1);for(let y=181;y<360;y+=62)for(let x=131;x<520;x+=160)g.fillRect(x,y,20,30);
+    g.fillStyle(0x241c34,1);g.fillRect(287,330,66,120);g.fillStyle(0xf0c469,1);g.fillCircle(340,390,4);
+    for(let i=0;i<28;i++){
+      const st=this.add.rectangle((i*83)%W,(i*47)%130+8,i%4===0?4:2,i%4===0?4:2,0xfff3b0).setAlpha(.25+.6*((i%5)/5));
+      this.tweens.add({targets:st,alpha:.15,duration:550+(i%4)*180,yoyo:true,repeat:-1});
+    }
+    this.add.text(W/2,52,'ねこをさがせ！',{fontFamily:'sans-serif',fontSize:'34px',fontStyle:'bold',color:'#ffe16f',stroke:'#50314f',strokeThickness:8}).setOrigin(.5);
+    this.add.text(W/2,94,'だいぼうけん3',{fontFamily:'sans-serif',fontSize:'30px',fontStyle:'bold',color:'#fff',stroke:'#50314f',strokeThickness:7}).setOrigin(.5);
+    this.add.text(W/2,128,'～ おばけホテルの7つのかぎ ～',{fontFamily:'sans-serif',fontSize:'19px',color:'#dcd3ff',stroke:'#28213d',strokeThickness:5}).setOrigin(.5);
+    ['cat_sharo','cat_yuki','cat_hotate'].forEach(function(k,i){
+      const c=self.add.image(230+i*90,270,k).setScale(2.7).setDepth(5);
+      self.tweens.add({targets:c,y:261,duration:520+i*110,yoyo:true,repeat:-1,ease:'Sine.inOut'});
+    });
+    const gh=this.add.image(465,235,'ghost_pink').setScale(2.2);
+    this.tweens.add({targets:gh,y:220,duration:900,yoyo:true,repeat:-1,ease:'Sine.inOut'});
+    const kt=this.add.image(320,382,'kitten').setScale(1.8).setAlpha(.86);
+    this.tweens.add({targets:kt,alpha:.35,duration:700,yoyo:true,repeat:-1});
+    let newArmed=false;
+    const newBtn=this.makeButton(190,418,'はじめから',function(){
+      if(hasSave()&&!newArmed){newArmed=true;newBtn.tx.setText('もういちど おす');self.time.delayedCall(3500,function(){newArmed=false;if(newBtn.tx.active)newBtn.tx.setText('はじめから');});return;}
+      S=newState();saveGame();sfx('quest');self.scene.start('World');
+    },false,0xff9eb1);
+    const can=hasSave();
+    this.makeButton(450,418,'つづきから',function(){
+      const d=loadGame();S=d||newState();sanitizePosition();saveGame();sfx('ok');self.scene.start('World');
+    },!can,0x91dfbd);
+    this.add.text(W/2,462,'セーブは じどう　　こわい おどかし・たたかい・じかんせいげん なし',{fontFamily:'sans-serif',fontSize:'11px',color:'#d5d1ea'}).setOrigin(.5);
+    this.add.text(8,8,'© 山岸産業医事務所',{fontFamily:'sans-serif',fontSize:'10px',color:'#a9a4c4'});
+    this.input.once('pointerdown',function(){audio();});
+  }
+  makeButton(x,y,label,cb,disabled,color){
+    const bg=this.add.rectangle(x,y,220,72,disabled?0x777482:color).setStrokeStyle(3,0xffffff);
+    const tx=this.add.text(x,y,label,{fontFamily:'sans-serif',fontSize:'19px',fontStyle:'bold',color:disabled?'#b9b6c3':'#292036'}).setOrigin(.5);
+    if(!disabled){bg.setInteractive({useHandCursor:true});bg.on('pointerover',function(){bg.setScale(1.03);});bg.on('pointerout',function(){bg.setScale(1);});bg.on('pointerdown',function(){audio();cb();});}
+    return {bg:bg,tx:tx};
+  }
+}
+
+class WorldScene extends Phaser.Scene{
+  constructor(){super('World');}
+  create(){
+    const self=this;
+    document.body.classList.add('world-controls');
+    sanitizePosition();
+    this.dialog=null;this.cutscene=false;this.minigameOpen=false;this.moving=false;this.facing={dx:0,dy:-1};
+    this.worldObjs=[];this.npcs=[];this.items=[];this.pushables=[];this.player=null;this.toastTxt=null;this.guide=null;
+    this.keysInput=this.input.keyboard.addKeys({up:'UP',down:'DOWN',left:'LEFT',right:'RIGHT',w:'W',a:'A',s:'S',d:'D'});
+    this.input.keyboard.on('keydown-SPACE',function(e){e.preventDefault();self.onAction();});
+    this.input.keyboard.on('keydown-ENTER',function(){self.onAction();});
+    this.input.keyboard.on('keydown-ONE',function(){self.trySwitchCat('sharo');});
+    this.input.keyboard.on('keydown-TWO',function(){self.trySwitchCat('yuki');});
+    this.input.keyboard.on('keydown-THREE',function(){self.trySwitchCat('hotate');});
+    this.input.keyboard.on('keydown-H',function(){self.showHint();});
+    this.input.keyboard.on('keydown-R',function(){self.resetPuzzle();});
+    this.input.keyboard.on('keydown-L',function(){self.rescueToLobby();});
+    this.input.on('pointerdown',function(){audio();if(self.dialog)self.advanceDialog();});
+    const handlers={
+      action:function(){self.onAction();},cat:function(c){self.trySwitchCat(c);},hint:function(){self.showHint();},
+      reset:function(){self.resetPuzzle();},rescue:function(){self.rescueToLobby();}
+    };
+    Object.keys(handlers).forEach(function(k){GEV.on(k,handlers[k]);});
+    this.events.once('shutdown',function(){Object.keys(handlers).forEach(function(k){GEV.off(k,handlers[k]);});});
+
+    this.dlgBox=this.add.rectangle(320,414,624,124,0x171528,.97).setStrokeStyle(3,0xffe49b).setDepth(110).setVisible(false);
+    this.dlgName=this.add.text(22,348,'',{fontFamily:'sans-serif',fontSize:'15px',fontStyle:'bold',color:'#a7e4d0',backgroundColor:'#171528',padding:{x:8,y:4}}).setDepth(111).setVisible(false);
+    this.dlgText=this.add.text(24,376,'',{fontFamily:'sans-serif',fontSize:'18px',color:'#fff',wordWrap:{width:585},lineSpacing:7}).setDepth(111).setVisible(false);
+    this.dlgNext=this.add.text(605,455,'▼',{fontFamily:'sans-serif',fontSize:'16px',color:'#ffe49b'}).setDepth(111).setVisible(false);
+    this.tweens.add({targets:this.dlgNext,alpha:.25,duration:400,yoyo:true,repeat:-1});
+    this.darkG=this.add.graphics().setDepth(70);
+    this.areaTitle=this.add.text(320,48,'',{fontFamily:'sans-serif',fontSize:'25px',fontStyle:'bold',color:'#fff',stroke:'#24203a',strokeThickness:7}).setOrigin(.5).setDepth(90).setAlpha(0);
+    this.loadArea(S.area,S.x,S.y);
+    updateHUD();this.cameras.main.fadeIn(250);
+    if(G.justRescued){G.justRescued=false;this.time.delayedCall(300,function(){self.showDialog(['ロビーへ もどったよ。あつめたものや かぎは そのままだよ'],{name:'こまった！ボタン'});});}
+    else if(G.justReset){G.justReset=false;this.time.delayedCall(300,function(){self.showDialog(['しかけを もとの ばしょに もどしたよ。もういちど やってみよう'],{name:'やりなおす'});});}
+    else if(S.q.q1===1&&!S.flags.opening)this.time.delayedCall(450,function(){self.opening();});
+  }
+
+  loadArea(area,x,y){
+    const self=this;
+    this.worldObjs.forEach(function(o){if(o){self.tweens.killTweensOf(o);if(o.destroy)o.destroy();}});
+    this.worldObjs=[];this.npcs=[];this.items=[];this.pushables=[];
+    if(this.guide){this.guide.destroy();this.guide=null;}
+    S.area=area;S.x=x;S.y=y;this.grid=MAPS[area].map(function(r){return r.split('');});this.isDark=!!DARK_AREAS[area];
+    this.rt=this.add.renderTexture(0,0,640,480).setOrigin(0).setDepth(0);this.worldObjs.push(this.rt);this.redrawTiles();
+    this.addRoomDetails(area);
+    (NPCS[area]||[]).forEach(function(def){
+      if(def.id==='door'&&S.flags.towerOpen)return;
+      const spr=self.add.image(def.x*TILE+16,def.y*TILE+16,def.tex).setScale(def.id==='milk'?1.65:1.8).setDepth(9);
+      self.tweens.add({targets:spr,y:spr.y-5,duration:750+(def.x%4)*100,yoyo:true,repeat:-1,ease:'Sine.inOut'});
+      self.worldObjs.push(spr);self.npcs.push({def:def,spr:spr,tx:def.x,ty:def.y});
+    });
+    this.spawnItems();this.spawnPushables();
+    if(!this.player)this.player=this.add.image(x*TILE+16,y*TILE+16,'cat_'+S.cat).setScale(1.9).setDepth(12);
+    else this.player.setPosition(x*TILE+16,y*TILE+16).setTexture('cat_'+S.cat);
+    this.areaTitle.setText('― '+AREA_NAME[area]+' ―').setAlpha(1);this.tweens.add({targets:this.areaTitle,alpha:0,delay:1000,duration:600});
+    this.updateDarkness();updateHUD();saveGame();
+  }
+  redrawTiles(){
+    this.rt.clear();
+    for(let y=0;y<MAPH;y++)for(let x=0;x<MAPW;x++){const k=TILE_TEX[this.grid[y][x]]||'t_floor';this.rt.drawFrame(k,undefined,x*TILE,y*TILE);}
+  }
+  addRoomDetails(area){
+    const self=this;
+    const palettes={lobby:0xffe49b,kitchen:0xf5a98c,ballroom:0xff9fc0,darkhall:0xa99bd8,playroom:0x9bdccf,library:0xd0a978,garden:0xa6df9d,cellar:0x8d84aa,tower:0xffe49b};
+    for(let i=0;i<18;i++){
+      const x=(i*97+area.length*31)%620+10,y=(i*53+area.length*17)%450+10;
+      if(isBaseWalkable(area,Math.floor(x/TILE),Math.floor(y/TILE))){
+        const p=this.add.circle(x,y,i%4===0?2:1,palettes[area],.28).setDepth(2);this.worldObjs.push(p);
+        this.tweens.add({targets:p,alpha:.05,y:p.y-8,duration:1000+(i%5)*220,yoyo:true,repeat:-1});
+      }
+    }
+    if(area==='lobby')[[4,5],[15,5],[4,10],[15,10]].forEach(function(p){const t=self.add.text(p[0]*TILE+16,p[1]*TILE+16,'🕯️',{fontSize:'18px'}).setOrigin(.5).setDepth(4);self.worldObjs.push(t);});
+  }
+  itemRule(ch){
+    if(ch==='f'&&S.q.q2===1)return {kind:'food',tex:'item_food'};
+    if(ch==='l'&&S.q.q4===1)return {kind:'light',tex:'item_light'};
+    if(ch==='t'&&S.q.q7===1)return {kind:'star',tex:'item_star'};
+    if(ch==='b'&&S.q.q8===1&&!S.flags.cellarBell)return {kind:'bell',tex:'item_bell'};
+    if(ch==='m'&&S.q.q8===1&&!S.flags.cellarMoon)return {kind:'moon',tex:'item_moon'};
+    return null;
+  }
+  spawnItems(){
+    const self=this;
+    for(let y=0;y<MAPH;y++)for(let x=0;x<MAPW;x++){
+      const rule=this.itemRule(MAPS[S.area][y][x]);if(!rule)continue;
+      const id=S.area+'_'+rule.kind+'_'+x+'_'+y;if(S.got[id])continue;
+      const spr=this.add.image(x*TILE+16,y*TILE+16,rule.tex).setDepth(7).setScale(.9);this.worldObjs.push(spr);
+      this.tweens.add({targets:spr,y:spr.y-5,angle:rule.kind==='star'?10:0,duration:600+(x%3)*120,yoyo:true,repeat:-1,ease:'Sine.inOut'});
+      self.items.push({id:id,kind:rule.kind,tx:x,ty:y,spr:spr});
+    }
+  }
+  spawnPushables(){
+    const self=this;
+    (PUSH_DEFS[S.area]||[]).forEach(function(def){
+      if(def.id==='cellar_crate'&&S.flags.cellarBox)return;
+      const raw=cleanObject(S.puzzles.push[def.id]);let x=Number.isInteger(raw.x)?raw.x:def.x,y=Number.isInteger(raw.y)?raw.y:def.y;
+      if(!isBaseWalkable(S.area,x,y)){x=def.x;y=def.y;}
+      const spr=self.add.image(x*TILE+16,y*TILE+16,def.kind==='rock'?'push_rock':'push_crate').setDepth(10);
+      self.worldObjs.push(spr);self.pushables.push({def:def,tx:x,ty:y,spr:spr});
+    });
+  }
+  npcAt(x,y){return this.npcs.find(function(n){return n.tx===x&&n.ty===y;})||null;}
+  itemAt(x,y){return this.items.find(function(i){return i.tx===x&&i.ty===y&&i.spr;})||null;}
+  pushableAt(x,y){return this.pushables.find(function(p){return p.tx===x&&p.ty===y;})||null;}
+  canWalk(ch){return !!WALKABLE[ch]&&(ch!=='n'||S.cat==='hotate');}
+
+  update(){
+    if(!S||!this.player)return;
+    if(this.dialog||this.cutscene||this.minigameOpen||this.moving){this.updateDarkness();return;}
+    let dx=0,dy=0,k=this.keysInput;
+    if(k.left.isDown||k.a.isDown||PadInput.dir==='left')dx=-1;else if(k.right.isDown||k.d.isDown||PadInput.dir==='right')dx=1;else if(k.up.isDown||k.w.isDown||PadInput.dir==='up')dy=-1;else if(k.down.isDown||k.s.isDown||PadInput.dir==='down')dy=1;
+    if(dx||dy)this.tryMove(dx,dy);this.updateDarkness();
+  }
+  tryMove(dx,dy){
+    this.facing={dx:dx,dy:dy};this.player.setFlipX(dx<0);const nx=S.x+dx,ny=S.y+dy;
+    if(nx<0||nx>=MAPW||ny<0||ny>=MAPH)return;
+    if(this.npcAt(nx,ny)){sfx('step');return;}
+    const p=this.pushableAt(nx,ny);if(p){this.tryPush(p,dx,dy);return;}
+    const ch=this.grid[ny][nx];
+    if(!this.canWalk(ch)){if(ch==='n')this.toast('せまい！ ほたてなら とおれそう');return;}
+    this.moveTo(nx,ny);
+  }
+  moveTo(nx,ny){
+    const self=this;this.moving=true;
+    this.tweens.add({targets:this.player,x:nx*TILE+16,y:ny*TILE+16,duration:135,onComplete:function(){self.moving=false;S.x=nx;S.y=ny;sfx('step');self.afterStep();}});
+  }
+  tryPush(p,dx,dy){
+    const self=this;
+    if(S.cat!=='sharo'){sfx('ng');this.toast('おもいよ。シャロなら おせそう！');return;}
+    const bx=p.tx+dx,by=p.ty+dy,ch=this.grid[by]&&this.grid[by][bx];
+    if(!ch||!WALKABLE[ch]||ch==='n'||ch==='P'||this.npcAt(bx,by)||this.pushableAt(bx,by)){sfx('ng');this.toast('そっちには うごかせないよ');return;}
+    this.moving=true;sfx('push');const oldX=p.tx,oldY=p.ty;
+    this.tweens.add({targets:p.spr,x:bx*TILE+16,y:by*TILE+16,duration:190});
+    this.tweens.add({targets:this.player,x:oldX*TILE+16,y:oldY*TILE+16,duration:190,onComplete:function(){
+      self.moving=false;S.x=oldX;S.y=oldY;p.tx=bx;p.ty=by;S.puzzles.push[p.def.id]={x:bx,y:by};
+      if(p.def.goal&&p.def.goal.x===bx&&p.def.goal.y===by){S.flags.cellarBox=true;self.pushables=self.pushables.filter(function(x){return x!==p;});self.tweens.add({targets:p.spr,alpha:.55,scale:.85,duration:300});self.toast('はこが しるしに はまった！');sfx('magic');self.checkCellarComplete();}
+      self.afterStep();
+    }});
+  }
+  afterStep(){
+    const it=this.itemAt(S.x,S.y);if(it)this.pickItem(it);
+    const portal=this.portalAt(S.area,S.x,S.y);if(portal){this.usePortal(portal);return;}
+    updateHUD();saveGame();this.updateDarkness();
+  }
+  portalAt(area,x,y){
+    return PORTALS.find(function(p){const a=ANCHORS[p.from][p.at];return p.from===area&&a.x===x&&a.y===y;})||null;
+  }
+  usePortal(p){
+    if(p.need&&S.q[p.need]!==2){this.toast(p.locked);return;}
+    if(p.allKeys&&!LETTERS.every(function(k){return S.keys[k];})){this.toast(p.locked);return;}
+    const dest=ANCHORS[p.to][p.dest];
+    if(!isBaseWalkable(p.to,dest.x,dest.y)){console.error('unsafe portal blocked',p);this.toast('この とびらは いま てんけんちゅうだよ');return;}
+    this.transition(p.to,dest.x,dest.y);
+  }
+  transition(area,x,y){
+    if(this.cutscene)return;const self=this;this.cutscene=true;this.cameras.main.fadeOut(220);
+    this.time.delayedCall(240,function(){self.loadArea(area,x,y);self.cameras.main.fadeIn(220);self.cutscene=false;});
+  }
+  pickItem(it){
+    sfx('pickup');this.tweens.killTweensOf(it.spr);it.spr.destroy();it.spr=null;this.items=this.items.filter(function(x){return x!==it;});S.got[it.id]=it.kind;
+    if(it.kind==='food')this.toast('ざいりょうを みつけた！ '+countKind('food')+'/5');
+    if(it.kind==='light')this.toast('ひかりの かけらを みつけた！ '+countKind('light')+'/3');
+    if(it.kind==='star')this.toast('ほしを みつけた！ '+countKind('star')+'/6');
+    if(it.kind==='bell'){S.flags.cellarBell=true;this.toast('ぎんの ベルを みつけた！');}
+    if(it.kind==='moon'){S.flags.cellarMoon=true;this.toast('つきの しるしを みつけた！');}
+    updateHUD();saveGame();if(it.kind==='bell'||it.kind==='moon')this.checkCellarComplete();
+  }
+
+  onAction(){
+    if(this.dialog){this.advanceDialog();return;}
+    if(this.cutscene||this.moving||this.minigameOpen)return;
+    const fx=S.x+this.facing.dx,fy=S.y+this.facing.dy,npc=this.npcAt(fx,fy);
+    if(npc){this.talkTo(npc);return;}
+    const p=this.pushableAt(fx,fy);if(p){this.toast('シャロで むきを きめて おしてみよう');return;}
+    const ch=this.grid[fy]&&this.grid[fy][fx];
+    if(ch==='w')this.toast('まどの そとに おつきさまが みえる');
+    else if(ch==='#')this.toast(S.area==='library'?'ふるい ほんが ならんでいる':'ホテルの かべだよ');
+    else if(ch==='P')this.toast('ふしぎな とびらだ');
+    else this.toast('ここには なにが あるかな？');
+  }
+  opening(){
+    const self=this;S.flags.opening=true;saveGame();
+    this.showDialog([
+      'ここは、かわいい おばけたちが くらす おばけホテル。きょうは たいへんなことが おきています',
+      'ホテルの こねこ「ミルク」が いなくなり、7つの かぎも バラバラに なってしまいました',
+      'シャロは おもいものを おせる。ゆきは くらやみに つよい。ほたては せまいみちを とおれるよ',
+      '3びきで ちからを あわせて、ミルクと かぎを さがしてね！'
+    ],{name:'しはいにん ポポ',onEnd:function(){self.completeQuest('q1');self.toast('まずは ひだりの キッチンへ いこう！');}});
+  }
+
+  showDialog(lines,opt){
+    opt=opt||{};this.dialog={lines:lines.map(function(l){return typeof l==='string'?{t:l}:l;}),idx:0,onEnd:opt.onEnd||null,timer:null,full:'',pos:0};
+    this.dlgBox.setVisible(true);this.dlgText.setVisible(true);this.dlgName.setVisible(!!opt.name).setText(opt.name||'');this.showLine();
+  }
+  showLine(){
+    const self=this,d=this.dialog,L=d.lines[d.idx];sfx('talk');d.full=L.t;d.pos=0;this.dlgText.setText('');this.dlgNext.setVisible(false);
+    if(d.timer)d.timer.remove();d.timer=this.time.addEvent({delay:23,loop:true,callback:function(){d.pos++;self.dlgText.setText(d.full.slice(0,d.pos));if(d.pos>=d.full.length){d.timer.remove();d.timer=null;self.dlgNext.setVisible(true);}}});
+  }
+  advanceDialog(){
+    const d=this.dialog;if(!d)return;
+    if(d.timer){d.timer.remove();d.timer=null;this.dlgText.setText(d.full);this.dlgNext.setVisible(true);return;}
+    d.idx++;if(d.idx<d.lines.length){this.showLine();return;}
+    this.dlgBox.setVisible(false);this.dlgText.setVisible(false);this.dlgName.setVisible(false);this.dlgNext.setVisible(false);const cb=d.onEnd;this.dialog=null;if(cb)cb();
+  }
+  toast(msg){
+    const self=this;if(this.toastTxt){this.toastTxt.destroy();this.toastTxt=null;}
+    const x=this.player?Phaser.Math.Clamp(this.player.x,105,535):320,y=this.player?Math.max(28,this.player.y-36):80;
+    const t=this.add.text(x,y,msg,{fontFamily:'sans-serif',fontSize:'14px',fontStyle:'bold',color:'#fff2ab',backgroundColor:'#171528',padding:{x:9,y:6},wordWrap:{width:430}}).setOrigin(.5).setDepth(100);this.toastTxt=t;
+    this.tweens.add({targets:t,alpha:0,delay:1700,duration:400,onComplete:function(){if(self.toastTxt===t)self.toastTxt=null;t.destroy();}});
+  }
+  completeQuest(id){
+    if(S.q[id]===2)return;S.q[id]=2;startNextQuest(id);sfx('quest');
+    const t=this.add.text(320,145,'★ おねがい たっせい！ '+questDoneCount()+'/9 ★',{fontFamily:'sans-serif',fontSize:'22px',fontStyle:'bold',color:'#fff',stroke:'#8a4562',strokeThickness:7}).setOrigin(.5).setDepth(105).setScale(.2);
+    this.tweens.add({targets:t,scale:1,duration:300,ease:'Back.out'});this.tweens.add({targets:t,alpha:0,delay:1650,duration:450,onComplete:function(){t.destroy();}});updateHUD();saveGame();
+  }
+  awardKey(letter,id){
+    const self=this;if(S.keys[letter]){this.completeQuest(id);return;}
+    // かぎと しょうの かんりょうは ひとつの セーブで かくていする。
+    // このあとに ページを とじたり「こまった！」を おしても、はんぶんの じょうたいを のこさない。
+    S.keys[letter]=true;this.completeQuest(id);saveGame();sfx('magic');
+    const img=this.add.image(320,180,'key_'+letter).setScale(.2).setDepth(106);this.tweens.add({targets:img,scale:3,angle:360,duration:650,ease:'Back.out'});this.tweens.add({targets:img,alpha:0,delay:1250,duration:400,onComplete:function(){img.destroy();}});
+    this.showDialog([letter+'（'+LETTER_NAMES[letter]+'）の かぎを みつけた！'],{name:'かぎ ゲット！'});
+  }
+
+  trySwitchCat(cat){
+    if(!S||this.dialog||this.cutscene||this.minigameOpen||S.cat===cat)return;
+    const here=this.grid[S.y][S.x];
+    if(here==='n'&&cat!=='hotate'){sfx('ng');this.toast('すきまの なかでは ほたての ままだよ');return;}
+    S.cat=cat;this.player.setTexture('cat_'+cat);sfx('switch');
+    const msg={sharo:'シャロ！ おもいものを おせるよ',yuki:'ゆき！ くらやみも よく みえるよ',hotate:'ほたて！ せまいみちを とおれるよ'};
+    this.toast(msg[cat]);this.updateDarkness();updateHUD();saveGame();
+  }
+  updateDarkness(){
+    const g=this.darkG;g.clear();if(!this.isDark||!this.player)return;
+    if(S.cat==='yuki'){g.fillStyle(0x080719,.2);g.fillRect(0,0,640,480);return;}
+    const r=58,x=this.player.x,y=this.player.y;g.fillStyle(0x05040f,.94);g.fillRect(0,0,640,Math.max(0,y-r));g.fillRect(0,y+r,640,Math.max(0,480-y-r));g.fillRect(0,y-r,Math.max(0,x-r),r*2);g.fillRect(x+r,y-r,Math.max(0,640-x-r),r*2);
+  }
+
+  talkTo(npc){
+    const self=this,id=npc.def.id,q=activeQuest();
+    const D=function(lines,opt){opt=opt||{};opt.name=opt.name||npc.def.name;self.showDialog(lines,opt);};
+    if(id==='popo'){
+      if(q==='q1'){this.opening();return;}
+      if(S.ended)D(['ミルクを みつけてくれて ありがとう！ ホテルは いつでも あそびに きてね']);
+      else D(['ポポの ふしぎな ちずを みよう。ヒントボタンを おすと、すこしずつ くわしく おしえるよ'],{onEnd:function(){self.showHint();}});
+      return;
+    }
+    if(id==='maro'){
+      if(q!=='q2'){D(['キッチンは いつでも あまい におい。おなかが すいてきたね']);return;}
+      if(countKind('food')<5)D(['おかしの ざいりょうが 5こ、キッチンに かくれているよ','せまい すきまは ほたて、おもい はこは シャロに おねがい！']);
+      else D(['わあ、ぜんぶ みつかった！ おれいに これを どうぞ'],{onEnd:function(){self.awardKey('A','q2');}});
+      return;
+    }
+    if(id==='ruru'){
+      if(q!=='q3'){D(['いろの ダンス、たのしかったね！']);return;}
+      D(['えいごの いろを みつけて、ダンスホールを ひからせよう','まちがえても だいじょうぶ。なんどでも えらべるよ'],{onEnd:function(){self.startMinigame('ColorGame',function(){self.awardKey('B','q3');});}});return;
+    }
+    if(id==='pika'){
+      if(q!=='q4'){D(['くらい ろうかも、ゆきと いっしょなら あんしんだね']);return;}
+      if(countKind('light')<3)D(['ろうかに ひかりの かけらが 3こ ちらばったよ','ゆきに こうたいすると、とおくまで よく みえるよ']);
+      else D(['ひかりが もどった！ ありがとう。これは ひかりの おれいだよ'],{onEnd:function(){self.awardKey('C','q4');}});return;
+    }
+    if(id==='nana'){
+      if(q!=='q5'){D(['かずの なまえ、いくつ おぼえたかな？']);return;}
+      D(['えいごの かずと、すうじを つなげて あそぼう','ONE（ワン）から TEN（テン）まで でてくるよ'],{onEnd:function(){self.startMinigame('NumberGame',function(){self.awardKey('D','q5');});}});return;
+    }
+    if(id==='moji'){
+      if(q!=='q6'){D(['AからGまで、じゅんばんに いえるかな？']);return;}
+      D(['A（エー）から G（ジー）までの もじが、ほんから とびだしたよ','つぎに くる もじを えらんでね'],{onEnd:function(){self.startMinigame('AlphabetGame',function(){self.awardKey('E','q6');});}});return;
+    }
+    if(id==='hana'){
+      if(q!=='q7'){D(['つきよの にわの ほしが、きれいに ひかっているよ']);return;}
+      if(countKind('star')<6)D(['にわに きんいろの ほしが 6こ かくれているよ','いわは シャロ、せまい しげみは ほたてで すすもう']);
+      else D(['6この ほしが そろった！ にわが キラキラだよ'],{onEnd:function(){self.awardKey('F','q7');}});return;
+    }
+    if(id==='chibi'){
+      if(q!=='q8'){D(['ちかしつの しかけが うごいた！ もう だいじょうぶだよ']);return;}
+      D(['G（ジー）の かぎを だすには、3つの しかけが ひつようだよ','ほたてで ぎんのベル。ゆきで つきのしるし。シャロで はこを きんいろの ばしょへ！']);return;
+    }
+    if(id==='door'){
+      if(S.flags.towerOpen){D(['7つの とびらは ひらいているよ']);return;}
+      if(q!=='q9'||!LETTERS.every(function(k){return S.keys[k];})){D(['AからGまで、7つの かぎが ひつようだよ']);return;}
+      D(['7つの かぎを AからGの じゅんばんに ならべよう'],{onEnd:function(){self.startMinigame('KeyOrder',function(){S.flags.towerOpen=true;saveGame();self.removeNpc('door');self.showDialog(['7つの とびらが ひらいた！ うえに ミルクが いるよ'],{name:'7つの とびら'});});}});return;
+    }
+    if(id==='milk'){
+      if(!S.flags.towerOpen){D(['ニャー… とびらの まほうを といて ほしいニャ']);return;}
+      if(q==='q9')D(['みつけてくれて ありがとうニャ！','おばけたちと かくれんぼを していたら、ほしの とうまで きてしまったニャ','シャロ、ゆき、ほたて。いっしょに ロビーへ かえろうニャ！'],{onEnd:function(){self.finishStory();}});
+      else D(['いっしょに あそぼうニャ！']);return;
+    }
+  }
+  removeNpc(id){const n=this.npcs.find(function(x){return x.def.id===id;});if(!n)return;this.npcs=this.npcs.filter(function(x){return x!==n;});this.tweens.killTweensOf(n.spr);n.spr.destroy();}
+
+  checkCellarComplete(){
+    if(S.q.q8!==1||!S.flags.cellarBell||!S.flags.cellarMoon||!S.flags.cellarBox)return;
+    this.awardKey('G','q8');
+  }
+  startMinigame(key,after){
+    const self=this;this.minigameOpen=true;document.body.classList.remove('world-controls');this.scene.launch(key,{onDone:function(){self.scene.stop(key);self.scene.resume();self.minigameOpen=false;document.body.classList.add('world-controls');if(after)after();}});this.scene.pause();
+  }
+  resetPuzzle(){
+    if(!S||this.dialog||this.cutscene)return;const defs=PUSH_DEFS[S.area]||[];
+    if(!defs.length||(S.area==='cellar'&&S.q.q8===2)){this.toast('ここには もどす しかけは ないよ');return;}
+    defs.forEach(function(d){delete S.puzzles.push[d.id];});if(S.area==='cellar')S.flags.cellarBox=false;
+    const entry=ANCHORS[S.area].entry||ANCHORS[S.area].start;S.x=entry.x;S.y=entry.y;saveGame();G.justReset=true;this.restartWorldFromAnywhere();
+  }
+  rescueToLobby(){
+    if(!S)return;S.area='lobby';S.x=ANCHORS.lobby.start.x;S.y=ANCHORS.lobby.start.y;if(S.cat!=='hotate'&&MAPS.lobby[S.y][S.x]==='n')S.cat='hotate';saveGame();G.justRescued=true;this.restartWorldFromAnywhere();
+  }
+  restartWorldFromAnywhere(){
+    const self=this;MINI_SCENES.forEach(function(k){try{self.scene.stop(k);}catch(e){}});try{this.scene.resume();}catch(e){}this.scene.restart();
+  }
+  hintPack(){
+    const q=activeQuest();
+    if(q==='q1')return {id:'q1',lines:['ロビーに だれかが いるよ','まんなかの むらさきの おばけを さがそう','しはいにん ポポの となりで、はなすボタン！'],target:{area:'lobby',x:10,y:5}};
+    if(q==='q2'&&countKind('food')<5)return {id:'q2_'+countKind('food'),lines:['キッチンの すみまで たんけんしよう','せまいみちは ほたて。はこは シャロで おせるよ','キッチンの ひかる ざいりょうを ぜんぶ ふもう'],target:findUncollectedMarker('kitchen','food','f')};
+    if(q==='q2')return {id:'q2_return',lines:['あつめたものを だれかに とどけよう','キッチンの みぎしたに コックが いるよ','コックの マロの となりで、はなすボタン！'],target:{area:'kitchen',x:15,y:10}};
+    if(q==='q3')return {id:'q3',lines:['ロビーの みぎの とびらが ひらいたよ','ダンスホールの おばけに はなしかけよう','ピンクの ルルの となりで、はなすボタン！'],target:{area:'ballroom',x:11,y:6}};
+    if(q==='q4'&&countKind('light')<3)return {id:'q4_'+countKind('light'),lines:['くらいところは ゆきが とくい','ロビーの うえから、くらやみの ろうかへ','ゆきに こうたいして、3この ひかりを ふもう'],target:findUncollectedMarker('darkhall','light','l')};
+    if(q==='q4')return {id:'q4_return',lines:['ひかりを あかりばんに とどけよう','ろうかの したのほうに ピカが いるよ','あおい ピカの となりで、はなすボタン！'],target:{area:'darkhall',x:11,y:12}};
+    if(q==='q5')return {id:'q5',lines:['ろうかの みぎに とびらが あるよ','あそびべやの ナナを さがそう','ピンクの ナナの となりで、はなすボタン！'],target:{area:'playroom',x:11,y:6}};
+    if(q==='q6')return {id:'q6',lines:['つぎは ほんが たくさん ある へや','ろうかの ひだりから としょしつへ','モジーの となりで、はなすボタン！'],target:{area:'library',x:14,y:9}};
+    if(q==='q7'&&countKind('star')<6)return {id:'q7_'+countKind('star'),lines:['ロビーの したの とびらが ひらいたよ','にわの いわは シャロ。すきまは ほたて','にわで ひかる 6この ほしを ぜんぶ ふもう'],target:findUncollectedMarker('garden','star','t')};
+    if(q==='q7')return {id:'q7_return',lines:['ほしを にわばんへ とどけよう','にわの したのほうに ハナが いるよ','あおい ハナの となりで、はなすボタン！'],target:{area:'garden',x:10,y:12}};
+    if(q==='q8')return {id:'q8_'+[S.flags.cellarBell,S.flags.cellarMoon,S.flags.cellarBox].join('_'),lines:['3びきの とくいわざを ぜんぶ つかうよ','ほたてでベル、ゆきでつき、シャロではこ','ちかしつの はこを、みぎの きんいろの しるしまで おそう'],target:{area:'cellar',x:14,y:9}};
+    return {id:'q9_'+S.flags.towerOpen,lines:S.flags.towerOpen?['ミルクの こえが うえから きこえるよ','ほしの とうを うえへ すすもう','とうの いちばん うえで ミルクに はなそう']:['7つの かぎを つかう とびらを さがそう','くらやみの ろうかの うえ、みぎの とびらへ','ほしの とうで むらさきの とびらに はなそう'],target:{area:'tower',x:10,y:S.flags.towerOpen?2:6}};
+  }
+  showHint(){
+    if(this.dialog||this.cutscene||this.minigameOpen)return;const p=this.hintPack(),n=Math.min(3,(Number(S.hints[p.id])||0)+1);S.hints[p.id]=n;saveGame();
+    if(n===3&&p.target&&p.target.area===S.area)this.showGuide(p.target.x,p.target.y);
+    this.showDialog([p.lines[n-1]],{name:'ヒント '+n+'/3'});
+  }
+  showGuide(x,y){
+    if(this.guide)this.guide.destroy();const a=this.add.text(x*TILE+16,y*TILE-2,'▼',{fontFamily:'sans-serif',fontSize:'24px',fontStyle:'bold',color:'#ffe45e',stroke:'#4d315d',strokeThickness:5}).setOrigin(.5).setDepth(108);this.guide=a;const self=this;
+    this.tweens.add({targets:a,y:a.y+10,duration:380,yoyo:true,repeat:8,onComplete:function(){if(self.guide===a)self.guide=null;a.destroy();}});
+  }
+  finishStory(){
+    const self=this;this.completeQuest('q9');S.ended=true;saveGame();this.cutscene=true;sfx('fanfare');this.cameras.main.flash(500,255,236,160);this.time.delayedCall(900,function(){self.cameras.main.fadeOut(600);self.time.delayedCall(650,function(){self.scene.start('Ending');});});
+  }
+}
+
+const LETTER_NAMES={A:'エー',B:'ビー',C:'シー',D:'ディー',E:'イー',F:'エフ',G:'ジー'};
+
+function drawPanel(scene,title,sub){
+  scene.add.rectangle(320,240,640,480,0x080711,.7);
+  scene.add.rectangle(320,240,584,414,0x292641,.98).setStrokeStyle(4,0xffe49b);
+  scene.add.text(320,58,title,{fontFamily:'sans-serif',fontSize:'25px',fontStyle:'bold',color:'#ffe57f',stroke:'#151326',strokeThickness:5}).setOrigin(.5);
+  if(sub)scene.add.text(320,91,sub,{fontFamily:'sans-serif',fontSize:'14px',color:'#d9d4f2'}).setOrigin(.5);
+}
+function choiceButton(scene,x,y,w,h,label,cb,color,textColor){
+  const bg=scene.add.rectangle(x,y,w,h,color||0x91dfbd).setStrokeStyle(3,0xffffff).setInteractive({useHandCursor:true});
+  const tx=scene.add.text(x,y,label,{fontFamily:'sans-serif',fontSize:'20px',fontStyle:'bold',align:'center',color:textColor||'#242036'}).setOrigin(.5);
+  bg.on('pointerover',function(){bg.setScale(1.035);tx.setScale(1.035);});bg.on('pointerout',function(){bg.setScale(1);tx.setScale(1);});bg.on('pointerdown',function(){audio();cb();});
+  return {bg:bg,tx:tx,cb:cb};
+}
+function shuffle(a){const b=a.slice();for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1)),t=b[i];b[i]=b[j];b[j]=t;}return b;}
+class QuizBase extends Phaser.Scene{
+  clearButtons(){(this.btns||[]).forEach(function(b){b.bg.destroy();b.tx.destroy();});this.btns=[];}
+  bindNumberKeys(){const self=this;['ONE','TWO','THREE'].forEach(function(k,i){self.input.keyboard.on('keydown-'+k,function(){if(self.btns&&self.btns[i])self.btns[i].cb();});});}
+  right(next){const self=this;if(this.busy)return;this.busy=true;sfx('ok');this.mark.setText('○').setColor('#fff0a8');this.time.delayedCall(650,function(){self.round++;next.call(self);});}
+  wrong(msg){if(this.busy)return;sfx('ng');this.mark.setText('△').setColor('#ffb3c2');this.msg.setText(msg||'だいじょうぶ。もういちど！');const self=this;this.time.delayedCall(650,function(){if(!self.busy)self.mark.setText('');});}
+  finish(text){const self=this;this.clearButtons();this.busy=true;this.mark.setText('★');this.msg.setText(text);sfx('quest');this.time.delayedCall(1100,function(){if(self.onDone)self.onDone(true);});}
+}
+
+const COLOR_DATA=[
+  {en:'RED',ja:'レッド',hex:0xe85d75,ink:'#fff'},{en:'BLUE',ja:'ブルー',hex:0x4f8ee8,ink:'#fff'},
+  {en:'YELLOW',ja:'イエロー',hex:0xf2cf52,ink:'#342e27'},{en:'GREEN',ja:'グリーン',hex:0x63bc78,ink:'#1f3327'},
+  {en:'PINK',ja:'ピンク',hex:0xf29dc1,ink:'#4c2636'},{en:'PURPLE',ja:'パープル',hex:0x9a78d1,ink:'#fff'},
+  {en:'ORANGE',ja:'オレンジ',hex:0xee914e,ink:'#472a1f'}
+];
+class ColorGameScene extends QuizBase{
+  constructor(){super('ColorGame');}
+  init(d){this.onDone=d.onDone;}
+  create(){
+    drawPanel(this,'いろの ダンス','えいごの いろを えらぼう');this.round=0;this.busy=false;this.qs=shuffle(COLOR_DATA).slice(0,5);this.btns=[];
+    this.prog=this.add.text(320,112,'',{fontFamily:'sans-serif',fontSize:'15px',color:'#b9dfff'}).setOrigin(.5);
+    this.target=this.add.text(320,170,'',{fontFamily:'sans-serif',fontSize:'32px',fontStyle:'bold',color:'#fff',stroke:'#151326',strokeThickness:6}).setOrigin(.5);
+    this.msg=this.add.text(320,224,'おなじ いろを えらんでね',{fontFamily:'sans-serif',fontSize:'17px',color:'#fff'}).setOrigin(.5);
+    this.mark=this.add.text(320,170,'',{fontFamily:'sans-serif',fontSize:'82px',fontStyle:'bold'}).setOrigin(.5).setDepth(5);this.bindNumberKeys();this.showRound();
+  }
+  showRound(){
+    if(this.round>=5){this.finish('5この いろが ひかった！');return;}this.busy=false;this.mark.setText('');this.msg.setText('おなじ いろを えらんでね');this.prog.setText((this.round+1)+' / 5');
+    const self=this,q=this.qs[this.round];this.target.setText(q.en+'（'+q.ja+'）').setColor(q.ink==='#fff'?'#ffffff':'#fff0a8');
+    const opts=shuffle([q].concat(shuffle(COLOR_DATA.filter(function(x){return x.en!==q.en;})).slice(0,2)));this.clearButtons();
+    opts.forEach(function(o,i){const cb=function(){if(o.en===q.en)self.right(self.showRound);else self.wrong('ちがう いろだね。もういちど！');};const b=choiceButton(self,150+i*170,325,148,86,o.en+'\n'+o.ja,cb,o.hex,o.ink);self.btns.push(b);});
+  }
+}
+
+const NUMBER_DATA=[
+  {n:1,en:'ONE',ja:'ワン'},{n:2,en:'TWO',ja:'ツー'},{n:3,en:'THREE',ja:'スリー'},{n:4,en:'FOUR',ja:'フォー'},{n:5,en:'FIVE',ja:'ファイブ'},
+  {n:6,en:'SIX',ja:'シックス'},{n:7,en:'SEVEN',ja:'セブン'},{n:8,en:'EIGHT',ja:'エイト'},{n:9,en:'NINE',ja:'ナイン'},{n:10,en:'TEN',ja:'テン'}
+];
+class NumberGameScene extends QuizBase{
+  constructor(){super('NumberGame');}
+  init(d){this.onDone=d.onDone;}
+  create(){
+    drawPanel(this,'かずの おへや','ONE（ワン）から TEN（テン）');this.round=0;this.busy=false;this.qs=shuffle(NUMBER_DATA).slice(0,5);this.btns=[];
+    this.prog=this.add.text(320,112,'',{fontFamily:'sans-serif',fontSize:'15px',color:'#b9dfff'}).setOrigin(.5);
+    this.target=this.add.text(320,166,'',{fontFamily:'sans-serif',fontSize:'31px',fontStyle:'bold',color:'#fff0a8',stroke:'#151326',strokeThickness:6}).setOrigin(.5);
+    this.msg=this.add.text(320,220,'どの すうじかな？',{fontFamily:'sans-serif',fontSize:'17px',color:'#fff'}).setOrigin(.5);
+    this.mark=this.add.text(320,168,'',{fontFamily:'sans-serif',fontSize:'82px',fontStyle:'bold'}).setOrigin(.5).setDepth(5);this.bindNumberKeys();this.showRound();
+  }
+  showRound(){
+    if(this.round>=5){this.finish('えいごの かず、バッチリ！');return;}this.busy=false;this.mark.setText('');this.msg.setText('どの すうじかな？');this.prog.setText((this.round+1)+' / 5');
+    const self=this,q=this.qs[this.round];this.target.setText(q.en+'（'+q.ja+'）');
+    const opts=shuffle([q].concat(shuffle(NUMBER_DATA.filter(function(x){return x.n!==q.n;})).slice(0,2)));this.clearButtons();
+    opts.forEach(function(o,i){const dots=o.n<=5?'●'.repeat(o.n):'●'.repeat(o.n-5)+'\n●●●●●';const cb=function(){if(o.n===q.n)self.right(self.showRound);else self.wrong('ゆっくり よんで、もういちど！');};const b=choiceButton(self,150+i*170,325,145,100,String(o.n)+'\n'+dots,cb,0x91dfbd,'#242036');b.tx.setFontSize(18);self.btns.push(b);});
+  }
+}
+
+class AlphabetGameScene extends QuizBase{
+  constructor(){super('AlphabetGame');}
+  init(d){this.onDone=d.onDone;}
+  create(){
+    drawPanel(this,'AからGの ほん','つぎの アルファベットを えらぼう');this.round=0;this.busy=false;this.btns=[];
+    this.prog=this.add.text(320,112,'',{fontFamily:'sans-serif',fontSize:'15px',color:'#b9dfff'}).setOrigin(.5);
+    this.target=this.add.text(320,168,'',{fontFamily:'sans-serif',fontSize:'31px',fontStyle:'bold',color:'#fff0a8',stroke:'#151326',strokeThickness:6}).setOrigin(.5);
+    this.msg=this.add.text(320,220,'つぎは どの もじ？',{fontFamily:'sans-serif',fontSize:'17px',color:'#fff'}).setOrigin(.5);
+    this.mark=this.add.text(320,168,'',{fontFamily:'sans-serif',fontSize:'82px',fontStyle:'bold'}).setOrigin(.5).setDepth(5);this.bindNumberKeys();this.showRound();
+  }
+  showRound(){
+    if(this.round>=6){this.finish('A・B・C・D・E・F・G！');return;}this.busy=false;this.mark.setText('');this.msg.setText('つぎは どの もじ？');this.prog.setText((this.round+1)+' / 6');
+    const self=this,cur=LETTERS[this.round],ans=LETTERS[this.round+1];this.target.setText(cur+'（'+LETTER_NAMES[cur]+'）の つぎは？');
+    const pool=LETTERS.filter(function(x){return x!==ans;});const opts=shuffle([ans].concat(shuffle(pool).slice(0,2)));this.clearButtons();
+    opts.forEach(function(o,i){const cb=function(){if(o===ans)self.right(self.showRound);else self.wrong('じゅんばんを みて、もういちど！');};const b=choiceButton(self,150+i*170,325,145,92,o+'\n（'+LETTER_NAMES[o]+'）',cb,0xd9c5ff,'#2a2440');self.btns.push(b);});
+  }
+}
+
+class KeyOrderScene extends Phaser.Scene{
+  constructor(){super('KeyOrder');}
+  init(d){this.onDone=d.onDone;}
+  create(){
+    const self=this;drawPanel(this,'7つの かぎ','A（エー）から G（ジー）の じゅんばん');this.next=0;this.done=false;this.btns={};
+    this.line=this.add.text(320,125,'つぎは A（エー）',{fontFamily:'sans-serif',fontSize:'21px',fontStyle:'bold',color:'#fff0a8'}).setOrigin(.5);
+    this.slots=this.add.text(320,175,'＿　＿　＿　＿　＿　＿　＿',{fontFamily:'sans-serif',fontSize:'25px',color:'#fff'}).setOrigin(.5);
+    const order=shuffle(LETTERS);
+    order.forEach(function(k,i){const row=i<4?0:1,col=i<4?i:i-4,x=(row===0?155:235)+col*110,y=270+row*92;const b=choiceButton(self,x,y,88,72,k+'\n'+LETTER_NAMES[k],function(){self.pick(k);},0xf6d465,'#4a305f');self.btns[k]=b;});
+    LETTERS.forEach(function(k){self.input.keyboard.on('keydown-'+k,function(){self.pick(k);});});
+  }
+  pick(k){
+    if(this.done)return;const want=LETTERS[this.next];
+    if(k!==want){sfx('ng');this.line.setText('いまは '+want+'（'+LETTER_NAMES[want]+'）の ばんだよ');return;}
+    sfx('open');this.btns[k].bg.disableInteractive().setAlpha(.35);this.btns[k].tx.setAlpha(.45);this.next++;
+    const shown=LETTERS.map((x,i)=>i<this.next?x:'＿').join('　');this.slots.setText(shown);
+    if(this.next>=7){this.done=true;this.line.setText('AからGまで そろった！');sfx('fanfare');const self=this;this.time.delayedCall(1200,function(){if(self.onDone)self.onDone(true);});}
+    else{const n=LETTERS[this.next];this.line.setText('つぎは '+n+'（'+LETTER_NAMES[n]+'）');}
+  }
+}
+
+class EndingScene extends Phaser.Scene{
+  constructor(){super('Ending');}
+  create(){
+    document.body.classList.remove('world-controls');
+    const self=this,W=640,H=480;document.getElementById('obj').textContent='ミルクを みつけた！ おめでとう！';document.getElementById('keys').textContent='かぎ：【A】・【B】・【C】・【D】・【E】・【F】・【G】';
+    const g=this.add.graphics();g.fillGradientStyle(0x17152b,0x17152b,0x63558e,0x63558e,1);g.fillRect(0,0,W,H);g.fillStyle(0x2b2540,1);g.fillRect(0,360,W,120);
+    for(let i=0;i<36;i++){const s=this.add.text((i*83)%W,(i*47)%320,'★',{fontFamily:'sans-serif',fontSize:i%5===0?'14px':'8px',color:'#ffe78d'}).setAlpha(.15);this.tweens.add({targets:s,alpha:.9,duration:600+(i%5)*180,yoyo:true,repeat:-1});}
+    this.add.text(320,52,'ミルクを みつけた！',{fontFamily:'sans-serif',fontSize:'34px',fontStyle:'bold',color:'#fff0a8',stroke:'#4c305d',strokeThickness:8}).setOrigin(.5);
+    this.add.text(320,98,'7つの かぎも ぜんぶ そろったよ',{fontFamily:'sans-serif',fontSize:'20px',color:'#fff',stroke:'#312641',strokeThickness:5}).setOrigin(.5);
+    LETTERS.forEach(function(k,i){const im=self.add.image(128+i*64,142,'key_'+k).setScale(1.05).setAlpha(0);self.tweens.add({targets:im,alpha:1,y:im.y-5,duration:350,delay:250+i*130,ease:'Back.out'});});
+    ['cat_sharo','cat_yuki','cat_hotate','kitten'].forEach(function(k,i){const im=self.add.image(205+i*78,267,k).setScale(k==='kitten'?2.2:2.5);self.tweens.add({targets:im,y:im.y-10,duration:520+i*90,yoyo:true,repeat:-1,ease:'Sine.inOut'});});
+    ['ghost_purple','ghost_pink','ghost_blue','ghost_yellow'].forEach(function(k,i){const im=self.add.image(100+i*145,340,k).setScale(1.6);self.tweens.add({targets:im,y:im.y-8,duration:700+i*80,yoyo:true,repeat:-1});});
+    this.add.text(320,190,'シャロ・ゆき・ほたて、ありがとう！',{fontFamily:'sans-serif',fontSize:'20px',fontStyle:'bold',color:'#f4d8ff',stroke:'#312641',strokeThickness:5}).setOrigin(.5);
+    choiceButton(this,190,418,220,72,'ホテルを たんけん',function(){S.area='lobby';S.x=ANCHORS.lobby.start.x;S.y=ANCHORS.lobby.start.y;saveGame();self.scene.start('World');},0x91dfbd,'#242036');
+    choiceButton(this,450,418,220,72,'タイトルへ もどる',function(){self.scene.start('Title');},0xff9eb1,'#4c2432');
+    this.add.text(320,472,'© 山岸産業医事務所',{fontFamily:'sans-serif',fontSize:'11px',color:'#c4bddb'}).setOrigin(.5);sfx('fanfare');
+  }
+}
+
+function setupDom(){
+  const touch=('ontouchstart'in window)||(navigator.maxTouchPoints>0);if(touch)document.body.classList.add('touch');
+  document.querySelectorAll('.pbtn').forEach(function(b){
+    const dir=b.getAttribute('data-dir');
+    b.addEventListener('pointerdown',function(e){e.preventDefault();audio();PadInput.dir=dir;try{b.setPointerCapture(e.pointerId);}catch(x){}});
+    const off=function(e){e.preventDefault();if(PadInput.dir===dir)PadInput.dir=null;};b.addEventListener('pointerup',off);b.addEventListener('pointercancel',off);b.addEventListener('pointerleave',off);
+  });
+  document.getElementById('btnA').addEventListener('pointerdown',function(e){e.preventDefault();audio();if(GEV)GEV.emit('action');});
+  document.querySelectorAll('.catbtn').forEach(function(b){b.addEventListener('click',function(){audio();if(GEV)GEV.emit('cat',b.getAttribute('data-cat'));});});
+  document.getElementById('btnHint').addEventListener('click',function(){audio();if(GEV)GEV.emit('hint');});
+  document.getElementById('btnReset').addEventListener('click',function(){audio();if(GEV)GEV.emit('reset');});
+  document.getElementById('btnTrouble').addEventListener('click',function(){audio();if(GEV)GEV.emit('rescue');});
+  const snd=document.getElementById('btnSound');snd.addEventListener('click',function(){G.soundOn=!G.soundOn;snd.textContent=G.soundOn?'おと ON':'おと OFF';if(G.soundOn){audio();sfx('ok');}});
+  window.addEventListener('blur',function(){PadInput.dir=null;});document.addEventListener('visibilitychange',function(){if(document.hidden)PadInput.dir=null;});
+  window.addEventListener('pagehide',function(){PadInput.dir=null;saveGame();});
+}
+
+if(typeof Phaser==='undefined')document.getElementById('err').style.display='block';
+else{
+  GEV=new Phaser.Events.EventEmitter();setupDom();
+  new Phaser.Game({type:Phaser.AUTO,parent:'game',width:640,height:480,backgroundColor:'#121124',pixelArt:true,render:{antialias:false,roundPixels:true},scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH},scene:[BootScene,TitleScene,WorldScene,ColorGameScene,NumberGameScene,AlphabetGameScene,KeyOrderScene,EndingScene]});
+}
+</script>
+</body>
+</html>

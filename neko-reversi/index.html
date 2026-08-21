@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#fff4d8">
+  <meta name="description" content="6×6のれんしゅうと8×8の2本先取でAIネコと遊ぶ、子ども向けリバーシです。勝つとおさかながもらえます。">
+  <title>にゃんこリバーシ くるりん大作戦！</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <noscript><p class="noscript">このゲームで遊ぶには、JavaScriptをオンにしてください。</p></noscript>
+
+  <div id="app">
+    <header class="site-header">
+      <button id="homeBtn" class="brand" type="button" aria-label="タイトルへもどる">
+        <span class="brand-paw" aria-hidden="true">🐾</span>
+        <span><b>にゃんこリバーシ</b><small>くるりん大作戦！</small></span>
+      </button>
+      <div class="header-actions">
+        <div class="fish-wallet" aria-label="あつめたおさかな">
+          <span aria-hidden="true">🐟</span><b id="fishCount">0</b><span class="fish-unit">ひき</span>
+        </div>
+        <button id="soundBtn" class="icon-button" type="button" aria-pressed="true">🔊 おと</button>
+      </div>
+    </header>
+
+    <main>
+      <section id="titleScreen" class="screen title-screen" aria-labelledby="mainTitle">
+        <div class="hero-card">
+          <div class="hero-copy">
+            <p class="eyebrow">6〜8さいごろから・ひとりであそべる</p>
+            <h1 id="mainTitle">ネコを はさんで<br><em>くるりん！</em></h1>
+            <p class="lead">AIネコとリバーシでしょうぶ。<br>勝つと、おさかなが1ぴきもらえるよ！</p>
+            <button id="rulesBtn" class="voice-rules-button" type="button">
+              <span aria-hidden="true">🔊</span>
+              <span><b>こえつきルール</b><small>ずんだもんの声で聞けます</small></span>
+            </button>
+          </div>
+          <div class="hero-scene" aria-hidden="true">
+            <div class="sun"></div>
+            <div class="cloud cloud-a"></div>
+            <div class="cloud cloud-b"></div>
+            <div class="hero-board">
+              <i></i><i></i><i class="mini-piece orange"></i><i></i>
+              <i></i><i class="mini-piece gray"></i><i class="mini-piece orange"></i><i></i>
+              <i></i><i class="mini-piece orange"></i><i class="mini-piece gray"></i><i></i>
+              <i></i><i class="paw-mark">🐾</i><i></i><i></i>
+            </div>
+            <div class="hero-cat cat-orange"><span class="ear left"></span><span class="ear right"></span><span class="face">•ᴗ•</span></div>
+            <div class="hero-cat cat-gray"><span class="ear left"></span><span class="ear right"></span><span class="face">•ω•</span></div>
+            <div class="fish-jump">🐟</div>
+          </div>
+        </div>
+
+        <div class="mode-grid" aria-label="あそびかたをえらぶ">
+          <article class="mode-card practice-card">
+            <div class="mode-number" aria-hidden="true">1</div>
+            <div class="mode-copy">
+              <p class="mode-tag">はじめてでも あんしん</p>
+              <h2>れんしゅう</h2>
+              <ul>
+                <li>6×6の小さなばん</li>
+                <li>やさしいAI・ヒントつき</li>
+                <li>1かいでおしまい</li>
+              </ul>
+              <button id="practiceBtn" class="primary-button coral" type="button">れんしゅうする <span aria-hidden="true">▶</span></button>
+            </div>
+          </article>
+
+          <article class="mode-card match-card">
+            <div class="mode-number" aria-hidden="true">2</div>
+            <div class="mode-copy">
+              <p class="mode-tag">さきに2かい勝ったら ゆうしょう</p>
+              <h2>2ほん先取</h2>
+              <ul>
+                <li>ふつうの8×8のばん</li>
+                <li>AIのつよさをえらべる</li>
+                <li>1勝ごとにおさかな1ぴき</li>
+              </ul>
+              <fieldset class="difficulty-picker">
+                <legend>AIのつよさ</legend>
+                <label><input type="radio" name="difficulty" value="easy"><span>やさしい</span></label>
+                <label><input type="radio" name="difficulty" value="normal" checked><span>ふつう</span></label>
+                <label><input type="radio" name="difficulty" value="hard"><span>つよい</span></label>
+              </fieldset>
+              <button id="matchBtn" class="primary-button teal" type="button">しょうぶする <span aria-hidden="true">▶</span></button>
+            </div>
+          </article>
+        </div>
+
+        <section class="fish-collection" aria-labelledby="collectionTitle">
+          <div>
+            <p class="eyebrow">AIに勝つともらえるよ</p>
+            <h2 id="collectionTitle">おさかなコレクション</h2>
+            <p id="fishMessage">さいしょの1ぴきを つかまえよう！</p>
+          </div>
+          <div id="fishShelf" class="fish-shelf" aria-label="あつめたおさかなのイラスト"></div>
+        </section>
+
+        <details class="credits">
+          <summary>音声・権利表記</summary>
+          <p>ネコ先生の音声：VOICEVOX:ずんだもん</p>
+          <p>VOICEVOXで事前生成した音声を使用しています。ゲーム中に外部の音声サービスへ接続しません。</p>
+          <p>案内役のネコ先生は、ずんだもんとは別のキャラクターです。</p>
+          <p>ゲーム制作：山岸産業医事務所</p>
+        </details>
+      </section>
+
+      <section id="gameScreen" class="screen game-screen" hidden aria-labelledby="gameModeTitle">
+        <div class="game-topbar">
+          <div>
+            <p id="gameModeLabel" class="eyebrow">れんしゅう</p>
+            <h1 id="gameModeTitle">6×6・1かいしょうぶ</h1>
+          </div>
+          <div id="seriesScore" class="series-score" aria-label="たいせんスコア">
+            <span class="score-player"><i class="score-cat orange" aria-hidden="true"></i>きみ <b id="humanWins">0</b></span>
+            <span class="score-divider">–</span>
+            <span class="score-player"><i class="score-cat gray" aria-hidden="true"></i>AI <b id="aiWins">0</b></span>
+          </div>
+        </div>
+
+        <div class="game-layout">
+          <aside class="game-guide" aria-label="いまのじょうたい">
+            <div id="turnCard" class="turn-card player-turn">
+              <div id="turnCat" class="turn-cat orange" aria-hidden="true"><span>•ᴗ•</span></div>
+              <div><small>いまは</small><b id="turnText">きみの ばん</b></div>
+            </div>
+            <div class="piece-counts" aria-label="コマのかず">
+              <div><i class="score-cat orange" aria-hidden="true"></i><span>きみ</span><b id="humanCount">2</b></div>
+              <div><i class="score-cat gray" aria-hidden="true"></i><span>AI</span><b id="aiCount">2</b></div>
+            </div>
+            <p id="statusMessage" class="status-message" aria-live="polite">光っている肉球においてね。</p>
+            <button id="hintBtn" class="secondary-button" type="button">✨ おすすめをみる</button>
+            <button id="gameRulesBtn" class="secondary-button" type="button">🔊 ルールをきく</button>
+          </aside>
+
+          <div class="board-area">
+            <div class="board-frame">
+              <div id="board" class="board" role="grid" aria-label="リバーシのばん"></div>
+            </div>
+            <p class="board-help"><span aria-hidden="true">🐾</span> 肉球のマスにおけます　<span aria-hidden="true">✨</span> おすすめ</p>
+          </div>
+        </div>
+
+        <div class="game-footer-actions">
+          <button id="quitBtn" class="text-button" type="button">タイトルへもどる</button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="rulesOverlay" class="overlay" hidden>
+    <section class="dialog rules-dialog" role="dialog" aria-modal="true" aria-labelledby="rulesTitle">
+      <button id="closeRulesBtn" class="dialog-close" type="button" aria-label="ルールをとじる">×</button>
+      <p class="dialog-kicker"><span aria-hidden="true">🔊</span> ネコ先生の こえつき</p>
+      <h2 id="rulesTitle">リバーシのルール</h2>
+      <div class="rule-progress" aria-label="ルールのページ">
+        <span id="ruleProgressText">1 / 5</span>
+        <div class="progress-track"><i id="ruleProgressBar"></i></div>
+      </div>
+      <div id="ruleVisual" class="rule-visual" aria-hidden="true"></div>
+      <p id="ruleSubtitle" class="rule-subtitle" aria-live="polite"></p>
+      <p id="voiceStatus" class="voice-status">音声をよみこみます</p>
+      <div class="rule-controls">
+        <button id="rulePrevBtn" class="secondary-button" type="button">◀ まえ</button>
+        <button id="ruleReplayBtn" class="secondary-button" type="button">🔊 もういちど</button>
+        <button id="ruleNextBtn" class="primary-button teal" type="button">つぎへ ▶</button>
+      </div>
+      <button id="skipRulesBtn" class="text-button" type="button">説明をとじる</button>
+      <p class="voice-credit">音声：VOICEVOX:ずんだもん</p>
+    </section>
+  </div>
+
+  <div id="resultOverlay" class="overlay" hidden>
+    <section class="dialog result-dialog" role="dialog" aria-modal="true" aria-labelledby="resultTitle">
+      <div id="resultBadge" class="result-badge" aria-hidden="true">★</div>
+      <p id="resultKicker" class="dialog-kicker">1かいめ</p>
+      <h2 id="resultTitle">きみの かち！</h2>
+      <p id="resultCounts" class="result-counts"></p>
+      <div id="fishReward" class="fish-reward" hidden>
+        <span class="reward-fish" aria-hidden="true">🐟</span>
+        <b>おさかなを 1ぴき もらった！</b>
+      </div>
+      <p id="resultMessage" class="result-message"></p>
+      <div id="resultSeries" class="result-series"></div>
+      <div class="result-actions">
+        <button id="resultPrimaryBtn" class="primary-button coral" type="button">つぎへ</button>
+        <button id="resultHomeBtn" class="secondary-button" type="button">タイトルへ</button>
+      </div>
+    </section>
+  </div>
+
+  <div id="confirmOverlay" class="overlay" hidden>
+    <section class="dialog confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+      <h2 id="confirmTitle">タイトルへ もどる？</h2>
+      <p>いまの1かいは、おわりになります。</p>
+      <div class="result-actions">
+        <button id="confirmQuitBtn" class="primary-button coral" type="button">もどる</button>
+        <button id="cancelQuitBtn" class="secondary-button" type="button">つづける</button>
+      </div>
+    </section>
+  </div>
+
+  <div id="fishBurst" class="fish-burst" aria-hidden="true"></div>
+
+  <script src="reversi-core.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>

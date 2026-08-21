@@ -1,0 +1,82 @@
+[
+  {
+    "id": "RULE_01",
+    "file": "rules_01.wav",
+    "speaker": 3,
+    "character": "ネコ先生",
+    "credit": "VOICEVOX:ずんだもん",
+    "text": "きみは茶色のネコ、エーアイは灰色のネコです。まんなかの四つのコマから始めます。"
+  },
+  {
+    "id": "RULE_02",
+    "file": "rules_02.wav",
+    "speaker": 3,
+    "character": "ネコ先生",
+    "credit": "VOICEVOX:ずんだもん",
+    "text": "相手のネコを、たて、よこ、ななめに、自分のネコではさめるところへ置きます。"
+  },
+  {
+    "id": "RULE_03",
+    "file": "rules_03.wav",
+    "speaker": 3,
+    "character": "ネコ先生",
+    "credit": "VOICEVOX:ずんだもん",
+    "text": "はさんだネコは、くるりんとひっくりかえって、自分の仲間になります。"
+  },
+  {
+    "id": "RULE_04",
+    "file": "rules_04.wav",
+    "speaker": 3,
+    "character": "ネコ先生",
+    "credit": "VOICEVOX:ずんだもん",
+    "text": "置けるところには肉球が光ります。置けるところがないときは、自動でパスします。"
+  },
+  {
+    "id": "RULE_05",
+    "file": "rules_05.wav",
+    "speaker": 3,
+    "character": "ネコ先生",
+    "credit": "VOICEVOX:ずんだもん",
+    "text": "ふたりとも置けなくなったらおしまいです。ネコが多いほうの勝ち。エーアイに勝つと、おさかなを一ぴきもらえます。"
+  },
+  {
+    "id": "PASS",
+    "file": "pass.wav",
+    "speaker": 3,
+    "character": "ネコ先生",
+    "credit": "VOICEVOX:ずんだもん",
+    "text": "置けるところがないので、パスします。つぎのネコの番です。"
+  },
+  {
+    "id": "WIN_FISH",
+    "file": "win_fish.wav",
+    "speaker": 3,
+    "character": "ネコ先生",
+    "credit": "VOICEVOX:ずんだもん",
+    "text": "やったね。エーアイに勝ちました。おさかなを一ぴきもらえます。"
+  },
+  {
+    "id": "LOSE",
+    "file": "lose.wav",
+    "speaker": 3,
+    "character": "ネコ先生",
+    "credit": "VOICEVOX:ずんだもん",
+    "text": "さいごまで、よく考えました。もういちど遊ぶと、もっと上手になります。"
+  },
+  {
+    "id": "DRAW",
+    "file": "draw.wav",
+    "speaker": 3,
+    "character": "ネコ先生",
+    "credit": "VOICEVOX:ずんだもん",
+    "text": "同じ数で引き分けです。とってもいい勝負でした。"
+  },
+  {
+    "id": "MATCH_WIN",
+    "file": "match_win.wav",
+    "speaker": 3,
+    "character": "ネコ先生",
+    "credit": "VOICEVOX:ずんだもん",
+    "text": "二かい勝って、二本先取のゆうしょうです。おめでとう。"
+  }
+]

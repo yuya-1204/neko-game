@@ -1,0 +1,102 @@
+[
+    {
+        "id":  "RULE_01",
+        "file":  "voice/rules_01.wav",
+        "speaker":  3,
+        "character":  "ネコ先生",
+        "credit":  "VOICEVOX:ずんだもん",
+        "text":  "きみは茶色のネコ、エーアイは灰色のネコです。まんなかの四つのコマから始めます。",
+        "bytes":  734252,
+        "sha256":  "ebab403774e7ea518c7107e6a3fde8e7b7c966649637c450f70ec520349c3104"
+    },
+    {
+        "id":  "RULE_02",
+        "file":  "voice/rules_02.wav",
+        "speaker":  3,
+        "character":  "ネコ先生",
+        "credit":  "VOICEVOX:ずんだもん",
+        "text":  "相手のネコを、たて、よこ、ななめに、自分のネコではさめるところへ置きます。",
+        "bytes":  715820,
+        "sha256":  "5b3a7652df8745b1e867847c0d363d5ef7fcf2061634306715673aecbbd6d3c0"
+    },
+    {
+        "id":  "RULE_03",
+        "file":  "voice/rules_03.wav",
+        "speaker":  3,
+        "character":  "ネコ先生",
+        "credit":  "VOICEVOX:ずんだもん",
+        "text":  "はさんだネコは、くるりんとひっくりかえって、自分の仲間になります。",
+        "bytes":  565292,
+        "sha256":  "6e98630c3fb7ab97b08fe6b8387ea950ba96364288751e8bcc93ee6197369aa0"
+    },
+    {
+        "id":  "RULE_04",
+        "file":  "voice/rules_04.wav",
+        "speaker":  3,
+        "character":  "ネコ先生",
+        "credit":  "VOICEVOX:ずんだもん",
+        "text":  "置けるところには肉球が光ります。置けるところがないときは、自動でパスします。",
+        "bytes":  657452,
+        "sha256":  "219b2e99f09176015266e04024ec15498b59330ac2114cbbec064e0c9a8c3eb9"
+    },
+    {
+        "id":  "RULE_05",
+        "file":  "voice/rules_05.wav",
+        "speaker":  3,
+        "character":  "ネコ先生",
+        "credit":  "VOICEVOX:ずんだもん",
+        "text":  "ふたりとも置けなくなったらおしまいです。ネコが多いほうの勝ち。エーアイに勝つと、おさかなを一ぴきもらえます。",
+        "bytes":  888876,
+        "sha256":  "e7c4ccb233ebe64e4e5de048a7bdb5b35f0174f3359aad0420da4bbbb98fc926"
+    },
+    {
+        "id":  "PASS",
+        "file":  "voice/pass.wav",
+        "speaker":  3,
+        "character":  "ネコ先生",
+        "credit":  "VOICEVOX:ずんだもん",
+        "text":  "置けるところがないので、パスします。つぎのネコの番です。",
+        "bytes":  499756,
+        "sha256":  "a1da7d9412ad65152eb696a0c245ca3b8e6cf3506d848ab3d0bf6044a547eb92"
+    },
+    {
+        "id":  "WIN_FISH",
+        "file":  "voice/win_fish.wav",
+        "speaker":  3,
+        "character":  "ネコ先生",
+        "credit":  "VOICEVOX:ずんだもん",
+        "text":  "やったね。エーアイに勝ちました。おさかなを一ぴきもらえます。",
+        "bytes":  519212,
+        "sha256":  "0f941543fe49e8402eb2257ba1fdd3d9a637dc43571e9a11a400d2cb2953c4ae"
+    },
+    {
+        "id":  "LOSE",
+        "file":  "voice/lose.wav",
+        "speaker":  3,
+        "character":  "ネコ先生",
+        "credit":  "VOICEVOX:ずんだもん",
+        "text":  "さいごまで、よく考えました。もういちど遊ぶと、もっと上手になります。",
+        "bytes":  631852,
+        "sha256":  "8c332136a79b7f00d23ed4e06ae8013cf1065384c25397512bc07287e07e72ad"
+    },
+    {
+        "id":  "DRAW",
+        "file":  "voice/draw.wav",
+        "speaker":  3,
+        "character":  "ネコ先生",
+        "credit":  "VOICEVOX:ずんだもん",
+        "text":  "同じ数で引き分けです。とってもいい勝負でした。",
+        "bytes":  417836,
+        "sha256":  "02e1c09b33fa970ee94699e3ba03a62cd24c409ff496f27d5bf66ec87137fe16"
+    },
+    {
+        "id":  "MATCH_WIN",
+        "file":  "voice/match_win.wav",
+        "speaker":  3,
+        "character":  "ネコ先生",
+        "credit":  "VOICEVOX:ずんだもん",
+        "text":  "二かい勝って、二本先取のゆうしょうです。おめでとう。",
+        "bytes":  459820,
+        "sha256":  "e6fbc4d7790f5ae3bbe5c3ba64eba7df532cb599eeca2e2d0e9f66d6238f459e"
+    }
+]

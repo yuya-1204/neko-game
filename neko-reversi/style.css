@@ -366,6 +366,7 @@ main { padding: 0 max(14px, env(safe-area-inset-right)) max(28px, env(safe-area-
   --size: 8;
   display: grid;
   grid-template-columns: repeat(var(--size), minmax(0, 1fr));
+  grid-template-rows: repeat(var(--size), minmax(0, 1fr));
   width: 100%;
   aspect-ratio: 1;
   overflow: hidden;
@@ -566,6 +567,10 @@ main { padding: 0 max(14px, env(safe-area-inset-right)) max(28px, env(safe-area-
   .voice-status { margin-bottom: 7px; }
   .rules-dialog > .text-button { min-height: 38px; margin-top: 4px; }
   .voice-credit { margin-top: 4px; }
+}
+
+@media (max-height: 760px) and (min-width: 761px) {
+  .board-frame { width: min(54vh, 480px); }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#f8f3e7">
+  <title>はこねこ大実験｜にゃんこ発明ラボ2</title>
+  <meta name="description" content="さか、ばね、かぜ、ぽんぽん。じぶんのしかけで毛糸玉をネコにとどけよう！18の実験と自由工作。無料・スマホ対応・VOICEVOX:ずんだもん。">
+  <meta property="og:title" content="にゃんこ発明ラボ2 — はこねこ大実験">
+  <meta property="og:description" content="ころがる。はずむ。ひらめく！ ネコとつくる、じぶんだけのしかけ。">
+  <meta property="og:image" content="https://yuya-1204.github.io/neko-game/hakoneko-lab/screenshot.png">
+  <link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+  <header class="site-header">
+    <button id="home" class="brand" aria-label="はこねこ大実験のホーム"><span class="brand-mark">▰<i>●</i></span><span><small>にゃんこ発明ラボ 2</small><strong>はこねこ大実験</strong></span></button>
+    <nav aria-label="ゲームのメニュー"><button id="albumBtn" class="quiet">✦ <span>きろく</span></button><button id="soundBtn" class="quiet" aria-label="音の設定">♫ <span>おと</span></button><button id="helpBtn" class="quiet">？ <span>あそびかた</span></button></nav>
+  </header>
+
+  <main id="homeScreen" class="home-screen">
+    <div class="hero-copy"><div class="eyebrow"><span></span> ネコとつくる、ひらめきの工房</div><h1>ころがる。<br>はずむ。<em>ひらめく！</em></h1><p>ちょっと かたむけたら、どうなる？<br>きみの しかけで、けいとだまを とどけよう。</p><div class="hero-actions"><button id="startBtn" class="primary jumbo">じっけんを はじめる <span>→</span></button><button id="sandboxBtn" class="secondary">✂ じゆうに つくる</button></div><div class="hero-note">6さいごろから · ひとりで／おやこで · むりょう</div></div>
+    <div class="hero-art"><canvas id="heroCanvas" width="960" height="660" aria-label="シャロ、ゆき、ほたてと、毛糸玉が転がる手作りの発明工房"></canvas><div class="art-stamp">せいかいは<br><b>ひとつじゃない。</b><span>✧</span></div></div>
+    <div class="home-bottom"><div><b>01 — つくる</b><span>どうぐを おいて、むきを かえる。</span></div><div><b>02 — ためす</b><span>ころがりかたを、よく みよう。</span></div><div><b>03 — ひらめく</b><span>なんどでも、すぐ やりなおせる。</span></div></div>
+    <div class="home-progress"><span id="homeProgress">18のじっけんが まっているよ</span><button id="stagesBtn" class="text-button">じっけんを えらぶ →</button></div>
+  </main>
+
+  <main id="gameScreen" class="game-screen" hidden>
+    <div class="stage-header"><button id="mapBtn" class="back-button" aria-label="実験を選ぶ">‹</button><div><span id="chapterLabel" class="eyebrow">01 / こもれび工房</span><h1 id="stageTitle">はじめての ころころ</h1></div><div class="stage-meta"><span id="starCount" aria-label="集めた星">☆ ☆ ☆</span><button id="saveBtn" class="quiet" hidden>▣ ほぞん</button><button id="fullscreenBtn" class="quiet" aria-label="全画面にする">⛶</button></div></div>
+    <div class="workbench">
+      <section class="board-column" aria-label="実験台">
+        <div id="mission" class="mission"><span>◎</span><p id="missionText">けいとだまを ネコのはこに とどけよう。</p><button id="readBtn" aria-label="案内をもう一度聞く">♫</button></div>
+        <div id="canvasWrap" class="canvas-wrap"><canvas id="gameCanvas" width="960" height="540" tabindex="0" aria-label="実験台。道具をタップで選び、ドラッグか矢印ボタンで移動できます。"></canvas><div id="modePill" class="mode-pill">✂ つくるじかん</div><div id="runStatus" class="run-status" hidden></div></div>
+        <div class="transport"><div class="transport-left"><button id="undoBtn" class="square" aria-label="ひとつ戻す">↶</button><button id="redoBtn" class="square" aria-label="ひとつ進める">↷</button><button id="traceBtn" class="quiet" aria-pressed="true">⋯ <span>あしあと ON</span></button></div><button id="runBtn" class="primary run-button">▶ ころがす</button><button id="rewindBtn" class="secondary" disabled>↶ まきもどす</button></div>
+        <div id="subtitle" class="subtitle" role="status" aria-live="polite"><span class="voice-dot">♪</span><span id="subtitleText">どうぐを えらんで、じっけんだいに おこう。</span></div>
+      </section>
+      <aside class="toolbox" aria-label="道具箱">
+        <div class="toolbox-heading"><h2>どうぐばこ</h2><span id="toolCount">0こ</span></div><div id="toolButtons" class="tool-grid"></div>
+        <p id="toolInstruction" class="tool-instruction">どうぐを おすと、だいの上に おけるよ。</p>
+        <div id="selectionPanel" class="selection-panel" hidden><div class="selection-top"><strong id="selectedName">さか</strong><button id="deleteBtn" class="text-button" aria-label="選んだ道具を片付ける">かたづける ×</button></div><div class="angle-row"><button id="rotateLeft" class="square" aria-label="左に15度回す">↶</button><span id="angleLabel">かたむき 0°</span><button id="rotateRight" class="square" aria-label="右に15度回す">↷</button></div><input id="angleSlider" type="range" min="-180" max="180" step="5" value="0" aria-label="道具の角度"><div class="nudge-row"><span>すこし うごかす</span><button data-nudge="-8,0" aria-label="左へ">←</button><button data-nudge="0,-8" aria-label="上へ">↑</button><button data-nudge="0,8" aria-label="下へ">↓</button><button data-nudge="8,0" aria-label="右へ">→</button></div></div>
+        <div class="help-card"><span class="help-spark">✦</span><div><b>ひらめきの たね</b><p id="hintText">こまったら、ヒントを みてみよう。</p></div><button id="hintBtn" class="secondary small">ヒント</button></div>
+        <button id="exampleBtn" class="text-button example-button" hidden>おてほんを おいてみる</button>
+        <div id="sandboxOptions" class="sandbox-options" hidden><label>けしき <select id="themeSelect"><option value="0">こもれび工房</option><option value="1">そよかぜの庭</option><option value="2">星あかりの屋根裏</option></select></label><p>毛糸玉と ネコのはこも、ドラッグで うごかせるよ。</p><button id="loadBtn" class="secondary small">ほぞんした さくひん</button></div>
+      </aside>
+    </div>
+  </main>
+  <footer><span>山岸産業医事務所</span><span>音声：VOICEVOX:ずんだもん</span><button id="creditsBtn" class="text-button">このゲームについて</button></footer>
+</div>
+
+<dialog id="modal"><div id="modalContent"></div><button id="closeModal" class="modal-close" aria-label="閉じる">×</button></dialog>
+<div id="toast" class="toast" role="status" hidden></div>
+<noscript>このゲームにはJavaScriptが必要です。ブラウザのJavaScriptを有効にしてください。</noscript>
+<script type="module" src="app.js"></script>
+</body></html>

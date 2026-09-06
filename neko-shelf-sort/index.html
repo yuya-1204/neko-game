@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#faf5e9">
+  <title>にゃんこ棚のおかたづけ｜3つで、すっきり！</title>
+  <meta name="description" content="飲み物、おもちゃ、お菓子、ぬいぐるみ、お花。同じものを棚に3つそろえて、すっきり！24ステージと時間なしの練習。VOICEVOX:ずんだもんの案内つき。">
+  <meta property="og:title" content="にゃんこ棚のおかたづけ｜3つで、すっきり！"><meta property="og:image" content="https://yuya-1204.github.io/neko-game/neko-shelf-sort/screenshot.png">
+  <link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+  <header class="topbar"><button id="homeBtn" class="brand" aria-label="ホームに戻る"><span class="brand-cat" aria-hidden="true">▾<i>••</i></span><span><small>シャロ・ゆき・ほたての</small><strong>にゃんこ棚のおかたづけ</strong></span></button><nav aria-label="メニュー"><button id="collectionBtn" class="icon-button" aria-label="小物ずかん">▦<span>ずかん</span></button><button id="soundBtn" class="icon-button" aria-label="音の設定">♫<span>おと</span></button><button id="helpBtn" class="icon-button" aria-label="あそびかた">？<span>あそびかた</span></button></nav></header>
+
+  <main id="homeScreen" class="home-screen">
+    <section class="hero-copy"><div class="eyebrow"><span></span> ネコたちの、ちいさなおみせ。</div><h1>3つそろうと、<br>なんだか、<br><em>うれしい。</em></h1><p class="hero-description">お気に入りを ならべて、すっきり。<br>たなの おくには、つぎの おたのしみ。</p><div class="hero-actions"><button id="startBtn" class="primary large">おみせを ひらく <span>→</span></button><button id="practiceBtn" class="outline">☀ じかんなしで れんしゅう</button></div><p class="fine-print">6さいごろから · むりょう · スマホでも あそべるよ</p></section>
+    <div id="heroArt" class="hero-art" aria-label="3びきのネコと小物がならんだかわいいお店"></div>
+    <section class="home-strip" aria-label="あそびの流れ"><div><b>01 <span>えらぶ</span></b><p>てまえの しなものを タップ。</p></div><div><b>02 <span>ならべる</span></b><p>あいている ばしょへ。</p></div><div><b>03 <span>すっきり！</span></b><p>おなじ たなに、おなじものを3つ。</p></div></section>
+    <div class="home-progress"><span id="homeProgress">24のおみせが まっているよ</span><button id="stageSelectBtn" class="text-button">ステージを えらぶ →</button></div>
+  </main>
+
+  <main id="gameScreen" class="game-screen" hidden>
+    <div class="game-heading"><button id="mapBtn" class="round-button" aria-label="ステージを選ぶ">‹</button><div><span id="chapterLabel" class="eyebrow">01 / こもれびのおみせ</span><h1 id="stageTitle">はじめての おかたづけ</h1></div><div class="timer" id="timerBox"><span id="timerLabel">のこりじかん</span><strong id="timer">2:00</strong><div class="timer-track"><i id="timerFill"></i></div></div></div>
+    <div class="shop-awning" aria-hidden="true"></div>
+    <section class="shop" aria-label="品物の棚">
+      <div class="shop-status"><span><i class="status-dot"></i> <b id="modeLabel">おかたづけタイム</b></span><div><span id="leftCount">あと 0こ</span><span id="emptyCount">あき 0</span></div></div>
+      <div id="board" class="board" aria-label="見える品物と空いている場所"></div>
+      <div class="shop-bottom"><span id="selectionText" role="status">しなものを おして、あいた ばしょへ。</span><span id="moveCount">0 て</span></div>
+    </section>
+    <div class="game-controls"><button id="undoBtn" class="outline" disabled><b>↶</b><span>1て もどす <small id="undoCount">3</small></span></button><button id="hintBtn" class="outline"><b>✧</b><span>ヒント <small id="hintCount">3</small></span></button><button id="pauseBtn" class="outline"><b>Ⅱ</b><span>ひとやすみ</span></button><button id="retryBtn" class="outline"><b>↻</b><span>やりなおす</span></button></div>
+    <div class="cat-guide"><div id="guideCat" aria-hidden="true"></div><div><span class="guide-label">おみせから ひとこと</span><p id="subtitle" role="status" aria-live="polite">おなじものを、3つ そろえるのだ！</p></div><button id="repeatBtn" class="round-button" aria-label="説明をもう一度聞く">♫</button></div>
+  </main>
+  <footer><span>山岸産業医事務所</span><span>音声：VOICEVOX:ずんだもん</span><button id="creditsBtn" class="text-button">このゲームについて</button></footer>
+</div>
+<dialog id="modal"><div id="modalContent"></div><button id="closeModal" class="modal-close" aria-label="閉じる">×</button></dialog>
+<div id="toast" class="toast" role="status" hidden></div><div id="celebration" class="celebration" aria-hidden="true"></div>
+<noscript>このゲームにはJavaScriptが必要です。</noscript>
+<script type="module" src="app.js"></script>
+</body></html>

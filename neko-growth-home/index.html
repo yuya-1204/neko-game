@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f7f2e8">
+  <meta name="description" content="同じネコを合わせて進化！おひっこしとおさかなフィーバーで、自分だけのネコのおうちを育てる無料ブラウザパズル。時間制限なし。スマホ・タブレット・PC対応。">
+  <meta property="og:title" content="ネコ成長パズル2｜ひみつのネコのおうち">
+  <meta property="og:description" content="合わせて、そだてて、おひっこし。集めたネコがおうちで暮らす、やさしい進化パズル。">
+  <meta property="og:image" content="https://yuya-1204.github.io/neko-game/neko-growth-home/screenshot.png">
+  <meta property="og:type" content="website">
+  <title>ネコ成長パズル2｜ひみつのネコのおうち</title>
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="page-shell">
+  <header class="masthead">
+    <a class="brand" href="./" aria-label="ネコ成長パズル2 タイトルへ"><span class="brand-mark" aria-hidden="true">🐾</span><span><span class="series">ネコ成長パズル <b>2</b></span><h1>ひみつのネコのおうち</h1></span></a>
+    <nav class="header-tools" aria-label="ゲームのメニュー">
+      <button id="soundBtn" class="icon-button" aria-label="音を消す" aria-pressed="true"><span aria-hidden="true">♫</span><small>おと ON</small></button>
+      <button id="bookBtn" class="icon-button" aria-label="ネコずかんを開く"><span aria-hidden="true">▤</span><small>ずかん</small></button>
+      <button id="helpBtn" class="icon-button" aria-label="あそびかたを開く"><span aria-hidden="true">?</span><small>あそびかた</small></button>
+    </nav>
+  </header>
+  <main id="game">
+    <section class="mission" aria-labelledby="missionTitle">
+      <div id="requestCat" class="request-cat" aria-hidden="true"></div>
+      <div class="mission-copy"><div class="eyebrow" id="missionTitle">おうちからの おねがい</div><div id="requestText">ネコに あいにきてもらおう</div><div id="requestHint" class="muted">おなじネコを あわせて そだてよう</div></div>
+      <button id="adoptBtn" class="primary adopt-button" disabled>おひっこし <span aria-hidden="true">→</span></button>
+    </section>
+    <div class="play-grid">
+      <section class="puzzle-panel" aria-label="ネコを育てるパズル">
+        <div class="panel-title"><h2>あわせて、そだてよう。</h2><div class="score"><span>スコア</span><b id="score">0</b><small>ベスト <span id="best">0</span></small></div></div>
+        <div id="boardWrap" class="board-wrap">
+          <div id="board" class="board" role="group" tabindex="0" aria-label="4行4列のネコパズル。矢印キーかスワイプで動かします"></div>
+          <div id="introHint" class="intro-hint" hidden><span>←　→</span>ゆびで スーッと うごかそう</div>
+        </div>
+        <div id="feverPanel" class="fever-panel">
+          <div class="fever-label"><span aria-hidden="true">🐟</span><b id="feverTitle">おさかなフィーバー</b><span id="feverCount">0 / 6</span></div>
+          <div class="fever-track" role="progressbar" aria-label="おさかなフィーバー" aria-valuemin="0" aria-valuemax="6" aria-valuenow="0"><div id="feverFill"></div></div>
+          <p id="feverHint">6かい がったいすると、つぎは 2だん しんか！</p>
+        </div>
+        <div class="board-tools">
+          <button id="undoBtn" class="soft-button" disabled><span aria-hidden="true">↶</span> 1て もどす</button>
+          <div class="direction-pad" aria-label="方向ボタン"><button data-dir="left" aria-label="左へ動かす">←</button><button data-dir="up" aria-label="上へ動かす">↑</button><button data-dir="down" aria-label="下へ動かす">↓</button><button data-dir="right" aria-label="右へ動かす">→</button></div>
+        </div>
+        <p class="board-note" id="boardNote">スワイプ・矢印キー・矢印ボタンで あそべるよ</p>
+      </section>
+      <aside class="home-panel" aria-label="集めたネコのおうち">
+        <div class="home-title"><div><div class="eyebrow">MY LITTLE CAT HOME</div><h2>みんなのおうち</h2></div><span class="resident-badge"><b id="residentCount">0</b> ひき</span></div>
+        <div id="room" class="room"><div id="roomArt" class="room-art"></div><div id="roomCats" class="room-cats"></div><p id="emptyHome" class="empty-home">さいしょの おともだちを<br>むかえよう。</p><div id="petBubble" class="pet-bubble" role="status"></div></div>
+        <div class="home-caption"><span class="little-heart" aria-hidden="true">♥</span><p id="homeCaption">おひっこしすると、ここで くらしはじめるよ。</p></div>
+        <div class="furniture-card"><div><span class="eyebrow">つぎの おたのしみ</span><b id="furnitureName">おひるねボックス</b></div><span id="furnitureCount">あと 2ひき</span><div class="furniture-track"><div id="furnitureFill"></div></div></div>
+        <div class="collection-heading"><h3>ネコの せいちょう</h3><button id="allCatsBtn" class="text-button">ずかんを みる →</button></div>
+        <div id="catTrail" class="cat-trail" aria-label="見つけたネコ"></div>
+        <div class="home-bottom"><span id="saveStatus">● つづきは じどうで ほぞん</span><button id="newBtn" class="text-button">あたらしい パズル</button></div>
+      </aside>
+    </div>
+    <div id="announcement" class="announcement" role="status" aria-live="polite" aria-atomic="true">おなじネコを あわせて、ちいさなおうちを そだてよう。</div>
+  </main>
+  <footer><span>じかんを きにせず、のんびり あそぼう。</span><a href="https://yamayu-sangyoui-oyama.localinfo.jp/pages/9869339/page_202607060244" target="_blank" rel="noopener">ほかの ネコゲーム ↗</a></footer>
+</div>
+<div id="particles" class="particles" aria-hidden="true"></div>
+<dialog id="modal" aria-labelledby="modalTitle"><div class="dialog-inner"><button id="closeModal" class="close-modal" aria-label="閉じる">×</button><div id="modalContent"></div></div></dialog>
+<noscript>このゲームを遊ぶには、ブラウザのJavaScriptを有効にしてください。</noscript>
+<script type="module" src="app.mjs"></script>
+</body>
+</html>

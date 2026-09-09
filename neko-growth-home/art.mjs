@@ -4,12 +4,12 @@ export const CATS = Object.freeze([
   { name: 'こねこ', color: '#f3c994', short: 'こねこ' },
   { name: 'わかねこ', color: '#abc5cc', short: 'わかねこ' },
   { name: 'おとなねこ', color: '#e5b68c', short: 'おとな' },
-  { name: 'ふわねこ', color: '#e5d6e6', short: 'ふわ' },
+  { name: 'ほたて', color: '#e5d6e6', short: 'ほたて' },
   { name: 'はなねこ', color: '#eeb9be', short: 'はな' },
-  { name: 'ほしねこ', color: '#859bc5', short: 'ほし' },
+  { name: 'ゆき', color: '#859bc5', short: 'ゆき' },
   { name: 'つきねこ', color: '#beb4dc', short: 'つき' },
   { name: 'にじねこ', color: '#b7d9c1', short: 'にじ' },
-  { name: 'おうかんねこ', color: '#eccc76', short: 'おうかん' },
+  { name: 'シャロ', color: '#eccc76', short: 'シャロ' },
   { name: 'ねこかみさま', color: '#9dd5c6', short: 'かみさま' },
 ]);
 
